@@ -4,18 +4,24 @@ reset
 	sei
 
 	lds	#$ef
+	bsr test01
+	bra	reset
 
-	ldab	#0
-loop
-	ldaa	$e607
-	anda	#$1
-	cmpa	#0
-	beq	loop
-	ldaa	$e606
+test01
+	lda	#$00
+	bsr	setleds
+test02
+	inca
+	bsr	setleds
+	cmpa	#$00
+	bne	test02
+
+	rts
+setleds
+	staa	$e600
+	staa	$e601
 	staa	$e602
-	incb
-	stab	$e600
-	bra	loop
+	rts
 ;----
 ;----
 vec_trap proc

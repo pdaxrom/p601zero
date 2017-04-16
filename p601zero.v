@@ -1,31 +1,46 @@
 module p601zero (
 	input clk_in,
-	input b_step,
 	input b_reset,
-	input b_mode,
+//	input b_step,
+//	input b_mode,
 	
-	input [3:0] sw,
+	input  [3:0] switches,
+	input  [2:0] keys,
 	output [8:0] seg_led_h,
 	output [8:0] seg_led_l,
 	output [7:0] leds,
 	output [2:0] rgb1,
-	output [2:0] rgb2
+	output [2:0] rgb2,
+	
+	input rxd,
+	output txd
 );
 	reg [7:0] time_sec;
-	
-	parameter CLK_DIV_PERIOD = 12000000;
-	
+	parameter CPU_CLOCK = 4000000;
+
+	parameter OSC_CLOCK = 12000000;
+
+	parameter CLK_DIV_PERIOD = 3;
+
+	parameter IRQ_DIV_PERIOD = OSC_CLOCK / 50 / 2; // 50 HZ -> clk / 50 / 2= 12000000 / 50 / 2;
+	parameter UART_BAUD = 9600;
+
 	reg [24:0] cnt;
 	reg clk_div = 0;
 	
+	reg [24:0] cnt_irq;
+	reg clk_div_irq = 0;
+	
 	reg [1:0] seg_mode = 0;
 	
-	reg [7:0] seg_byte;
+	wire [7:0] seg_byte;
 	
 	reg led_pow_h = 0;
 	reg led_pow_l = 1;
 
-//
+/*
+	CPU related
+ */
 
 	reg sys_clk = 0;
 	reg sys_res = 1;
@@ -44,29 +59,29 @@ module p601zero (
 	begin
 		if (cnt == (CLK_DIV_PERIOD - 1)) cnt <= 0;
 		else cnt <= cnt + 1'b1;
-		if (cnt < (CLK_DIV_PERIOD>>1)) clk_div <= 0;
+		if (cnt < (CLK_DIV_PERIOD >> 1)) clk_div <= 0;
 		else clk_div <= 1'b1;
 			
-		if ((cnt % (CLK_DIV_PERIOD / 64)) == 0)
+		if (cnt_irq == (IRQ_DIV_PERIOD - 1)) cnt_irq <= 0;
+		else cnt_irq <= cnt_irq + 1'b1;
+		if (cnt_irq < (IRQ_DIV_PERIOD >> 1)) clk_div_irq <= 0;
+		else clk_div_irq <= 1'b1;
+
+
+		if (cnt_irq[0] == 0)
 		begin
 			led_pow_h <= !led_pow_h;
 			led_pow_l <= !led_pow_l;
 		end
 	end
 
-	always @ (posedge clk_div)
-	begin
-//		if (!b_reset) time_sec <= 0;
-//		else time_sec <= time_sec + 1'b1;
-		//x <= data;
-	end
-
+/*
 	always @ (posedge b_mode)
 	begin
 		seg_mode <= seg_mode + 2'b01;
 	end
-
-	always @ (posedge b_step or negedge b_reset)
+ */
+	always @ (posedge clk_div or negedge b_reset)
 	begin
 		if (!b_reset) begin
 			sys_res <= 1;
@@ -91,6 +106,7 @@ module p601zero (
 	assign seg_led_l[7] = seg_mode[1];
 //	assign seg_led_l[7] = sys_clk;
 
+/*
 	always @*
 	begin
 		case(seg_mode)
@@ -100,7 +116,8 @@ module p601zero (
 		2'b11: seg_byte <= DO;
 		endcase;
 	end
-	
+ */
+ 
 	segled segled_h(
 		.nibble (seg_byte[7:4]),
 		.segs (seg_led_h[6:0])
@@ -134,18 +151,22 @@ module p601zero (
 
 	wire en_superio = (AD[15:8] == 8'b11100110);
 	wire [7:0] superiod;
-	simpleio superio (
+	simpleio #(CPU_CLOCK, UART_BAUD) superio (
 		.clk(sys_clk),
+		.rst(sys_res),
 		.Address(AD[3:0]),
 		.DI(DO),
 		.DO(superiod),
 		.rw(sys_rw),
 		.cs(en_superio),
 		.leds(leds),
+		.hex_disp(seg_byte),
 		.rgb1(rgb1),
 		.rgb2(rgb2),
-		.sw(sw),
-		.key(4'b1111)
+		.switches(switches),
+		.keys(keys),
+		.rxd(rxd),
+		.txd(txd)
 	);
 
 	chipsel adsel (

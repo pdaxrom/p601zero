@@ -5,16 +5,10 @@ reset
 
 	lds	#$ef
 
-	ldab	#0
 loop
-	ldaa	$e607
-	anda	#$1
-	cmpa	#0
-	beq	loop
-	ldaa	$e606
+	ldaa	$e604
+	staa	$e600
 	staa	$e602
-	incb
-	stab	$e600
 	bra	loop
 ;----
 ;----
