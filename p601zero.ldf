@@ -33,6 +33,9 @@
         <Source name="p601zero.lpf" type="Logic Preference" type_short="LPF">
             <Options/>
         </Source>
+        <Source name="progr.xcf" type="Programming Project File" type_short="Programming">
+            <Options/>
+        </Source>
     </Implementation>
     <Strategy name="Strategy1" file="p601zero1.sty"/>
 </BaliProject>

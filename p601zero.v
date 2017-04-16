@@ -16,20 +16,22 @@ module p601zero (
 	output txd
 );
 	reg [7:0] time_sec;
-	parameter CPU_CLOCK = 1000000;
+	parameter OSC_CLOCK = 12000000;
 
-	parameter OSC_CLOCK = 12000000;
+	parameter CPU_CLOCK = 2000000;
 
-	parameter CLK_DIV_PERIOD = 3;
+	parameter RTC_CLOCK = 50;
 
-	parameter IRQ_DIV_PERIOD = OSC_CLOCK / 50 / 2; // 50 HZ -> clk / 50 / 2= 12000000 / 50 / 2;
-	parameter UART_BAUD = 4800;
+	parameter UART_BAUD = 4800;
 
-	reg [24:0] cnt;
-	reg clk_div = 0;
+	parameter CLK_DIV_PERIOD = (OSC_CLOCK / CPU_CLOCK) / 2;
+
+	parameter RTC_DIV_PERIOD = (OSC_CLOCK / RTC_CLOCK) / 2;
+
+	reg [24:0] sys_cnt;
 	
-	reg [24:0] cnt_irq;
-	reg clk_div_irq = 0;
+	reg [24:0] rtc_cnt;
+	reg rtc_clk = 0;
 	
 	reg [1:0] seg_mode = 0;
 	
@@ -57,27 +59,17 @@ module p601zero (
 
 	always @ (posedge clk_in)
 	begin
+		if (sys_cnt == (CLK_DIV_PERIOD - 1)) begin
+			sys_clk <= !sys_clk;
+			sys_cnt <= 0;
+		end else sys_cnt <= sys_cnt + 1'b1;
 
-/*
-		if (cnt == (CLK_DIV_PERIOD - 1)) cnt <= 0;
-		else cnt <= cnt + 1'b1;
-		if (cnt < (CLK_DIV_PERIOD >> 1)) clk_div <= 0;
-		else clk_div <= 1'b1;
- */
-		if (cnt == (CLK_DIV_PERIOD - 1)) begin
-			clk_div <= !clk_div;
-			cnt <= 0;
-		end else cnt <= cnt + 1'b1;
+		if (rtc_cnt == (RTC_DIV_PERIOD - 1)) begin
+			rtc_clk <= !rtc_clk;
+			rtc_cnt <= 0;
+		end else rtc_cnt <= rtc_cnt + 1'b1;
 
-
-
-		if (cnt_irq == (IRQ_DIV_PERIOD - 1)) cnt_irq <= 0;
-		else cnt_irq <= cnt_irq + 1'b1;
-		if (cnt_irq < (IRQ_DIV_PERIOD >> 1)) clk_div_irq <= 0;
-		else clk_div_irq <= 1'b1;
-
-
-		if (cnt_irq[0] == 0)
+		if (rtc_clk == 0)
 		begin
 			led_pow_h <= !led_pow_h;
 			led_pow_l <= !led_pow_l;
@@ -90,7 +82,7 @@ module p601zero (
 		seg_mode <= seg_mode + 2'b01;
 	end
  */
-	always @ (posedge clk_div or negedge b_reset)
+	always @ (posedge sys_clk or negedge b_reset)
 	begin
 		if (!b_reset) begin
 			sys_res <= 1;
@@ -101,10 +93,10 @@ module p601zero (
 			
 			sys_res_delay = 3'b100;
 		end else begin
-			sys_clk <= !sys_clk;
-			
-			if (sys_res_delay == 3'b000) sys_res <= 0;
-			else sys_res_delay <= sys_res_delay - 3'b001;
+			if (sys_res_delay == 3'b000) begin
+				sys_res <= 0;
+				sys_irq <= rtc_clk;
+			end else sys_res_delay <= sys_res_delay - 3'b001;
 		end
 	end
 

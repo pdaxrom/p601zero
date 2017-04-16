@@ -5,16 +5,12 @@ reset
 
 	lds	#$ef
 
-	ldab	#0
+	clr	$10
+
+	cli
 loop
-	ldaa	$e607
-	anda	#$1
-	cmpa	#0
-	beq	loop
-	ldaa	$e606
+	ldaa	$e604
 	staa	$e602
-	incb
-	stab	$e600
 	bra	loop
 ;----
 ;----
@@ -39,6 +35,9 @@ vec_icf	proc
 	endp
 
 vec_irq	proc
+	ldaa	$10
+	staa	$e600
+	inc	$10
 	rti
 	endp
 
