@@ -16,14 +16,14 @@ module p601zero (
 	output txd
 );
 	reg [7:0] time_sec;
-	parameter CPU_CLOCK = 4000000;
+	parameter CPU_CLOCK = 1000000;
 
 	parameter OSC_CLOCK = 12000000;
 
 	parameter CLK_DIV_PERIOD = 3;
 
 	parameter IRQ_DIV_PERIOD = OSC_CLOCK / 50 / 2; // 50 HZ -> clk / 50 / 2= 12000000 / 50 / 2;
-	parameter UART_BAUD = 9600;
+	parameter UART_BAUD = 4800;
 
 	reg [24:0] cnt;
 	reg clk_div = 0;
@@ -57,11 +57,20 @@ module p601zero (
 
 	always @ (posedge clk_in)
 	begin
+
+/*
 		if (cnt == (CLK_DIV_PERIOD - 1)) cnt <= 0;
 		else cnt <= cnt + 1'b1;
 		if (cnt < (CLK_DIV_PERIOD >> 1)) clk_div <= 0;
 		else clk_div <= 1'b1;
-			
+ */
+		if (cnt == (CLK_DIV_PERIOD - 1)) begin
+			clk_div <= !clk_div;
+			cnt <= 0;
+		end else cnt <= cnt + 1'b1;
+
+
+
 		if (cnt_irq == (IRQ_DIV_PERIOD - 1)) cnt_irq <= 0;
 		else cnt_irq <= cnt_irq + 1'b1;
 		if (cnt_irq < (IRQ_DIV_PERIOD >> 1)) clk_div_irq <= 0;
