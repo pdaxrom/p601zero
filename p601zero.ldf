@@ -27,7 +27,13 @@
         <Source name="mcu_rom.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="async.v" type="Verilog" type_short="Verilog">
+        <Source name="uart_rx.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
+        <Source name="uart_tx.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
+        <Source name="uart.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
         <Source name="p601zero.lpf" type="Logic Preference" type_short="LPF">
