@@ -3,8 +3,10 @@
 	$0001 RW - 0RGB0RGB 2 leds
 	$0002 RW - Byte hex display  (HHHHLLLL)
 	$0004 R- - SSSSKKKK switches and keys
-	$0006 RW - UART DATA
-	$0007 R- - XXXXXXTR Tx ready  busy, Rx ready
+	$0008 RW - UART DATA
+	$0009 R- - XXXXXXTR Tx ready  busy, Rx ready
+	$000A RW - Hight prescaler byte
+	$000B RW - Low prescaler byte
 	*/
 
 module simpleio (
@@ -27,64 +29,80 @@ module simpleio (
 	input wire rxd,
 	output txd
 );
-	parameter ClkFreq = 1000000;
-	parameter Baud = 9600;
-
-	wire rx_data_ready;
+	reg [15:0] prescaler;
 	wire [7:0] rx_data;
-	reg [7:0] rx_buffer;
-	reg rx_ready;
-	
-	wire tx_busy;
-	wire [7:0] tx_data;
+	wire	rx_tvalid;
+	reg		rx_tready;
 
-	always @ (posedge clk or posedge rst or posedge rx_data_ready) begin
+    wire	tx_busy;
+    wire	rx_busy;
+    wire	rx_overrun_error;
+    wire	rx_frame_error;
+	
+	reg [7:0] uart_status;
+
+	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
 			leds <= 8'b11111111;
 			rgb1 <= 8'b111;
 			rgb2 <= 8'b111;
 			hex_disp <= 0;
+			prescaler <= 16'h0000;
+			rx_tready <= 1;
 			
-			rx_ready <= 0;
-		end else if (clk && cs) begin
-			if (rw == 0) begin
-				case (Address[2:0])
-				3'b000: leds <= ~DI;
-				3'b001: begin
-					rgb1 <= ~DI[6:4];
-					rgb2 <= ~DI[2:0];
-					end
-				3'b010: hex_disp <= DI;
-				endcase
-			end else begin
-				case (Address[2:0])
-				3'b000: DO <= leds;
-				3'b001: begin
-					DO[6:4] <= rgb1;
-					DO[2:0] <= rgb2;
-					end
-				3'b010: DO <= hex_disp;
-				3'b100: DO <= {switches, keys};
-				3'b110: begin
-					DO <= rx_buffer;
-					rx_ready <= 0;
-					end
-				3'b111: DO[1:0] <= {tx_busy, rx_ready};
-				default: DO <= 8'b00000000;
-				endcase
+			uart_status <= 8'h00;
+		end else begin
+			if (rx_tvalid) begin
+					rx_tready <= ~rx_tready;
+					uart_status<= uart_status + 1'b1;
 			end
-		end else if (rx_data_ready) begin
-			if (rx_ready == 0) begin
-				rx_ready <= 1;
-				rx_buffer <= rx_data;
+			if (cs) begin
+				if (rw == 0) begin
+					case (Address[3:0])
+					4'b0000: leds <= ~DI;
+					4'b0001: begin
+						rgb1 <= ~DI[6:4];
+						rgb2 <= ~DI[2:0];
+						end
+					4'b0010: hex_disp <= DI;
+					4'b1010: prescaler[15:8] <= DI;
+					4'b1011: prescaler[7:0] <= DI;
+					endcase
+				end else begin
+					case (Address[3:0])
+					4'b0000: DO <= leds;
+					4'b0001: begin
+						DO[6:4] <= rgb1;
+						DO[2:0] <= rgb2;
+						end
+					4'b0010: DO <= hex_disp;
+					4'b0100: DO <= {switches, keys};
+					4'b1000: begin
+						DO <= rx_data;
+						rx_tready <= 1;
+						end
+					4'b1001: DO <= uart_status;
+					4'b1010: DO <= prescaler[15:8];
+					4'b1011: DO <= prescaler[7:0];
+					default: DO <= 8'b00000000;
+					endcase
+				end
 			end
 		end
 	end
 
-	async_receiver #(ClkFreq, Baud) RX(.clk(clk), .RxD(rxd), .RxD_data_ready(rx_data_ready), .RxD_data(rx_data));
+	uart uart1(.clk(clk), .rst(rst), .rxd(rxd), .txd(txd), .prescale(prescaler),
+				.output_axis_tdata(rx_data),
+				.output_axis_tvalid(rx_tvalid),
+				.output_axis_tready(rx_tready),
+				
+//				.input_axis_tdata(led_out),
+//				.input_axis_
+				.tx_busy(tx_busy),
+				.rx_busy(rx_busy),
+				.rx_overrun_error(rx_overrun_error),
+				.rx_frame_error(rx_frame_error)
 
-	wire tx_start = (Address[2:0] == 3'b110) && (rw == 0) && cs && clk && (tx_busy == 0);
-
-	async_transmitter #(ClkFreq, Baud) TX(.clk(clk), .TxD(txd), .TxD_start(tx_start), .TxD_data(DI), .TxD_busy(tx_busy));
+				);
 
 endmodule

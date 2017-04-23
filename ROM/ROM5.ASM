@@ -1,5 +1,5 @@
 ;
-; Check UART IO
+; Check RTC IRQ
 ;
 
 	org	$ff00
@@ -8,30 +8,13 @@ reset
 	sei
 
 	lds	#$ef
-; setup prescaler: Fclk / (Baud * 8)
-	ldx	#39
-	stx	$e60a
 
-	ldaa	$e60b
-	staa	$e602
+	clr	$10
 
-	ldaa	$e60a
-	staa	$e600
-
-
-	ldab	#0
+	cli
 loop
-	ldaa	$e609
-
-	staa	$e600
-
-;	anda	#$1
-;	cmpa	#0
-;	beq	loop
-	ldaa	$e608
+	ldaa	$e604
 	staa	$e602
-;	incb
-;	stab	$e600
 	bra	loop
 ;----
 ;----
@@ -56,6 +39,9 @@ vec_icf	proc
 	endp
 
 vec_irq	proc
+	ldaa	$10
+	staa	$e600
+	inc	$10
 	rti
 	endp
 

@@ -18,11 +18,9 @@ module p601zero (
 	reg [7:0] time_sec;
 	parameter OSC_CLOCK = 12000000;
 
-	parameter CPU_CLOCK = 2000000;
+	parameter CPU_CLOCK = 3000000;
 
 	parameter RTC_CLOCK = 50;
-
-	parameter UART_BAUD = 4800;
 
 	parameter CLK_DIV_PERIOD = (OSC_CLOCK / CPU_CLOCK) / 2;
 
@@ -152,7 +150,7 @@ module p601zero (
 
 	wire en_superio = (AD[15:8] == 8'b11100110);
 	wire [7:0] superiod;
-	simpleio #(CPU_CLOCK, UART_BAUD) superio (
+	simpleio superio (
 		.clk(sys_clk),
 		.rst(sys_res),
 		.Address(AD[3:0]),

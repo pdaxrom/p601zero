@@ -1,37 +1,20 @@
-;
-; Check UART IO
-;
-
 	org	$ff00
 
 reset
 	sei
 
 	lds	#$ef
-; setup prescaler: Fclk / (Baud * 8)
-	ldx	#39
-	stx	$e60a
-
-	ldaa	$e60b
-	staa	$e602
-
-	ldaa	$e60a
-	staa	$e600
-
 
 	ldab	#0
 loop
-	ldaa	$e609
-
-	staa	$e600
-
-;	anda	#$1
-;	cmpa	#0
-;	beq	loop
-	ldaa	$e608
+	ldaa	$e607
+	anda	#$1
+	cmpa	#0
+	beq	loop
+	ldaa	$e606
 	staa	$e602
-;	incb
-;	stab	$e600
+	incb
+	stab	$e600
 	bra	loop
 ;----
 ;----
