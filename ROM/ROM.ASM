@@ -23,15 +23,15 @@ reset
 loop
 	ldaa	$e609
 
-	staa	$e600
+;	staa	$e600
 
-;	anda	#$1
-;	cmpa	#0
-;	beq	loop
+	anda	#$1
+	cmpa	#0
+	beq	loop
 	ldaa	$e608
 	staa	$e602
-;	incb
-;	stab	$e600
+	incb
+	stab	$e600
 	bra	loop
 ;----
 ;----

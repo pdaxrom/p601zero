@@ -39,8 +39,6 @@ module simpleio (
     wire	rx_overrun_error;
     wire	rx_frame_error;
 	
-	reg [7:0] uart_status;
-
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
 			leds <= 8'b11111111;
@@ -49,12 +47,9 @@ module simpleio (
 			hex_disp <= 0;
 			prescaler <= 16'h0000;
 			rx_tready <= 1;
-			
-			uart_status <= 8'h00;
 		end else begin
 			if (rx_tvalid) begin
 					rx_tready <= ~rx_tready;
-					uart_status<= uart_status + 1'b1;
 			end
 			if (cs) begin
 				if (rw == 0) begin
@@ -81,7 +76,7 @@ module simpleio (
 						DO <= rx_data;
 						rx_tready <= 1;
 						end
-					4'b1001: DO <= uart_status;
+					4'b1001: DO <= {1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, ~rx_tready};
 					4'b1010: DO <= prescaler[15:8];
 					4'b1011: DO <= prescaler[7:0];
 					default: DO <= 8'b00000000;
