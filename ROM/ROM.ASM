@@ -50,6 +50,18 @@ uart_in proc
 	rts
 	endp
 
+;uart_out proc
+;	pshb
+;loop	ldab	UART_STATUS
+;	bitb	#UART_TX_READY
+;	beq	loop
+;	staa	UART_DATA
+;	pulb
+;	rts
+;	endp
+
+pylogo	db 'PYLDIN 601Z (c) sashz@pdaXrom.org, 2017', $0a, $0d, 0
+
 ;----
 ;----
 vec_trap proc

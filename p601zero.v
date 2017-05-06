@@ -129,6 +129,7 @@ module p601zero (
 
 
 	wire en_brom = (AD[15:12] == 4'b1111);
+	wire cs_brom = en_brom & sys_vma;
 	wire [7:0] bromd;
 	bootrom brom (
 		.clk(sys_clk),
@@ -138,6 +139,7 @@ module p601zero (
 	);
 
 	wire en_bram = (AD[15:8] == 8'b00000000);
+	wire cs_bram = en_bram & sys_vma;
 	wire [7:0] bramd;
 	bootram bram (
 		.clk(sys_clk),
@@ -145,10 +147,11 @@ module p601zero (
 		.DI(DO),
 		.DO(bramd),
 		.rw(sys_rw),
-		.cs(en_bram)
+		.cs(cs_bram)
 	);
 
 	wire en_superio = (AD[15:8] == 8'b11100110);
+	wire cs_superio = en_superio & sys_vma;
 	wire [7:0] superiod;
 	simpleio superio (
 		.clk(sys_clk),
@@ -157,7 +160,7 @@ module p601zero (
 		.DI(DO),
 		.DO(superiod),
 		.rw(sys_rw),
-		.cs(en_superio),
+		.cs(cs_superio),
 		.leds(leds),
 		.hex_disp(seg_byte),
 		.rgb1(rgb1),
