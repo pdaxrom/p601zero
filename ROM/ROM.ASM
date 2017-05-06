@@ -2,6 +2,14 @@
 ; Check UART IO
 ;
 
+UART_DATA	equ	$e608
+UART_STATUS	equ	$e609
+UART_PRESCALER	equ	$e60a
+
+UART_RX_READY	equ	$1
+UART_TX_READY	equ	$8
+
+
 	org	$ff00
 
 reset
@@ -10,7 +18,7 @@ reset
 	lds	#$ef
 ; setup prescaler: Fclk / (Baud * 8)
 	ldx	#39
-	stx	$e60a
+	stx	UART_PRESCALER
 
 	ldaa	$e60b
 	staa	$e602
@@ -21,14 +29,27 @@ reset
 
 	ldab	#0
 loop
-	ldaa	$e609
-	bita	#$1
-	beq	loop
-	ldaa	$e608
+;	ldaa	UART_STATUS
+;	bita	#UART_RX_READY
+;	beq	loop
+;	ldaa	UART_DATA
+
+	bsr	uart_in
+
 	staa	$e602
 	incb
 	stab	$e600
 	bra	loop
+
+;;
+uart_in proc
+	ldaa	UART_STATUS
+	bita	#UART_RX_READY
+	beq	uart_in
+	ldaa	UART_DATA
+	rts
+	endp
+
 ;----
 ;----
 vec_trap proc
