@@ -71,10 +71,10 @@ module simpleio (
 			if (cs) begin
 				if (rw == 0) begin
 					case (Address[3:0])
-					4'b0000: leds <= ~DI;
+					4'b0000: leds <= DI;
 					4'b0001: begin
-						rgb1 <= ~DI[6:4];
-						rgb2 <= ~DI[2:0];
+						rgb1 <= DI[6:4];
+						rgb2 <= DI[2:0];
 						end
 					4'b0010: hex_disp <= DI;
 					4'b1000: begin
