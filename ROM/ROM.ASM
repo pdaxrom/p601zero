@@ -22,11 +22,7 @@ reset
 	ldab	#0
 loop
 	ldaa	$e609
-
-;	staa	$e600
-
-	anda	#$1
-	cmpa	#0
+	bita	#$1
 	beq	loop
 	ldaa	$e608
 	staa	$e602

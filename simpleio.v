@@ -4,9 +4,16 @@
 	$0002 RW - Byte hex display  (HHHHLLLL)
 	$0004 R- - SSSSKKKK switches and keys
 	$0008 RW - UART DATA
-	$0009 R- - XXXXXXTR Tx ready  busy, Rx ready
+	$0009 R- - XXX XXX XXX TRD RFE ROE RBS RRD
 	$000A RW - Hight prescaler byte
 	$000B RW - Low prescaler byte
+	
+	RRD - RX Ready
+	RBS - RX Busy
+	ROE - RX Overflow Error
+	RFE - RX Frame Error
+	TRD - TX Ready
+	
 	*/
 
 module simpleio (
@@ -76,7 +83,7 @@ module simpleio (
 						DO <= rx_data;
 						rx_tready <= 1;
 						end
-					4'b1001: DO <= {1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, 1'b0, ~rx_tready};
+					4'b1001: DO <= {1'b0, 1'b0, 1'b0, 1'b0, rx_frame_error, rx_overrun_error, rx_busy, ~rx_tready};
 					4'b1010: DO <= prescaler[15:8];
 					4'b1011: DO <= prescaler[7:0];
 					default: DO <= 8'b00000000;
