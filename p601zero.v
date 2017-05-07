@@ -97,16 +97,15 @@ module p601zero (
 	wire en_bram = (AD[15:8] == 8'b00000000);
 	wire cs_bram = en_bram && sys_vma;
 	wire [7:0] bramd;
-	bootram bram (
+	mcu_ram bram (
 		.clk(sys_clk),
-		.Address(AD),
+		.AD(AD),
 		.DI(DO),
 		.DO(bramd),
 		.rw(sys_rw),
 		.cs(cs_bram)
 	);
-
-	wire en_simpleio = (AD[15:3] == 13'b1110011010100); // $E6A0
+	wire en_simpleio = (AD[15:3] == 13'b1110011010100); // $E6A0
 	wire cs_simpleio = en_simpleio && sys_vma;
 	wire [7:0] simpleiod;
 	simpleio simpleio1 (

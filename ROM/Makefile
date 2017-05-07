@@ -1,4 +1,4 @@
-all: 6803 ../mcu_rom.v
+all: 6803 ../mcu_rom.v 
 
 6803: 6803.PAS
 	fpc $^
@@ -13,7 +13,6 @@ rom.mem: ROM.ASM
 	export FOUNDRY="/opt/diamond/3.9_x64/ispfpga"; \
 	cd .. && \
 	/opt/diamond/3.9_x64/ispfpga/bin/lin64/scuba -w -n mcu_rom -lang verilog -synth lse -bus_exp 7 -bb -arch xo2c00 -type rom -addr_width 8 -num_rows 256 -data_width 8 -outdata REGISTERED -cascade -1 -resetmode SYNC -sync_reset  -memfile ROM/rom.mem -memformat orca
-
 
 clean:
 	rm -f rom.bin *.LST *.CMD 6803 *.o *.mem
