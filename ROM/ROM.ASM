@@ -1,14 +1,19 @@
 ;
-; Check UART IO
+; Check RTC IRQ
 ;
 
-UART_DATA	equ	$e608
-UART_STATUS	equ	$e609
-UART_PRESCALER	equ	$e60a
+LED_8BIT	equ	$E6A0
+LED_2RGB	equ	$E6A1
+LED_HEX		equ	$E6A2
+INPUT_SWKEYS	equ	$E6A3
 
-UART_RX_READY	equ	$1
-UART_TX_READY	equ	$8
+TIMER_CONFIG	equ	$E6A4
+TIMER_STATUS	equ	$E6A4
+TIMER_PRESCALER	equ	$E6A5
 
+UART_DATA	equ	$E6A8
+UART_STATUS	equ	$E6A9
+UART_PRESCALER	equ	$E6AA
 
 	org	$ff00
 
@@ -16,52 +21,27 @@ reset
 	sei
 
 	lds	#$ef
-; setup prescaler: Fclk / (Baud * 8)
-	ldx	#39
-	stx	UART_PRESCALER
 
-	ldaa	$e60b
-	staa	$e602
+	clr	$10
+	clr	$11
+	clr	$12
 
-	ldaa	$e60a
-	staa	$e600
+; Setup timer
+	ldaa	#0
+	staa	TIMER_CONFIG
+; Set 50 Hz interrupts
+	staa	TIMER_PRESCALER
+	ldx	#59999
+	stx	TIMER_PRESCALER+1
+; Enable interrupts and start timer
+	ldaa	#$41
+	staa	TIMER_CONFIG
 
-
-	ldab	#0
+	cli
 loop
-;	ldaa	UART_STATUS
-;	bita	#UART_RX_READY
-;	beq	loop
-;	ldaa	UART_DATA
-
-	bsr	uart_in
-
-	staa	$e602
-	incb
-	stab	$e600
+	ldaa	INPUT_SWKEYS
+	staa	LED_8BIT
 	bra	loop
-
-;;
-uart_in proc
-	ldaa	UART_STATUS
-	bita	#UART_RX_READY
-	beq	uart_in
-	ldaa	UART_DATA
-	rts
-	endp
-
-uart_out proc
-	pshb
-loop	ldab	UART_STATUS
-	bitb	#UART_TX_READY
-	beq	loop
-	staa	UART_DATA
-	pulb
-	rts
-	endp
-
-pylogo	db 'P601ZERO (c) sashz@pdaXrom.org, 2017', $0a, $0d, 0
-
 ;----
 ;----
 vec_trap proc
@@ -85,7 +65,23 @@ vec_icf	proc
 	endp
 
 vec_irq	proc
-	rti
+; Check if interrupt from timer
+	ldaa	TIMER_STATUS
+	anda	#$80
+	cmpa	#$80
+	bne	ret
+; Increase time
+	ldaa	$10
+	staa	LED_HEX
+	ldx	$11
+	inx
+	stx	$11
+	cpx	#50
+	bne	ret
+	clr	$11
+	clr	$12
+	inc	$10
+ret	rti
 	endp
 
 vec_swi	proc

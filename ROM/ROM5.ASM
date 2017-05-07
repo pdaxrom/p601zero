@@ -14,7 +14,8 @@ reset
 	cli
 loop
 	ldaa	$e604
-	staa	$e602
+	nega
+	staa	$e600
 	bra	loop
 ;----
 ;----
