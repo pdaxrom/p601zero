@@ -2,9 +2,9 @@
 <BaliProject version="3.2" title="p601zero" device="LCMXO2-4000HC-4MG132C" default_implementation="impl1">
     <Options/>
     <Implementation title="impl1" dir="impl1" description="impl1" synthesis="lse" default_strategy="Strategy1">
-        <Options def_top="uart"/>
+        <Options def_top="p601zero"/>
         <Source name="bootram.v" type="Verilog" type_short="Verilog">
-            <Options/>
+            <Options top_module="bootram"/>
         </Source>
         <Source name="cpu68.vhd" type="VHDL" type_short="VHDL">
             <Options/>
@@ -28,7 +28,13 @@
             <Options/>
         </Source>
         <Source name="uart.v" type="Verilog" type_short="Verilog">
-            <Options top_module="uart"/>
+            <Options/>
+        </Source>
+        <Source name="uartio.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
+        <Source name="mcu_ram.v" type="Verilog" type_short="Verilog">
+            <Options/>
         </Source>
         <Source name="p601zero.lpf" type="Logic Preference" type_short="LPF">
             <Options/>
