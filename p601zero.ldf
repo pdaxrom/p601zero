@@ -3,9 +3,6 @@
     <Options/>
     <Implementation title="impl1" dir="impl1" description="impl1" synthesis="lse" default_strategy="Strategy1">
         <Options def_top="p601zero"/>
-        <Source name="bootram.v" type="Verilog" type_short="Verilog">
-            <Options top_module="bootram"/>
-        </Source>
         <Source name="cpu68.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
