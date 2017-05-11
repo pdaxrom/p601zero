@@ -25,75 +25,26 @@ reset
 
 	lds	#$ef
 
-; setup prescaler: 12MHz / (Baud * 8)
-	ldx	#156
-	stx	UART_PRESCALER
+	clr	$10
+	clr	$11
+	clr	$12
 
-	ldaa	UART_PRESCALER
-	staa	LED_HEX
+; Setup timer
+	ldaa	#0
+	staa	TIMER_CONFIG
+; Set 50 Hz interrupts
+	staa	TIMER_PRESCALER
+	ldx	#59999
+	stx	TIMER_PRESCALER+1
+; Enable interrupts and start timer
+	ldaa	#$41
+	staa	TIMER_CONFIG
 
-	ldaa	UART_PRESCALER+1
-	staa	LED_8BIT
-
-; flush receiver after setup to prevent corrupted data
-;	ldaa	UART_DATA
-;	ldaa	#'@'
-;	staa	UART_DATA
-
-	ldx	#pylogo
-	bsr	uart_print
-
-;	ldaa	#'$'
-;	bsr	uart_out
-;	ldaa	#'>'
-;	bsr	uart_out
-
-	ldab	#0
+	cli
 loop
-	bsr	uart_in
-	staa	LED_HEX
-	bsr	uart_out
-
-	incb
-	stab	LED_8BIT
+	ldaa	INPUT_SWKEYS
+	staa	LED_8BIT
 	bra	loop
-
-;; UART IN/OUT
-
-uart_in proc
-	ldaa	UART_STATUS
-	bita	#UART_RX_READY
-	beq	uart_in
-	ldaa	UART_DATA
-	rts
-	endp
-
-uart_out proc
-	pshb
-loop	ldab	UART_STATUS
-	bitb	#UART_TX_READY
-	beq	loop
-	staa	UART_DATA
-	pulb
-	rts
-	endp
-
-uart_print proc
-	pshx
-	psha
-loop	ldaa	0,x
-	tsta
-	beq	exit
-	bsr	uart_out
-	inx
-	bra	loop
-exit	pula
-	pulx
-	rts
-	endp
-
-pylogo	db 'P601ZERO (c) sashz@pdaXrom.org, 2017', $0a, $0d, 0
-
 ;----
 ;----
 vec_trap proc

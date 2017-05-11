@@ -29,9 +29,9 @@ module p601zero (
  */
 
 	reg sys_res = 1;
-	reg sys_nmi = 0;
-	reg sys_hold = 0;
-	reg sys_halt = 0;
+	reg sys_nmi;
+	reg sys_hold;
+	reg sys_halt;
 	wire sys_rw;	wire sys_vma;
 	wire [15:0] AD;
 	wire [7:0] DI;
@@ -136,6 +136,7 @@ module p601zero (
 		.DO(uartiod),
 		.rw(sys_rw),
 		.cs(cs_uartio),
+		.clk_in(clk_in),
 		.rxd(rxd),
 		.txd(txd)
 	);

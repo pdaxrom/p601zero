@@ -24,9 +24,6 @@
         <Source name="uart_tx.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="uart.v" type="Verilog" type_short="Verilog">
-            <Options/>
-        </Source>
         <Source name="uartio.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
