@@ -38,7 +38,8 @@ module p601zero (
 	wire [7:0] DO;
 
 	wire simpleio_irq;
-	wire sys_irq = simpleio_irq && (!sys_res);
+	wire uartio_irq;
+	wire sys_irq = (simpleio_irq | uartio_irq) && (!sys_res);
 
 	reg [2:0] sys_res_delay = 3'b100;
 
@@ -131,6 +132,7 @@ module p601zero (
 	uartio uartio1 (
 		.clk(sys_clk),
 		.rst(sys_res),
+		.irq(uartio_irq),
 		.AD(AD[2:0]),
 		.DI(DO),
 		.DO(uartiod),
