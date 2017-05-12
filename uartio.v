@@ -51,26 +51,21 @@ module uartio (
  
 	assign irq = (status_reg[7] & status_reg[5]) | (status_reg[6] & status_reg[4]);
  
-	always @ (posedge clk_in or posedge rx_tvalid or posedge rst) begin: rx_logic
+	always @ (posedge clk_in or posedge rst) begin: rx_logic
 		if (rst) begin
 			rx_tready <= 0;
 			rx_full <= 0;
-		end else if (rx_tvalid) begin
+			tx_empty <= 0;
+		end else begin
+			if (rx_tvalid) begin
 				rx_tready <= ~rx_tready;
 				rx_full <= 1;
-		end else begin
-			rx_tready <= 1;
-			if (status_reg[0]) rx_full <= 0;
-		end
-	end
- 
- 	always @ (posedge clk_in or posedge tx_tready or posedge rst) begin: tx_logic
-		if (rst) begin
-			tx_empty <= 0;
-		end else if (tx_tready) begin
-			tx_empty <= 1;
-		end else begin
-			if (status_reg[3]) tx_empty <= 0;
+			end else begin
+				rx_tready <= 1;
+				if (status_reg[0]) rx_full <= 0;
+			end
+			if (tx_tready) tx_empty <= 1;
+			else if (status_reg[3]) tx_empty <= 0;
 		end
 	end
  
@@ -83,7 +78,7 @@ module uartio (
 		end else begin
 			tx_tvalid <= 0;
 			status_reg[3:0] <= {tx_tready, rx_frame_error, rx_overrun_error, rx_full | status_reg[0]};
-			status_reg[7:6] <= {tx_empty & status_reg[5], rx_full & status_reg[4]};
+			status_reg[7:6] <= {(tx_empty | status_reg[7]) & status_reg[5], (rx_full | status_reg[6]) & status_reg[4]};
 
 			if (cs) begin
 				if (rw) begin
