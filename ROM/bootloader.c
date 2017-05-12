@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#define BAUDRATE B9600
+#define BAUDRATE B115200
 #define MODEMDEVICE "/dev/ttyUSB0"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
