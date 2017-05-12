@@ -46,32 +46,50 @@ module uartio (
     wire	rx_frame_error;
 
 	reg [7:0] status_reg;
-	reg [7:0] rx_buffer;
+	reg rx_full;
+	reg tx_empty;
  
 	assign irq = (status_reg[7] & status_reg[5]) | (status_reg[6] & status_reg[4]);
  
-	always @ (posedge clk or posedge rst or posedge rx_tvalid) begin: port_logic
+	always @ (posedge clk_in or posedge rx_tvalid or posedge rst) begin: rx_logic
+		if (rst) begin
+			rx_tready <= 0;
+			rx_full <= 0;
+		end else if (rx_tvalid) begin
+				rx_tready <= ~rx_tready;
+				rx_full <= 1;
+		end else begin
+			rx_tready <= 1;
+			if (status_reg[0]) rx_full <= 0;
+		end
+	end
+ 
+ 	always @ (posedge clk_in or posedge tx_tready or posedge rst) begin: tx_logic
+		if (rst) begin
+			tx_empty <= 0;
+		end else if (tx_tready) begin
+			tx_empty <= 1;
+		end else begin
+			if (status_reg[3]) tx_empty <= 0;
+		end
+	end
+ 
+	always @ (posedge clk or posedge rst) begin: port_logic
 		if (rst) begin
 			tx_tvalid <= 0;
 			tx_data <= 0;
-			rx_tready <= 0;
 			prescaler <= 16'h0000;
 			status_reg <= 8'b00000000;
-		end else if (rx_tvalid) begin
-			rx_tready <= ~rx_tready;
-			rx_buffer <= rx_data;
-			status_reg[0] <= 1;
 		end else begin
-			rx_tready <= 1;
 			tx_tvalid <= 0;
-			status_reg[3:1] <= {tx_tready, rx_frame_error, rx_overrun_error};
-			//status_reg[7:6] <= {status_reg[5] & tx_tready, status_reg[4] & status_reg[0]};
+			status_reg[3:0] <= {tx_tready, rx_frame_error, rx_overrun_error, rx_full | status_reg[0]};
+			status_reg[7:6] <= {tx_empty & status_reg[5], rx_full & status_reg[4]};
 
 			if (cs) begin
 				if (rw) begin
 					case (AD[2:0])
 					3'b000: begin
-						DO <= rx_buffer;
+						DO <= rx_data;
 						status_reg[0] <= 0;
 						end
 					3'b001: begin
