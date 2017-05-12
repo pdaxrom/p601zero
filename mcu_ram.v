@@ -6,10 +6,10 @@ module mcu_ram (
 	input wire rw,
 	input wire cs
 );
-	reg [7:0] ram [0:255];
+	reg [7:0] ram [2047:0];
 
 	always @ (posedge clk) begin
-		if ((rw == 0) && cs) ram[AD[7:0]] <= DI;
-		else DO <= ram[AD[7:0]];
+		if ((rw == 0) && cs) ram[AD[10:0]] <= DI;
+		else DO <= ram[AD[10:0]];
 	end
 endmodule
