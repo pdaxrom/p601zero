@@ -134,6 +134,17 @@ int main(int argc, char *argv[])
 	}
     }
 
+    if (!strcmp(argv[2], "go")) {
+	unsigned int s;
+	unsigned int e;
+	sscanf(argv[3], "%x", &s);
+
+	fprintf(stderr, "go %x\n", s);
+
+	unsigned char tmp[5] = { 'G', (s >> 8) & 0xff, s & 0xff };
+	write(fd, tmp, 3);
+    }
+
     tcsetattr(fd, TCSANOW, &tty_old);
 
     return 0;
