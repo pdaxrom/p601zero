@@ -117,14 +117,38 @@ exit	pula
 	rts
 	endp
 
+puthex  proc
+        pshb            ;Save B
+        tab             ;Save A in B 
+        bsr   OUTNIBH   ;Print High 4 bits
+        tba             ;Get A from B 
+        bsr   OUTNIBL   ;Print Low 4 Bits
+        pulb            ;Restore B
+        rts
+OUTNIBH lsra          ;OUT HEX LEFT HEX DIGIT
+        lsra
+        lsra
+        lsra
+OUTNIBL anda  #$0F     ;OUT HEX RIGHT HEX DIGIT
+        oraa  #$30
+        cmpa  #$39
+        bls   OUTNIBX
+        adda  #$7
+OUTNIBX bsr   uartout
+        rts
+	endp
+
+
 get_word proc
 	psha
+	pshb
 	bsr	uart_in
 	tab
 	bsr	uart_in
 	psha
 	pshb
 	pulx
+	pulb
 	pula
 	rts
 	endp
