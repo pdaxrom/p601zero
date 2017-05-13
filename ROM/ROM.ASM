@@ -1,5 +1,6 @@
 ;
-; UART Module
+; UART BOOTROM for BLACK EYES 601 Zero
+; (c) sashz <sashz@pdaXrom.org>, 2017
 ;
 
 	include DEVMAP.INC
@@ -12,6 +13,7 @@
 	bra	uart_in
 	bra	uart_out
 	bra	uart_puts
+	bra	uart_outhex_1
 
 reset
 	sei
@@ -39,7 +41,6 @@ reset
 
 loop
 	bsr	uart_in
-	staa	LED_HEX
 	cmpa	#'L'
 	beq	cmd_load
 	cmpa	#'S'
@@ -76,12 +77,15 @@ cmd_go
 
 get_block_addr proc
 	bsr	get_word
-	stx	START_ADDR
+	pshx
 	bsr	get_word
 	stx	END_ADDR
-	ldx	START_ADDR
+	pulx
 	rts
 	endp
+
+uart_outhex_1
+	bra	uart_outhex
 
 ;; UART IN/OUT
 
@@ -117,79 +121,74 @@ exit	pula
 	rts
 	endp
 
-puthex  proc
-        pshb            ;Save B
-        tab             ;Save A in B 
-        bsr   OUTNIBH   ;Print High 4 bits
-        tba             ;Get A from B 
-        bsr   OUTNIBL   ;Print Low 4 Bits
-        pulb            ;Restore B
-        rts
-OUTNIBH lsra          ;OUT HEX LEFT HEX DIGIT
-        lsra
-        lsra
-        lsra
-OUTNIBL anda  #$0F     ;OUT HEX RIGHT HEX DIGIT
-        oraa  #$30
-        cmpa  #$39
-        bls   OUTNIBX
-        adda  #$7
-OUTNIBX bsr   uartout
-        rts
-	endp
-
-
-get_word proc
+uart_outhex proc
 	psha
 	pshb
+	tab
+	bsr	OUTNIBH
+	tba
+	bsr	OUTNIBL
+	pulb
+	pula
+	rts
+OUTNIBH	lsra
+	lsra
+	lsra
+	lsra
+OUTNIBL	anda	#$0F
+	oraa	#$30
+	cmpa	#$39
+	bls	OUTNIBX
+	adda	#$7
+OUTNIBX bsr	uart_out
+	rts
+	endp
+
+get_word proc
 	bsr	uart_in
 	tab
 	bsr	uart_in
 	psha
 	pshb
 	pulx
-	pulb
-	pula
 	rts
 	endp
 
-pylogo	db 'ZERO/pdaXrom', $0a, $0d, 0
+pylogo	db $0a, $0d, 'ZERO/pdaXrom', $0a, $0d, 0
 
 ;----
-vstub_irq proc
+inthandlers proc
+	global vstub_irq, vstub_swi, vstub_nmi
+vstub_irq
 	ldx	#vectextIRQ
-	bsr	uart_puts
-	rti
-	endp
+	bra	ret
 
-vstub_swi proc
+vstub_swi
 	ldx	#vectextSWI
-	bsr	uart_puts
-	rti
-	endp
+	bra	ret
 
-vstub_nmi proc
+vstub_nmi
 	ldx	#vectextNMI
-	bsr	uart_puts
+ret	bsr	uart_puts
 	rti
 	endp
 
-vectextIRQ	db	$a,$d,'IRQ',$a,$d,0
-vectextSWI	db	$a,$d,'SWI',$a,$d,0
-vectextNMI	db	$a,$d,'NMI',$a,$d,0
+vectextIRQ	db	'IRQ',0
+vectextSWI	db	'SWI',0
+vectextNMI	db	'NMI',0
 
 ;----
-vec_irq	proc
+intvectors proc
+	global vec_irq, vec_swi, vec_nmi
+vec_irq
 	ldx	VIRQ
 	jmp	0,x
-	endp
 
-vec_swi	proc
+vec_swi
 	ldx	VSWI
 	jmp	0,x
-	endp
 
-vec_nmi	proc
+vec_nmi
 	ldx	VNMI
 	jmp	0,x
 	endp
