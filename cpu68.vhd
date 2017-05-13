@@ -59,6 +59,10 @@
 -- the carry bit was not cleared correctly.
 -- This error was picked up by Michael Hassenfratz.
 --
+-- 13th May 2017 0.8			Alexander Chukov
+-- Added XGDX instruction from HD6301
+--
+--
 
 library ieee;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -117,8 +121,8 @@ architecture CPU_ARCH of cpu68 is
 	type addr_type is (idle_ad, fetch_ad, read_ad, write_ad, push_ad, pull_ad, int_hi_ad, int_lo_ad );
 	type dout_type is (md_lo_dout, md_hi_dout, acca_dout, accb_dout, ix_lo_dout, ix_hi_dout, cc_dout, pc_lo_dout, pc_hi_dout );
    type op_type is (reset_op, fetch_op, latch_op );
-   type acca_type is (reset_acca, load_acca, load_hi_acca, pull_acca, latch_acca );
-   type accb_type is (reset_accb, load_accb, pull_accb, latch_accb );
+   type acca_type is (reset_acca, load_acca, load_hi_acca, pull_acca, latch_acca, load_xgdx_acca );
+   type accb_type is (reset_accb, load_accb, pull_accb, latch_accb, load_xgdx_accb );
    type cc_type is (reset_cc, load_cc, pull_cc, latch_cc );
 	type ix_type is (reset_ix, load_ix, pull_lo_ix, pull_hi_ix, latch_ix );
 	type sp_type is (reset_sp, latch_sp, load_sp );
@@ -128,7 +132,7 @@ architecture CPU_ARCH of cpu68 is
 	type iv_type is (reset_iv, latch_iv, swi_iv, nmi_iv, irq_iv );
 	type nmi_type is (reset_nmi, set_nmi, latch_nmi );
 	type left_type is (acca_left, accb_left, accd_left, md_left, ix_left, sp_left );
-	type right_type is (md_right, zero_right, plus_one_right, accb_right );
+	type right_type is (md_right, zero_right, plus_one_right, accb_right, ix_right );
    type alu_type   is (alu_add8, alu_sub8, alu_add16, alu_sub16, alu_adc, alu_sbc, 
                        alu_and, alu_ora, alu_eor,
                        alu_tst, alu_inc, alu_dec, alu_clr, alu_neg, alu_com,
@@ -137,7 +141,7 @@ architecture CPU_ARCH of cpu68 is
 						     alu_ror8, alu_rol8,
 						     alu_asr8, alu_asl8, alu_lsr8,
 						     alu_sei, alu_cli, alu_sec, alu_clc, alu_sev, alu_clv, alu_tpa, alu_tap,
-						     alu_ld8, alu_st8, alu_ld16, alu_st16, alu_nop, alu_daa );
+						     alu_ld8, alu_st8, alu_ld16, alu_st16, alu_nop, alu_daa, alu_xgdx );
 
 	signal op_code:     std_logic_vector(7 downto 0);
   	signal acca:        std_logic_vector(7 downto 0);
@@ -152,6 +156,7 @@ architecture CPU_ARCH of cpu68 is
    signal left:        std_logic_vector(15 downto 0);
    signal right:       std_logic_vector(15 downto 0);
 	signal out_alu:     std_logic_vector(15 downto 0);
+	signal xgdx_reg : std_logic_vector(15 downto 0);
 	signal iv:          std_logic_vector(1 downto 0);
 	signal nmi_req:     std_logic;
 	signal nmi_ack:     std_logic;
@@ -355,7 +360,7 @@ end process;
 -- Accumulator A
 --
 --------------------------------
-acca_mux : process( clk, acca_ctrl, out_alu, acca, data_in, hold )
+acca_mux : process( clk, acca_ctrl, out_alu, acca, data_in, hold, xgdx_reg )
 begin
   if clk'event and clk = '0' then
     if hold = '1' then
@@ -370,6 +375,8 @@ begin
 	   acca <= out_alu(15 downto 8);
 	 when pull_acca =>
 	   acca <= data_in;
+	 when load_xgdx_acca =>
+	   acca <= xgdx_reg(15 downto 8);
 	 when others =>
 --	 when latch_acca =>
 	   acca <= acca;
@@ -383,7 +390,7 @@ end process;
 -- Accumulator B
 --
 --------------------------------
-accb_mux : process( clk, accb_ctrl, out_alu, accb, data_in, hold )
+accb_mux : process( clk, accb_ctrl, out_alu, accb, data_in, hold, xgdx_reg )
 begin
   if clk'event and clk = '0' then
     if hold = '1' then
@@ -396,6 +403,8 @@ begin
 	   accb <= out_alu(7 downto 0);
 	 when pull_accb =>
 	   accb <= data_in;
+	 when load_xgdx_accb =>
+	   accb <= xgdx_reg(7 downto 0);
 	 when others =>
 --	 when latch_accb =>
 	   accb <= accb;
@@ -603,7 +612,7 @@ end process;
 --
 ----------------------------------
 
-right_mux: process( right_ctrl, data_in, md, accb, ea )
+right_mux: process( right_ctrl, data_in, md, accb, ea, xreg )
 begin
   case right_ctrl is
 	 when zero_right =>
@@ -612,6 +621,8 @@ begin
 	   right <= "0000000000000001";
 	 when accb_right =>
 	   right <= "00000000" & accb;
+	 when ix_right =>
+	   right <= xreg;
 	 when others =>
 --	 when md_right =>
 	   right <= md;
@@ -708,11 +719,20 @@ begin
 	   out_alu   <= left;
 	 when alu_daa =>
 	   out_alu   <= left + ("00000000" & daa_reg);
+	 when alu_xgdx =>
+	   out_alu   <= left;
 	 when alu_tpa =>
 	   out_alu <= "00000000" & cc;
   	 when others =>
 	   out_alu   <= left; -- nop
     end case;
+
+	case alu_ctrl is
+	 when alu_xgdx =>
+	   xgdx_reg <= right;
+	 when others =>
+	   xgdx_reg <= right;
+	end case;
 
 	 --
 	 -- carry bit
@@ -1569,12 +1589,12 @@ process( state, op_code, cc, ea, irq, nmi_req, nmi_ack, hold, halt )
 					  alu_ctrl   <= alu_sub8;
 					  cc_ctrl    <= load_cc;
 					  acca_ctrl  <= load_acca;
-                 accb_ctrl  <= latch_accb;
+                      accb_ctrl  <= latch_accb;
 		         when "0001" => -- cba
 					  alu_ctrl   <= alu_sub8;
 					  cc_ctrl    <= load_cc;
 					  acca_ctrl  <= latch_acca;
-                 accb_ctrl  <= latch_accb;
+                      accb_ctrl  <= latch_accb;
 		         when "0110" => -- tab
 					  alu_ctrl   <= alu_st8;
 					  cc_ctrl    <= load_cc;
@@ -1584,12 +1604,20 @@ process( state, op_code, cc, ea, irq, nmi_req, nmi_ack, hold, halt )
 					  alu_ctrl   <= alu_ld8;
 					  cc_ctrl    <= load_cc;
 					  acca_ctrl  <= load_acca;
-                 accb_ctrl  <= latch_accb;
+					  accb_ctrl  <= latch_accb;
+			     when "1000" => -- xgdx
+					  left_ctrl  <= accd_left;
+					  right_ctrl <= ix_right;
+					  alu_ctrl   <= alu_xgdx;
+					  cc_ctrl    <= latch_cc;
+					  ix_ctrl    <= load_ix;
+					  acca_ctrl  <= load_xgdx_acca;
+					  accb_ctrl  <= load_xgdx_accb;
 		         when "1001" => -- daa
 					  alu_ctrl   <= alu_daa;
 					  cc_ctrl    <= load_cc;
 					  acca_ctrl  <= load_acca;
-                 accb_ctrl  <= latch_accb;
+					  accb_ctrl  <= latch_accb;
 		         when "1011" => -- aba
 					  alu_ctrl   <= alu_add8;
 					  cc_ctrl    <= load_cc;
