@@ -1,7 +1,9 @@
 all: DEMO1.CMD
 
-DEMO1.CMD: DEMO1.ASM
-	../6803 $^ ROM.LST $@
+.SUFFIXES: .ASM .CMD
+
+.ASM.CMD:
+	../6803 $< $(basename $@) $@
 
 clean:
 	rm -f *.LST *.CMD
