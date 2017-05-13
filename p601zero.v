@@ -95,7 +95,7 @@ module p601zero (
 		.Q(bromd)
 	);
 
-	wire en_bram = (AD[15:11] == 5'b00000);
+	wire en_bram = (AD[15:12] == 4'b0000);
 	wire cs_bram = en_bram && sys_vma;
 	wire [7:0] bramd;
 	mcu_ram bram (
