@@ -3,7 +3,7 @@ all: 6803 ../mcu_rom.v bootloader
 6803: 6803.PAS
 	fpc $^
 
-rom.mem: ROM.ASM
+rom.mem: ROM.ASM BOOTROM.INC DEVMAP.INC
 	./6803 ROM.ASM ROM.LST ROM.CMD
 	hexdump -v -e '"%04_ax: " 16/1 "%02x " "\n"' ROM.CMD > rom.mem
 	cp -f ROM.CMD rom.bin
