@@ -85,6 +85,9 @@ COMMAN  DB 'RUN'
         DB 'NEW'
         DB $1E
         DW START
+	DB 'REBOOT'		; Reboot to bootloader
+	DB $1E			;
+	DW REBOOT		;
 ;        DB 'PAT'
 ;        DB $1E
 ;        DW PATCH
@@ -143,18 +146,13 @@ IMPLET  DW LET
 ASTACK  EQU *-1
 RDYMSG  DB $0D
         DB $0A
-        DB $15
-        DB $0A
-        DB $15
         DB 'READY'
         DB $1E
 PROMPT  DB $23
-        DB $00
+	DB $20
         DB $1E
         DB $1E
-PGCNTL  DB $10
-        DB $16
-        DB $1E
+PGCNTL	DB $1E
         DB $1E
         DB $1E
 ERRMS1  DB 'ERROR# '
@@ -166,6 +164,7 @@ KEYBD   LDAA #$3F
 KEYBD0  LDX #BUFFER
         LDAB #10
 KEYBD1  BSR INCH
+	BSR	OUTCH		; /sashz
         CMPA #$00
         BNE KEYB11
         DECB
@@ -223,10 +222,8 @@ CRLF    BSR PUSHX
         BSR PULLX
         RTS
 
-CRLFST  DB $00
-        DB $0D
+CRLFST  DB $0D
         DB $0A
-        DB $15
 CREND   DB $1E
         DB $FF,$FF
         DB $FF,$FF
@@ -858,6 +855,8 @@ CLIST5  JMP  REMARK
 ;SP      EQU $A008
 ;        JMP CONTRL
 ;CONTRL  EQU  $C000
+
+REBOOT	JMP	F_RESET
 
 NUMBER  JSR LINENO
 NUM1    JSR FINDNO
