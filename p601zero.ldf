@@ -30,6 +30,9 @@
         <Source name="mcu_ram.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
+        <Source name="sram.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
         <Source name="p601zero.lpf" type="Logic Preference" type_short="LPF">
             <Options/>
         </Source>

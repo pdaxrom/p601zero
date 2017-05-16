@@ -11,7 +11,14 @@ module p601zero (
 	output [2:0] rgb2,
 	
 	input rxd,
-	output txd
+	output txd,
+
+	output[16:0] SRAM_AD,
+	inout[7:0] SRAM_DQ,
+	output SRAM_WE_n,
+	output SRAM_OE_n,
+	output SRAM_CS1_n,
+	output SRAM_CS2
 );
 	parameter OSC_CLOCK = 12000000;
 
@@ -143,7 +150,27 @@ module p601zero (
 		.txd(txd)
 	);
 
-	assign DI = en_brom		? bromd:
+	wire en_ram = !(en_brom | en_bram | en_simpleio | en_uartio);
+	wire cs_ram = en_ram && sys_vma;
+	wire[7:0] ramd;
+	sram sram1 (
+		.clk(sys_clk),
+		.AD(AD),
+		.DI(DO),
+		.DO(ramd),
+		.rw(sys_rw),
+		.cs(cs_ram),
+
+		.SRAM_AD(SRAM_AD),
+		.SRAM_DQ(SRAM_DQ),
+		.SRAM_WE_n(SRAM_WE_n),
+		.SRAM_OE_n(SRAM_OE_n),
+		.SRAM_CS1_n(SRAM_CS1_n),
+		.SRAM_CS2(SRAM_CS2)
+	);
+
+	assign DI = en_ram      ? ramd:
+				en_brom		? bromd:
 				en_bram		? bramd:
 				en_simpleio	? simpleiod:
 				en_uartio	? uartiod:
