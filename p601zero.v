@@ -1,5 +1,5 @@
 module p601zero (
-	input clk_in,
+	input clk_ext,
 	input b_reset,
 	
 	input  [3:0] switches,
@@ -18,13 +18,22 @@ module p601zero (
 	output SRAM_WE_n,
 	output SRAM_OE_n,
 	output SRAM_CS1_n,
-	output SRAM_CS2
+	output SRAM_CS2,
+	
+	output[1:0] tvout
 );
-	parameter OSC_CLOCK = 12000000;
+	parameter OSC_CLOCK = 24000000;
 
 	parameter CPU_CLOCK = 3000000;
 
 	parameter CLK_DIV_PERIOD = (OSC_CLOCK / CPU_CLOCK) / 2;
+
+	wire clk_in;
+	
+	pll pll1(
+		.CLKI(clk_ext),
+		.CLKOP(clk_in)
+	);
 
 	reg [24:0] sys_cnt;
 	reg sys_clk = 0;
@@ -188,6 +197,12 @@ module p601zero (
 		.address(AD),
 		.data_in(DI),
 		.data_out(DO)
+	);
+
+	tvout tvout_imp (
+		.clk_in(clk_in),
+		.rst(sys_res),
+		.tvout(tvout)
 	);
 
 endmodule
