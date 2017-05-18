@@ -28,8 +28,8 @@ reset
 	ldx	#vstub_nmi
 	stx	VNMI
 
-; setup prescaler: 12MHz / (Baud * 8)
-	ldx	#13
+; setup prescaler: 24MHz / (Baud * 8)
+	ldx	#26
 	stx	UART_PRESCALER
 
 ; disable UART interrupts (clear UART_TIE and UART_RIE)
