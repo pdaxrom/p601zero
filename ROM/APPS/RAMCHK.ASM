@@ -2,10 +2,10 @@
 
 	include ../BOOTROM.INC
 
-RAM_START	equ $80
-RAM_END		equ $82
+RAM_START	equ $ef80
+RAM_END		equ $ef82
 
-	org $100
+	org $e000
 
 	ldx	#hello
 	jsr	F_UART_PUTS

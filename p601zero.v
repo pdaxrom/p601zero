@@ -165,7 +165,7 @@ module p601zero (
 		.clk_in(clk_in),
 		.clk(sys_clk),
 		.rst(sys_res),
-		.AD(AD[4:0]),
+		.AD(AD[0]),
 		.DI(DO),
 		.DO(videocrtd),
 		.rw(sys_rw),
