@@ -2,46 +2,126 @@
 
 	include ../BOOTROM.INC
 
-	org $8000
+RAM_START	equ $80
+RAM_END		equ $82
+
+	org $100
 
 	ldx	#hello
 	jsr	F_UART_PUTS
-
-;	ldaa	#$aa
-;	staa	$8000
-;	staa	$8001
-;	staa	$8002
-;	staa	$8003
-
-	ldaa	#$00
-	staa	$1000
-	inca
-	staa	$1001
-	inca
-	staa	$1002
-	inca
-	staa	$1003
-	inca
-	staa	$1004
-	inca
-	staa	$1005
-	inca
-	staa	$1006
-	inca
-	staa	$1007
+	jsr	F_UART_PUTS
+	jsr	F_UART_PUTS
+	jsr	F_UART_PUTS
 
 	ldx	#$1000
-loop
-;	staa	0,x
-	ldaa	0,x
-	staa	LED_HEX
-	jsr	F_UART_OUTHEX
+	stx	RAM_START
+	ldx	#$E000
+	stx	RAM_END
 
-	inx
-	cpx	#$1010
-	bne	loop
+	ldaa	#$00
+	jsr	fillbyte
 
+	ldaa	#$ff
+	jsr	fillbyte
+
+	ldaa	#$aa
+	jsr	fillbyte
+
+	ldaa	#$55
+	jsr	fillbyte
+
+	ldaa	#$a5
+	jsr	fillbyte
+
+	ldaa	#$5a
+	jsr	fillbyte
+
+	jsr	fillram
 
 	jmp	F_RESET
 
-hello	db	$0a, $0d, 'External Static RAM CHECK!', $0a, $0d, 0
+fillram proc
+	ldaa	#0
+loop	ldx	#fillram1
+	jsr	F_UART_PUTS
+	jsr	F_UART_OUTHEX
+	ldx	RAM_START
+loopw	staa	0,x
+	inx
+	cpx	RAM_END
+	bne	loopw
+	ldx	RAM_START
+loopr	ldab	0,x
+	cba
+	bne	error
+	inx
+	cpx	RAM_END
+	bne	loopr
+	ldx	#okay
+	jsr	F_UART_PUTS
+	inca
+	cmpa	#0
+	bne	loop
+	rts
+error	pshx
+	ldx	#failed
+	jsr	F_UART_PUTS
+	tba
+	jsr	F_UART_OUTHEX
+	ldx	#failed1
+	jsr	F_UART_PUTS
+	pulx
+	ldab	#16
+err1	ldaa	0,x
+	jsr	F_UART_OUTHEX
+	ldaa	#32
+	jsr	F_UART_OUT
+	decb
+	cmpb	#0
+	bne	err1
+	rts
+	endp
+
+fillbyte proc
+loop	ldx	#fillram1
+	jsr	F_UART_PUTS
+	jsr	F_UART_OUTHEX
+	ldx	RAM_START
+loopw	staa	0,x
+	inx
+	cpx	RAM_END
+	bne	loopw
+	ldx	RAM_START
+loopr	ldab	0,x
+	cba
+	bne	error
+	inx
+	cpx	RAM_END
+	bne	loopr
+	ldx	#okay
+	jsr	F_UART_PUTS
+	rts
+error	pshx
+	ldx	#failed
+	jsr	F_UART_PUTS
+	tba
+	jsr	F_UART_OUTHEX
+	ldx	#failed1
+	jsr	F_UART_PUTS
+	pulx
+	ldab	#16
+err1	ldaa	0,x
+	jsr	F_UART_OUTHEX
+	ldaa	#32
+	jsr	F_UART_OUT
+	decb
+	cmpb	#0
+	bne	err1
+	rts
+	endp
+
+hello	db	$0a, $0d, 'External Static RAM CHECK', $0a, $0d, 0
+fillram1 db	'Fill RAM with byte ', 0
+okay	db	' Okay', 10, 13, 0
+failed	db	' Failed ($',0
+failed1 db	')', 10, 13, 0
