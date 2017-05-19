@@ -11,7 +11,6 @@ module sram(
 	inout [7:0] SRAM_DQ,
 	output wire SRAM_WE_n,
 	output wire SRAM_OE_n,
-	output wire SRAM_CS1_n,
 	output wire SRAM_CS2
 
 );
@@ -19,7 +18,6 @@ module sram(
  
 	assign SRAM_AD[16] = 0;
 	assign SRAM_AD[15:0] = AD;
-	assign SRAM_CS1_n = !cs;
 	assign SRAM_CS2 = cs;
 	assign SRAM_OE_n = !rw;
 	assign SRAM_WE_n = rw;

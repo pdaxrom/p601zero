@@ -17,7 +17,6 @@ module p601zero (
 	inout[7:0] SRAM_DQ,
 	output SRAM_WE_n,
 	output SRAM_OE_n,
-	output SRAM_CS1_n,
 	output SRAM_CS2,
 	
 	output[1:0] tvout
@@ -159,6 +158,21 @@ module p601zero (
 		.txd(txd)
 	);
 
+	wire en_videocrt = (AD[15:5] == 11'b11100110000); // $E600
+	wire cs_videocrt = en_videocrt && sys_vma;
+	wire [7:0] videocrtd;
+	videocrt videocrt_imp (
+		.clk_in(clk_in),
+		.clk(sys_clk),
+		.rst(sys_res),
+		.AD(AD[4:0]),
+		.DI(DO),
+		.DO(videocrtd),
+		.rw(sys_rw),
+		.cs(cs_videocrt),
+		.tvout(tvout)
+	);
+
 	wire en_ram = !(en_brom | en_bram | en_simpleio | en_uartio);
 	wire cs_ram = en_ram && sys_vma;
 	wire[7:0] ramd;
@@ -174,7 +188,6 @@ module p601zero (
 		.SRAM_DQ(SRAM_DQ),
 		.SRAM_WE_n(SRAM_WE_n),
 		.SRAM_OE_n(SRAM_OE_n),
-		.SRAM_CS1_n(SRAM_CS1_n),
 		.SRAM_CS2(SRAM_CS2)
 	);
 
@@ -197,12 +210,6 @@ module p601zero (
 		.address(AD),
 		.data_in(DI),
 		.data_out(DO)
-	);
-
-	tvout tvout_imp (
-		.clk_in(clk_in),
-		.rst(sys_res),
-		.tvout(tvout)
 	);
 
 endmodule

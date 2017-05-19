@@ -1,10 +1,14 @@
-module tvout(
+module tvout (
 	input clk_in,
 	input rst,
 
-// physical connection
-	output wire [1:0] tvout
-	
+	output reg [8:0] cntHS,
+	output reg [8:0] cntVS,
+
+	output wire pixel_clk,
+	output wire vbl,
+
+	output wire out_sync
 );
 
 	reg [1:0] cnt8;
@@ -12,9 +16,6 @@ module tvout(
 	
 	reg [3:0] cnt1;
 	reg clk1;
-
-	reg [8:0] cntHS;
-	reg [8:0] cntVS;
 
 	reg[1:0] outregs;
 
@@ -46,23 +47,21 @@ module tvout(
 				if (cntVS == 310) cntVS <= 0;
 				else cntVS <= cntVS + 1'b1;
 			end else cntHS <= cntHS + 1'b1;
+
+			if (cntVS < 2) begin
+				if ((cntHS < 240) || ((cntHS >= 256) && (cntHS < 496))) vbl_sync <= 0;
+				else vbl_sync <= 1;
+			end else if (cntVS == 2) begin
+				if ((cntHS < 240) || ((cntHS >= 256) && (cntHS < 272))) vbl_sync <= 0;
+				else vbl_sync <= 1;
+			end else begin
+				if ((cntHS < 16) || ((cntHS >= 256) && (cntHS < 272))) vbl_sync <= 0;
+				else vbl_sync <= 1;
+			end			
 		end
-		
-		if (cntVS < 2) begin
-			if ((cntHS < 240) || ((cntHS >= 256) && (cntHS < 496))) vbl_sync <= 0;
-			else vbl_sync <= 1;
-		end else if (cntVS == 2) begin
-			if ((cntHS < 240) || ((cntHS >= 256) && (cntHS < 272))) vbl_sync <= 0;
-			else vbl_sync <= 1;
-		end else begin
-			if ((cntHS < 16) || ((cntHS >= 256) && (cntHS < 272))) vbl_sync <= 0;
-			else vbl_sync <= 1;
-		end			
 	end
 
-	wire outbit = ((cntHS > 116) && (cntHS < 436))?cntVS[1]:1'b0;
-
-	assign tvout[0] = in_vbl?vbl_sync:screen_sync;
-	assign tvout[1] = in_vbl?1'b0: outbit;
-
+	assign pixel_clk = clk8;
+	assign vbl = in_vbl;
+	assign out_sync = in_vbl?vbl_sync:screen_sync;
 endmodule
