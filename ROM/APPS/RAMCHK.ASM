@@ -1,11 +1,17 @@
+;
+; External RAM checker
+; Run:
+; ../bootloader /dev/ttyUSB0 load RAMCHK.CMD e800
+; ../bootloader /dev/ttyUSB0 go e800
+;
+
 	include ../DEVMAP.INC
 
 	include ../BOOTROM.INC
 
-RAM_START	equ $ef80
-RAM_END		equ $ef82
+	org $e800
 
-	org $e000
+	lds	#$efff
 
 	ldx	#hello
 	jsr	F_UART_PUTS
@@ -13,9 +19,9 @@ RAM_END		equ $ef82
 	jsr	F_UART_PUTS
 	jsr	F_UART_PUTS
 
-	ldx	#$1000
+	ldx	#$0000
 	stx	RAM_START
-	ldx	#$E000
+	ldx	#$E600
 	stx	RAM_END
 
 	ldaa	#$00
@@ -125,3 +131,6 @@ fillram1 db	'Fill RAM with byte ', 0
 okay	db	' Okay', 10, 13, 0
 failed	db	' Failed ($',0
 failed1 db	')', 10, 13, 0
+
+RAM_START	dw	0
+RAM_END		dw	0
