@@ -8,6 +8,11 @@ module videocrt (
 	input wire rw,
 	input wire cs,
 
+	output reg [15:0] VAD,
+	input wire [7:0] VDI,
+	output reg vram_cs,
+	input wire vram_complete,
+
 	// physical connection
 	output wire [1:0] tvout
 );
@@ -29,11 +34,11 @@ module videocrt (
 	reg [7:0]  vport_step;
 	
 	reg [2:0] pixel_cnt;
-	reg [15:0] vaddr_cnt;
-	
-	reg [7:0] shift_reg;
 
-	reg [7:0] video_ram[2047:0];
+	reg VAD_inc;
+	reg VAD_complete;
+	reg [7:0] VDI_data;
+	reg [7:0] shift_reg;
 
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
@@ -62,10 +67,10 @@ module videocrt (
 					4'b1100: DO <= vport_raddr[15:8];
 					4'b1101: DO <= vport_raddr[7:0];
 					4'b1110: DO <= vport_step;
-					4'b1111: begin
-							DO <= video_ram[vport_raddr];
-							vport_raddr <= vport_raddr + vport_step;
-						end
+//					4'b1111: begin
+//							DO <= video_ram[vport_raddr];
+//							vport_raddr <= vport_raddr + vport_step;
+//						end
 					endcase
 				end else begin
 					case (AD[3:0])
@@ -82,11 +87,31 @@ module videocrt (
 					4'b1100: vport_raddr[15:8] <= DI;
 					4'b1101: vport_raddr[7:0] <= DI;
 					4'b1110: vport_step <= DI;
-					4'b1111: begin
-							video_ram[vport_waddr] <= DI;
-							//vport_waddr <= vport_waddr + vport_step;
-						end
+//					4'b1111: begin
+//							video_ram[vport_waddr] <= DI;
+//							//vport_waddr <= vport_waddr + vport_step;
+//						end
 					endcase
+				end
+			end
+		end
+	end
+
+	always @ (posedge clk) begin
+		if (rst || vbl) begin
+			VAD <= frame_addr;
+			VAD_complete <= 0;
+			vram_cs <= 0;
+		end else begin
+			if (VAD_inc && (!VAD_complete)) begin
+				VAD <= VAD + 1'b1;
+				VAD_complete <= 1;
+				vram_cs <= 1;
+			end else begin
+				if (!VAD_inc) VAD_complete <= 0;
+				if (vram_complete) begin
+					VDI_data <= VDI;
+					vram_cs <= 0;
 				end
 			end
 		end
@@ -95,15 +120,16 @@ module videocrt (
 	always @ (posedge pixel_clk) begin
 		if (vbl) begin
 			pixel_cnt <= 3'b000;
-			vaddr_cnt <= frame_addr;
+			VAD_inc <= 0;
 		end else begin
 			if (((cntHS >= HS_start) && (cntHS < HS_end)) &&
 				((cntVS >= VS_start) && (cntVS < VS_end))) begin
 				if (pixel_cnt == 0) begin
-					shift_reg <= video_ram[vaddr_cnt];
-					vaddr_cnt <= vaddr_cnt + 1'b1;
+					shift_reg <= VDI_data;
+					VAD_inc <= 1;
 				end else begin
-					shift_reg[7:1] <= shift_reg[6:0];
+					shift_reg <= shift_reg << 1;
+					if (VAD_inc && VAD_complete) VAD_inc <= 0;
 				end
 				pixel_cnt <= pixel_cnt + 1'b1;
 			end else begin

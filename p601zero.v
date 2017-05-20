@@ -144,6 +144,11 @@ module p601zero (
 	wire en_videocrt = (AD[15:5] == 11'b11100110000); // $E600
 	wire cs_videocrt = en_videocrt && sys_vma;
 	wire [7:0] videocrtd;
+	
+	wire [15:0] VAD;
+	reg [7:0] VDI;
+	wire vram_cs;
+	reg vram_complete;
 	videocrt videocrt_imp (
 		.clk_in(clk_in),
 		.clk(sys_clk),
@@ -153,19 +158,28 @@ module p601zero (
 		.DO(videocrtd),
 		.rw(sys_rw),
 		.cs(cs_videocrt),
+		.VAD(VAD),
+		.VDI(VDI),
+		.vram_cs(vram_cs),
+		.vram_complete(vram_complete),
 		.tvout(tvout)
 	);
 
 	wire en_ram = !(en_brom | en_simpleio | en_uartio);
 	wire cs_ram = en_ram && sys_vma;
 	wire[7:0] ramd;
+	
+	wire [15:0] RAM_AD = vram_cs?VAD:AD;
+	wire RAM_rw = vram_cs?1'b1:sys_rw;
+	wire RAM_cs = vram_cs?1'b1:cs_ram;
+	
 	sram sram1 (
 		.clk(sys_clk),
-		.AD(AD),
+		.AD(RAM_AD),
 		.DI(DO),
 		.DO(ramd),
-		.rw(sys_rw),
-		.cs(cs_ram),
+		.rw(RAM_rw),
+		.cs(RAM_cs),
 
 		.SRAM_AD(SRAM_AD),
 		.SRAM_DQ(SRAM_DQ),
@@ -174,18 +188,28 @@ module p601zero (
 		.SRAM_CS2(SRAM_CS2)
 	);
 
+	always @ (posedge sys_clk or posedge sys_res) begin
+		if (sys_res) vram_complete <= 0;
+		else begin
+			if (vram_cs) begin
+				VDI <= ramd;
+				vram_complete <= 1;
+			end else vram_complete <= 0;
+		end
+	end
+
 	assign DI = en_ram      ? ramd:
 				en_brom		? bromd:
 				en_simpleio	? simpleiod:
 				en_uartio	? uartiod:
 				8'b11111111;
 
+	wire sys_hold = vram_cs;
+
 	wire sys_nmi;
-	wire sys_hold;
 	wire sys_halt;
 
 	assign sys_nmi = 1'b0;
-	assign sys_hold = 1'b0;
 	assign sys_halt = 1'b0;
 
 	cpu68 mc6801 (
