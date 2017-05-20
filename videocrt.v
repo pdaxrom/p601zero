@@ -97,12 +97,22 @@ module videocrt (
 		end
 	end
 
+	reg VDI_init;
+
 	always @ (posedge clk) begin
-		if (rst || vbl) begin
+		if (rst) VDI_init <= 1;
+		else if (vbl && (cntVS == 0)) begin
 			VAD <= frame_addr;
 			VAD_complete <= 0;
-			vram_cs <= 0;
+			if (VDI_init) begin
+				if (vram_complete) begin
+					VDI_data <= VDI;
+					VDI_init <= 0;
+					vram_cs <= 0;
+				end else vram_cs <= 1;
+			end else vram_cs <= 0;
 		end else begin
+			VDI_init <= 1;
 			if (VAD_inc && (!VAD_complete)) begin
 				VAD <= VAD + 1'b1;
 				VAD_complete <= 1;
