@@ -27,9 +27,6 @@
         <Source name="uartio.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="mcu_ram.v" type="Verilog" type_short="Verilog">
-            <Options/>
-        </Source>
         <Source name="sram.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
