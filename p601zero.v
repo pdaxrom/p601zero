@@ -44,9 +44,6 @@ module p601zero (
  */
 
 	reg sys_res = 1;
-	reg sys_nmi;
-	reg sys_hold;
-	reg sys_halt;
 	wire sys_rw;	wire sys_vma;
 	wire [15:0] AD;
 	wire [7:0] DI;
@@ -70,9 +67,6 @@ module p601zero (
 	begin
 		if (!b_reset) begin
 			sys_res <= 1;
-			sys_nmi <= 0;
-			sys_hold <= 0;
-			sys_halt <= 0;
 			
 			sys_res_delay = 3'b100;
 		end else begin
@@ -110,18 +104,7 @@ module p601zero (
 		.Q(bromd)
 	);
 
-	wire en_bram = (AD[15:12] == 4'b0000);
-	wire cs_bram = en_bram && sys_vma;
-	wire [7:0] bramd;
-	mcu_ram bram (
-		.clk(sys_clk),
-		.AD(AD),
-		.DI(DO),
-		.DO(bramd),
-		.rw(sys_rw),
-		.cs(cs_bram)
-	);
-	wire en_simpleio = (AD[15:3] == 13'b1110011010100); // $E6A0
+	wire en_simpleio = (AD[15:3] == 13'b1110011010100); // $E6A0
 	wire cs_simpleio = en_simpleio && sys_vma;
 	wire [7:0] simpleiod;
 	simpleio simpleio1 (
@@ -165,7 +148,7 @@ module p601zero (
 		.clk_in(clk_in),
 		.clk(sys_clk),
 		.rst(sys_res),
-		.AD(AD[0]),
+		.AD(AD[3:0]),
 		.DI(DO),
 		.DO(videocrtd),
 		.rw(sys_rw),
@@ -173,7 +156,7 @@ module p601zero (
 		.tvout(tvout)
 	);
 
-	wire en_ram = !(en_brom | en_bram | en_simpleio | en_uartio);
+	wire en_ram = !(en_brom | en_simpleio | en_uartio);
 	wire cs_ram = en_ram && sys_vma;
 	wire[7:0] ramd;
 	sram sram1 (
@@ -193,10 +176,17 @@ module p601zero (
 
 	assign DI = en_ram      ? ramd:
 				en_brom		? bromd:
-				en_bram		? bramd:
 				en_simpleio	? simpleiod:
 				en_uartio	? uartiod:
 				8'b11111111;
+
+	wire sys_nmi;
+	wire sys_hold;
+	wire sys_halt;
+
+	assign sys_nmi = 1'b0;
+	assign sys_hold = 1'b0;
+	assign sys_halt = 1'b0;
 
 	cpu68 mc6801 (
 		.clk(sys_clk),
