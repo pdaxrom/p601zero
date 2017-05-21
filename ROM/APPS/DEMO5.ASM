@@ -11,6 +11,9 @@
 	ldx	#hello
 	jsr	F_UART_PUTS
 
+	ldaa	#$00
+	staa	$e6f1
+
 	clra
 loop	staa	$e6f0
 	staa	$c000
