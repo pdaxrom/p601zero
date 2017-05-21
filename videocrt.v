@@ -159,4 +159,7 @@ module videocrt (
 		.vbl(vbl),
 		.out_sync(out_sync)
 	);
+	
+	cgrom cgrom_impl (
+	);
 endmodule

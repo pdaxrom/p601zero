@@ -44,7 +44,7 @@ module tvout (
 		end else begin
 			if (cntHS == 511) begin
 				cntHS <= 0;
-				if (cntVS == 310) cntVS <= 0;
+				if (cntVS == 311) cntVS <= 0;
 				else cntVS <= cntVS + 1'b1;
 			end else cntHS <= cntHS + 1'b1;
 

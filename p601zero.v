@@ -92,19 +92,16 @@ module p601zero (
 		.segs (seg_led_l[6:0])
 		);
 
+	wire DS0 = (AD[15:5] == 11'b11100110000); // $E600
+	wire DS1 = (AD[15:5] == 11'b11100110001); // $E620
+	wire DS2 = (AD[15:5] == 11'b11100110010); // $E640
+	wire DS3 = (AD[15:5] == 11'b11100110011); // $E660
+	wire DS4 = (AD[15:5] == 11'b11100110100); // $E680
+	wire DS5 = (AD[15:5] == 11'b11100110101); // $E6A0
+	wire DS6 = (AD[15:5] == 11'b11100110110); // $E6C0
+	wire DS7 = (AD[15:5] == 11'b11100110111); // $E6E0
 
-	wire en_brom = (AD[15:12] == 4'b1111);
-	wire cs_brom = en_brom && sys_vma;
-	wire [7:0] bromd;
-	mcu_rom brom (
-		.OutClock(sys_clk),
-		.Reset(sys_res),
-		.OutClockEn(cs_brom),
-		.Address(AD[7:0]),
-		.Q(bromd)
-	);
-
-	wire en_simpleio = (AD[15:3] == 13'b1110011010100); // $E6A0
+	wire en_simpleio = DS5 && (AD[4:3] == 2'b00); // $E6A0
 	wire cs_simpleio = en_simpleio && sys_vma;
 	wire [7:0] simpleiod;
 	simpleio simpleio1 (
@@ -124,7 +121,7 @@ module p601zero (
 		.keys(keys)
 	);
 
-	wire en_uartio = (AD[15:3] == 13'b1110011010101); // $E6A8
+	wire en_uartio = DS5 && (AD[4:3] == 2'b01); // $E6A8
 	wire cs_uartio = en_uartio && sys_vma;
 	wire [7:0] uartiod;
 	uartio uartio1 (
@@ -141,7 +138,22 @@ module p601zero (
 		.txd(txd)
 	);
 
-	wire en_videocrt = (AD[15:5] == 11'b11100110000); // $E600
+	wire en_pagesel = DS7;
+	wire cs_pagesel = en_pagesel && sys_vma;
+	wire [7:0] pageseld;
+	wire [4:0] mempage;
+	pagesel pagesel_imp (
+		.clk(sys_clk),
+		.rst(sys_res),
+		.AD(AD[4:0]),
+		.DI(DO),
+		.DO(pageseld),
+		.rw(sys_rw),
+		.cs(cs_pagesel),
+		.page(mempage)
+	);
+
+	wire en_videocrt = DS0; // $E600
 	wire cs_videocrt = en_videocrt && sys_vma;
 	wire [7:0] videocrtd;
 	
@@ -165,6 +177,17 @@ module p601zero (
 		.tvout(tvout)
 	);
 
+	wire en_brom = (AD[15:12] == 4'b1111);
+	wire cs_brom = en_brom && sys_vma;
+	wire [7:0] bromd;
+	mcu_rom brom (
+		.OutClock(sys_clk),
+		.Reset(sys_res),
+		.OutClockEn(cs_brom),
+		.Address(AD[7:0]),
+		.Q(bromd)
+	);
+
 	wire en_ram = !(en_brom | en_simpleio | en_uartio);
 	wire cs_ram = en_ram && sys_vma;
 	wire[7:0] ramd;
@@ -180,6 +203,7 @@ module p601zero (
 		.DO(ramd),
 		.rw(RAM_rw),
 		.cs(RAM_cs),
+		.page(mempage),
 
 		.SRAM_AD(SRAM_AD),
 		.SRAM_DQ(SRAM_DQ),
