@@ -1,5 +1,5 @@
 ;
-; VCRT init
+; VCRT init graphics mode
 ;
 
 	include ../DEVMAP.INC

@@ -8,7 +8,7 @@ module videocrt (
 	input wire rw,
 	input wire cs,
 
-//	input wire mode,
+	input wire mode,
 
 	output reg [15:0] VAD,
 	input wire [7:0] VDI,
@@ -39,10 +39,8 @@ module videocrt (
 	reg [8:0] HS_start;
 	reg [8:0] HS_end;
 	reg [8:0] HS_cnt;
-	reg [8:0] HS_cnt_end;
 	reg [8:0] VS_start;
 	reg [8:0] VS_end;
-	reg [13:0] VS_addr;
 	reg [2:0] SCNL_addr;
 	reg [13:0] addr_tmp;
 	reg [15:0] addr_tmp16;
@@ -132,7 +130,7 @@ module videocrt (
 			HS_end <= HS_start + (HS_displayed << 3);
 			VS_end <= HS_start + (VS_displayed << 3);
 
-			addr_tmp16 <= {frame_addr[12:0], 3'b000};
+			addr_tmp16 <= mode?{frame_addr[12:0], 3'b000}:{2'b11, frame_addr};
 			addr_tmp <= frame_addr;
 			SCNL_addr <= 0;
 			HS_cnt <= 0;
@@ -146,35 +144,65 @@ module videocrt (
 			
 		end else begin
 			VDI_init <= 1;
-			if (((cntHS > HS_start) && (cntHS <= HS_end )) &&
-				((cntVS > VS_start) && (cntVS <= VS_end))) begin
-				if (pixel_cnt == 0) begin
-					if (HS_cnt == (HS_displayed - 1)) begin
-						HS_cnt <= 0;
-						if (SCNL_addr == 3'b111) begin
-							SCNL_addr <= 3'b000;
-							addr_tmp16[2:0] <= 3'b000;
-							addr_tmp16[15:3] <= addr_tmp[12:0] + HS_displayed;
-							addr_tmp <= addr_tmp + HS_displayed;
+			if (mode) begin
+				if (((cntHS > HS_start) && (cntHS <= HS_end )) &&
+					((cntVS > VS_start) && (cntVS <= VS_end))) begin
+					if (pixel_cnt == 0) begin
+						if (HS_cnt == (HS_displayed - 1)) begin
+							HS_cnt <= 0;
+							if (SCNL_addr == 3'b111) begin
+								SCNL_addr <= 3'b000;
+								addr_tmp16[2:0] <= 3'b000;
+								addr_tmp16[15:3] <= addr_tmp[12:0] + HS_displayed;
+								addr_tmp <= addr_tmp + HS_displayed;
+							end else begin
+								SCNL_addr <= SCNL_addr + 1'b1;
+								addr_tmp16[2:0] <= addr_tmp16[2:0] + 1'b1;
+								addr_tmp16[15:3] <= addr_tmp[12:0];
+							end
 						end else begin
-							SCNL_addr <= SCNL_addr + 1'b1;
-							addr_tmp16[2:0] <= addr_tmp16[2:0] + 1'b1;
-							addr_tmp16[15:3] <= addr_tmp[12:0];
+							HS_cnt <= HS_cnt + 1'b1;
+							addr_tmp16[15:3] <= addr_tmp16[15:3] + 1'b1;
 						end
+						shift_reg <= VDI_data;
+						VAD_inc <= 1;
 					end else begin
-						HS_cnt <= HS_cnt + 1'b1;
-						addr_tmp16[15:3] <= addr_tmp16[15:3] + 1'b1;
+						shift_reg <= shift_reg << 1;
+						if (VAD_inc && VAD_complete) VAD_inc <= 0;
 					end
-					shift_reg <= VDI_data;
-					//shift_reg <= CGData;
-					VAD_inc <= 1;
+					pixel_cnt <= pixel_cnt + 1'b1;
 				end else begin
-					shift_reg <= shift_reg << 1;
-					if (VAD_inc && VAD_complete) VAD_inc <= 0;
+					shift_reg <= 8'h00;
 				end
-				pixel_cnt <= pixel_cnt + 1'b1;
 			end else begin
-				shift_reg <= 8'h00;
+				if (((cntHS > HS_start) && (cntHS <= HS_end )) &&
+					((cntVS > VS_start) && (cntVS <= VS_end))) begin
+					if (pixel_cnt == 0) begin
+						if (HS_cnt == (HS_displayed - 1)) begin
+							HS_cnt <= 0;
+							if (SCNL_addr == 3'b111) begin
+								SCNL_addr  <= 3'b000;
+								addr_tmp16[15:14] <= 2'b11;
+								addr_tmp16[13:0] <= addr_tmp + HS_displayed;
+								addr_tmp   <= addr_tmp + HS_displayed;
+							end else begin
+								SCNL_addr <= SCNL_addr + 1'b1;
+								addr_tmp16 <= {2'b11, addr_tmp};
+							end
+						end else begin
+							HS_cnt <= HS_cnt + 1'b1;
+							addr_tmp16 <= addr_tmp16 + 1'b1;
+						end
+						shift_reg <= CGData;
+						VAD_inc <= 1;
+					end else begin
+						shift_reg <= shift_reg << 1;
+						if (VAD_inc && VAD_complete) VAD_inc <= 0;
+					end
+					pixel_cnt <= pixel_cnt + 1'b1;
+				end else begin
+					shift_reg <= 8'h00;
+				end
 			end
 		end
 	end
@@ -192,7 +220,7 @@ module videocrt (
 	);
 	
 	cgrom cgrom_impl (
-		.Address({VDI_data[6:0] ,VDI_data[7], SCNL_addr}),
+		.Address({VDI_data[6:0] ,VDI_data[7], SCNL_addr[2:0]}),
 		.Q(CGData)
 	);
 endmodule

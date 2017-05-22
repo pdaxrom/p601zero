@@ -170,6 +170,7 @@ module p601zero (
 		.DO(videocrtd),
 		.rw(sys_rw),
 		.cs(cs_videocrt),
+		.mode(1'b0),
 		.VAD(VAD),
 		.VDI(VDI),
 		.vram_cs(vram_cs),
