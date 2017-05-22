@@ -102,25 +102,12 @@ module videocrt (
 		end
 	end
 
-	reg VDI_init;
-
 	always @ (posedge clk) begin
-		if (rst) VDI_init <= 1;
-		else if (vbl && (cntVS == 0)) begin
-//			VAD <= {frame_addr[12:0], 3'b000};
+		if (rst) begin
 			VAD_complete <= 0;
-			if (VDI_init) begin
-				if (vram_complete) begin
-					VDI_data <= VDI;
-					VDI_init <= 0;
-					vram_cs <= 0;
-				end else vram_cs <= 1;
-			end else vram_cs <= 0;
+			vram_cs <= 0;
 		end else begin
-			VDI_init <= 1;
 			if (VAD_inc && (!VAD_complete)) begin
-				//VAD <= VAD + 1'b1;
-				//VAD[2:0] <= cntVS[5:3];
 				VAD <= addr_tmp16;
 				VAD_complete <= 1;
 				vram_cs <= 1;
@@ -134,10 +121,12 @@ module videocrt (
 		end
 	end
 
+	reg VDI_init;
+
 	always @ (posedge pixel_clk) begin
-		if (vbl) begin
+		if (rst) VDI_init <= 1;
+		else if (vbl) begin
 			pixel_cnt <= 3'b000;
-			VAD_inc <= 0;
 			HS_start <= (HS_total - (HS_pos + HS_width)) << 3;
 			VS_start <= ((VS_total - VS_pos) << 3) + VS_adj;
 			HS_end <= HS_start + (HS_displayed << 3);
@@ -147,7 +136,16 @@ module videocrt (
 			addr_tmp <= frame_addr;
 			SCNL_addr <= 0;
 			HS_cnt <= 0;
+			
+			if (VDI_init && (!VAD_inc)) begin
+				VAD_inc <= 1;
+			end else begin
+				VDI_init <= 0;
+				if (VAD_inc && VAD_complete) VAD_inc <= 0;
+			end
+			
 		end else begin
+			VDI_init <= 1;
 			if (((cntHS > HS_start) && (cntHS <= HS_end )) &&
 				((cntVS > VS_start) && (cntVS <= VS_end))) begin
 				if (pixel_cnt == 0) begin
