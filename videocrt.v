@@ -8,6 +8,8 @@ module videocrt (
 	input wire rw,
 	input wire cs,
 
+//	input wire mode,
+
 	output reg [15:0] VAD,
 	input wire [7:0] VDI,
 	output reg vram_cs,
@@ -23,16 +25,27 @@ module videocrt (
 	wire vbl;
 	wire out_sync;
 
+	reg [7:0] HS_total;
+	reg [7:0] HS_displayed;
+	reg [7:0] HS_pos;
+	reg [7:0] HS_width;
+	reg [7:0] VS_total;
+	reg [7:0] VS_adj;
+	reg [7:0] VS_displayed;
+	reg [7:0] VS_pos;
+	reg [7:0] SCNL_max;
+	reg [13:0] frame_addr;
+
 	reg [8:0] HS_start;
 	reg [8:0] HS_end;
+	reg [8:0] HS_cnt;
+	reg [8:0] HS_cnt_end;
 	reg [8:0] VS_start;
 	reg [8:0] VS_end;
+	reg [2:0] SCNL_addr;
+	reg [13:0] VS_addr;
+	reg [13:0] addr_tmp;
 
-	reg [15:0] frame_addr;
-	reg [15:0] vport_waddr;
-	reg [15:0] vport_raddr;
-	reg [7:0]  vport_step;
-	
 	reg [2:0] pixel_cnt;
 
 	reg VAD_inc;
@@ -40,58 +53,49 @@ module videocrt (
 	reg [7:0] VDI_data;
 	reg [7:0] shift_reg;
 
+	//reg [7:0] CGAddr;
+	wire [7:0] CGData;
+
+	reg [4:0] mc6845_addr;
+
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
-			HS_start <= 160; // 20chars * 8
-			HS_end <= 480; // (20chars + 40chars) * 8
-			VS_start <= 57;
-			VS_end <= 257;
 			frame_addr <= 16'h0000;
-			vport_waddr <= 16'h0000;
-			vport_raddr <= 16'h0000;
-			vport_step <= 8'h01;
 		end else begin
 			if (cs) begin
 				if (rw) begin
-					case (AD[3:0])
-					4'b0000: DO <= frame_addr[15:8];
-					4'b0001: DO <= frame_addr[7:0];
-					4'b0010: DO <= {3'b000, HS_start[8:3]};
-					4'b0011: DO <= {3'b000, HS_end[8:3]};
-					4'b0100: DO <= { 7'b0000000, VS_start[8]};
-					4'b0101: DO <= VS_start[7:0];
-					4'b0110: DO <= { 7'b0000000, VS_end[8]};
-					4'b0111: DO <= VS_end[7:0];
-					4'b1010: DO <= vport_waddr[15:8];
-					4'b1011: DO <= vport_waddr[7:0];
-					4'b1100: DO <= vport_raddr[15:8];
-					4'b1101: DO <= vport_raddr[7:0];
-					4'b1110: DO <= vport_step;
-//					4'b1111: begin
-//							DO <= video_ram[vport_raddr];
-//							vport_raddr <= vport_raddr + vport_step;
-//						end
-					endcase
+					if (AD[0]) begin
+						case (mc6845_addr[4:0])
+						4'b00000: DO <= HS_total;
+						4'b00001: DO <= HS_displayed;
+						4'b00010: DO <= HS_pos;
+						4'b00011: DO <= HS_width;
+						4'b00100: DO <= VS_total;
+						4'b00101: DO <= VS_adj;
+						4'b00110: DO <= VS_displayed;
+						4'b00111: DO <= VS_pos;
+						4'b01001: DO <= SCNL_max;
+						4'b01100: DO <= {2'b00, frame_addr[13:8]};
+						4'b01101: DO <= frame_addr[7:0];
+						default: DO <= 8'h00;
+						endcase
+					end else DO <= {3'b000, mc6845_addr};
 				end else begin
-					case (AD[3:0])
-					4'b0000: frame_addr[15:8] <= DI;
-					4'b0001: frame_addr[7:0] <= DI;
-					4'b0010: HS_start <= {DI[5:0], 3'b000};
-					4'b0011: HS_end <= {DI[5:0], 3'b000};
-					4'b0100: VS_start[8] <= DI[0];
-					4'b0101: VS_start[7:0] <= DI;
-					4'b0110: VS_end[8] <= DI[0];
-					4'b0111: VS_end[7:0] <= DI;
-					4'b1010: vport_waddr[15:8] <= DI;
-					4'b1011: vport_waddr[7:0] <= DI;
-					4'b1100: vport_raddr[15:8] <= DI;
-					4'b1101: vport_raddr[7:0] <= DI;
-					4'b1110: vport_step <= DI;
-//					4'b1111: begin
-//							video_ram[vport_waddr] <= DI;
-//							//vport_waddr <= vport_waddr + vport_step;
-//						end
-					endcase
+					if (AD[0]) begin
+						case (mc6845_addr[4:0])
+						4'b00000: HS_total <= DI;
+						4'b00001: HS_displayed <= DI;
+						4'b00010: HS_pos <= DI;
+						4'b00011: HS_width <= DI;
+						4'b00100: VS_total <= DI;
+						4'b00101: VS_adj <= DI;
+						4'b00110: VS_displayed <= DI;
+						4'b00111: VS_pos <= DI;
+						4'b01001: SCNL_max <= DI;
+						4'b01100: frame_addr[13:8] <= DI[5:0];
+						4'b01101: frame_addr[7:0] <= DI;
+						endcase
+					end else mc6845_addr <= DI[4:0];
 				end
 			end
 		end
@@ -102,7 +106,10 @@ module videocrt (
 	always @ (posedge clk) begin
 		if (rst) VDI_init <= 1;
 		else if (vbl && (cntVS == 0)) begin
-			VAD <= frame_addr;
+			SCNL_addr <= 0;
+			VAD <= {frame_addr[12:0], 3'b000};
+			addr_tmp <= frame_addr;
+			VS_addr <= frame_addr;
 			VAD_complete <= 0;
 			if (VDI_init) begin
 				if (vram_complete) begin
@@ -110,6 +117,12 @@ module videocrt (
 					VDI_init <= 0;
 					vram_cs <= 0;
 				end else vram_cs <= 1;
+				HS_start <= (HS_total - (HS_pos + HS_width)) << 3;
+				VS_start <= ((VS_total - VS_pos) << 3) + VS_adj;
+				HS_end <= HS_start + (HS_displayed << 3);
+				VS_end <= HS_start + (VS_displayed << 3);
+				HS_cnt <= 0;
+				HS_cnt_end <= HS_displayed - 1'b1;
 			end else vram_cs <= 0;
 		end else begin
 			VDI_init <= 1;
@@ -132,10 +145,11 @@ module videocrt (
 			pixel_cnt <= 3'b000;
 			VAD_inc <= 0;
 		end else begin
-			if (((cntHS >= HS_start) && (cntHS < HS_end)) &&
-				((cntVS >= VS_start) && (cntVS < VS_end))) begin
+			if (((cntHS > HS_start) && (cntHS <= HS_end )) &&
+				((cntVS > VS_start) && (cntVS <= VS_end))) begin
 				if (pixel_cnt == 0) begin
 					shift_reg <= VDI_data;
+					//shift_reg <= CGData;
 					VAD_inc <= 1;
 				end else begin
 					shift_reg <= shift_reg << 1;
@@ -146,7 +160,7 @@ module videocrt (
 				shift_reg <= 8'h00;
 			end
 		end
-	end	
+	end
 	assign tvout[1] = (vbl || (cntHS < 37))?1'b0:shift_reg[7];
 	assign tvout[0] = out_sync;
 
@@ -161,5 +175,7 @@ module videocrt (
 	);
 	
 	cgrom cgrom_impl (
+		.Address({VDI_data[6:0] ,VDI_data[7], SCNL_addr}),
+		.Q(CGData)
 	);
 endmodule

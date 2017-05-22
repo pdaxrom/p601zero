@@ -13,10 +13,11 @@
 
 	lds	#$efff
 
+; disable ram pages
+	clr	$e6f1
+	clr	$e6f0
+
 	ldx	#hello
-	jsr	F_UART_PUTS
-	jsr	F_UART_PUTS
-	jsr	F_UART_PUTS
 	jsr	F_UART_PUTS
 
 	ldx	#$0000

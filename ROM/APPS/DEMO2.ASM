@@ -14,10 +14,30 @@ m4	ds	2
 	ldx	#hello
 	jsr	F_UART_PUTS
 
+	ldaa	#$03
+	staa	$e600
+	ldaa	#$20
+	staa	$e601
+
+	ldaa	#$04
+	staa	$e600
+	ldaa	#$26
+	staa	$e601
+
+	ldaa	#$03
+	staa	$e600
+
 	ldaa	m1
 	ldx	m2
 	staa	m3
 	stx	m4
+
+	ldaa	$e600
+	jsr	F_UART_OUTHEX
+	ldaa	#32
+	jsr	F_UART_OUT
+	ldaa	$e601
+	jsr	F_UART_OUTHEX
 
 	jmp	F_RESET
 

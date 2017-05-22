@@ -188,7 +188,7 @@ module p601zero (
 		.Q(bromd)
 	);
 
-	wire en_ram = !(en_brom | en_simpleio | en_uartio);
+	wire en_ram = !(en_brom | en_simpleio | en_uartio | en_pagesel | en_videocrt);
 	wire cs_ram = en_ram && sys_vma;
 	wire[7:0] ramd;
 	
@@ -224,8 +224,10 @@ module p601zero (
 
 	assign DI = en_ram      ? ramd:
 				en_brom		? bromd:
+				en_videocrt ? videocrtd:
 				en_simpleio	? simpleiod:
 				en_uartio	? uartiod:
+				en_pagesel  ? pageseld:
 				8'b11111111;
 
 	wire sys_hold = vram_cs;
