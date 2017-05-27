@@ -1,0 +1,54 @@
+;
+; BLACKEYES 601 ZERO
+; Devices mapping
+;
+
+; Video CRT (simple 6845 clone)
+VCRT_ADDR	equ	$E600
+VCRT_DATA	equ	$E601
+
+; SimpleIO module
+
+LED_8BIT	equ	$E6A0
+LED_2RGB	equ	$E6A1
+LED_HEX		equ	$E6A2
+INPUT_SWKEYS	equ	$E6A3
+
+TIMER_CONFIG	equ	$E6A4
+TIMER_STATUS	equ	$E6A4
+TIMER_PRESCALER	equ	$E6A5
+
+TIMER_RUN	equ	$1
+TIMER_IEN	equ	$40
+TIMER_IRQ	equ	$80
+
+; UART module
+
+UART_DATA	equ	$E6A8
+UART_CONFIG	equ	$E6A9
+UART_STATUS	equ	$E6A9
+UART_PRESCALER	equ	$E6AA
+
+UART_RRD	equ	$1
+UART_ROE	equ	$2
+UART_RFE	equ	$4
+UART_TRD	equ	$8
+UART_RIE	equ	$10
+UART_TIE	equ	$20
+UART_RIQ	equ	$40
+UART_TIQ	equ	$80
+
+; SPI HOST
+SPI_STATUS	equ	$E6C0
+SPI_DATA	equ	$E6C1
+SPI_PRESCALER	equ	$E6C2
+
+SPI_READY	equ	$80
+SPI_SSN		equ	$01
+
+; PAGE SELECTOR
+RAMPAGE_SEL	equ	$e6f0
+RAMPAGE_CTL	equ	$e6f1
+RAMPAGE_LOCK	equ	$1
+
+;

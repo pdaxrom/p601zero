@@ -1,0 +1,10 @@
+Run compiled code on the board
+
+1) Load code to the board
+    ../bootloader /dev/ttyUSB0 load DEMO1.CMD 100
+
+2) Run loaded code:
+    ../bootloader /dev/ttyUSB0 go 100
+
+For code that use UART, run terminal in non locking mode:
+    picocom -l -b 115200 /dev/ttyUSB0

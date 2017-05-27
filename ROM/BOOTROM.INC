@@ -1,0 +1,17 @@
+;
+; BootROM variables and functions
+;
+
+VIRQ	equ	$FA
+VSWI	equ	$FC
+VNMI	equ	$FE
+
+END_ADDR	equ	$F0
+
+BOOTROM_BASE	equ	$FF00
+
+F_RESET		equ	BOOTROM_BASE
+F_UART_IN	equ	BOOTROM_BASE+2
+F_UART_OUT	equ	BOOTROM_BASE+4
+F_UART_PUTS	equ	BOOTROM_BASE+6
+F_UART_OUTHEX	equ	BOOTROM_BASE+8
