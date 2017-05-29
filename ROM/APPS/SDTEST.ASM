@@ -7,47 +7,19 @@
 	ldx	#hello
 	jsr	F_UART_PUTS
 
+
+;	ldaa	#$10
+;	ldab	#$20
+;	ldx	#$BABE
+;	swi
+
 	jsr	sd_init
 
-mainloop jsr	F_UART_IN
-	cmpa	#'1'
-	bne	next1
-	ldx	#cmd40
-	bra	exec
-next1	cmpa	#'2'
-	bne	next2
-	ldx	#cmd41
-	bra	exec
-next2	cmpa	#'3'
-	bne	next3
-	ldx	#cmd50
-exec	bsr	show_cmd
-
-	ldab	#8
-	ldx	#buffer
-dump	ldaa	0,x
-	jsr	F_UART_OUTHEX
-	ldaa	#' '
-	jsr	F_UART_OUT
-	inx
-	decb
-	bne	dump
-	bra	mainloop
-
-next3	cmpa	#'4'
-	bne	next
-;	ldx	#cmd51
-;	bsr	sd_command
-
-	
-
-
-	bra	mainloop
-next	cmpa	#27
-	bne	mainloop
+	staa	LED_HEX
 
 	ldx	#bye
 	jsr	F_UART_PUTS
+
 	jmp	F_RESET
 
 show_cmd proc
@@ -59,41 +31,70 @@ show_cmd proc
 	jsr	F_UART_OUTHEX
 	ldaa	#' '
 	jsr	F_UART_OUT
-	bra	sd_command
+	jsr	sd_command
+	jsr	F_UART_OUTHEX
+	rts
 	endp
 
 txtcmd	db	10, 13, 'CMD ', 0
 
-cmd40	db	$40, 0, 0, 0, 0, $95
-	dw	buffer
-	dw	8
+sd_delay proc
+	pshx
+	ldx	#4000
+loop	dex
+	bne	loop
+	pulx
+	rts
+	endp
 
-cmd41	db	$41, 0, 0, 0, 0, $FF
-	dw	buffer
-	dw	8
-
-cmd50	db	$50, 0, 0, $02, 0, $FF
-	dw	buffer
-	dw	8
-
-cmd51	db	$51, 0, 0, 0, 0, $FF
-	dw	buffer
-	dw	8
+sd_init_cmd0	db	$40, $00, $00, $00, $00, $95
+sd_init_cmd1	db	$41, $00, $00, $00, $00, $FF
+sd_init_cmd16	db	$50, $00, $00, $02, $00, $FF
 
 sd_init	proc
+	pshb
+	pshx
 	ldaa	#5
 	staa	SPI_PRESCALER
-	bsr	sd_disable
+	jsr	sd_disable
 	ldab	#10
-loop	ldaa	#$FF
-	bsr	spi_write
+loop	jsr	spi_read
 	decb
 	bne	loop
+
+	ldx	#sd_init_cmd0
+	ldab	#10
+loop1	jsr	show_cmd
+	cmpa	#$01
+	beq	init2
+	bsr	sd_delay
+	decb
+	bne	loop1
+	ldaa	#1
+	bra	exit
+
+init2	ldx	#sd_init_cmd1
+	ldab	#255
+loop2	jsr	show_cmd
+	tsta
+	beq	init3
+	bsr	sd_delay
+	decb
+	bne	loop2
+	ldaa	#2
+	bra	exit
+
+init3	ldx	#sd_init_cmd16
+	jsr	show_cmd
+	clra
+exit	pulx
+	pulb
 	rts
 	endp
 
 sd_command proc
 	bsr	sd_enable
+
 	ldaa	0,x		; cmd
 	bsr	spi_write
 	ldaa	1,x		; arg
@@ -106,25 +107,16 @@ sd_command proc
 	bsr	spi_write
 	ldaa	5,x		; CRC
 	bsr	spi_write
-	pshx
-	ldx	6,x
-	stx	$20
-	pulx
-	ldx	8,x
-loop	cpx	#0
-	beq	exit
-	ldaa	#$FF
-	bsr	spi_write
-	pshx
-	ldx	$20
-	staa	0,x
-	inx
-	stx	$20
-	pulx
-	dex
-	bra	loop
-exit	bsr	sd_disable
-	rts
+
+	pshb
+	ldab	#10
+loop	jsr	spi_read
+	cmpa	#$FF
+	bne	exit
+	decb
+	bne	loop
+exit	pulb
+	bra	sd_disable
 	endp
 
 sd_enable proc
@@ -141,17 +133,21 @@ sd_disable proc
 	ldaa	SPI_STATUS
 	oraa	#SPI_SSN
 	staa	SPI_STATUS
+	bsr	spi_read
 	pula
 	rts
 	endp
 
 spi_write proc
+	global	spi_read
 	staa	SPI_DATA
 loop	ldaa	SPI_STATUS
 	bita	#SPI_READY
 	beq	loop
 	ldaa	SPI_DATA
 	rts
+spi_read ldaa	#$FF
+	bra	spi_write
 	endp
 
 ; read sector from SD
