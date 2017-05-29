@@ -14,13 +14,34 @@
 ;	swi
 
 	jsr	sd_init
+	tsta
+	bne	exit
 
 	staa	LED_HEX
 
-	ldx	#bye
+	ldx	#read_sec
+	jsr	sd_read
+
+	swi
+
+	ldx	#read_sec2
+	jsr	sd_read
+
+	swi
+
+exit	ldx	#bye
 	jsr	F_UART_PUTS
 
 	jmp	F_RESET
+
+read_sec db	$00,$00,$00,$00
+	dw	read_buf
+read_sec2 db	$00,$00,$00,$01
+	dw	read_buf2
+
+read_buf  equ $400
+read_buf2 equ $600
+
 
 show_cmd proc
 	pshx
@@ -89,10 +110,11 @@ init3	ldx	#sd_init_cmd16
 	clra
 exit	pulx
 	pulb
-	rts
+	bra	sd_disable
 	endp
 
 sd_command proc
+	bsr	sd_disable
 	bsr	sd_enable
 
 	ldaa	0,x		; cmd
@@ -116,7 +138,7 @@ loop	jsr	spi_read
 	decb
 	bne	loop
 exit	pulb
-	bra	sd_disable
+	rts
 	endp
 
 sd_enable proc
@@ -156,17 +178,78 @@ spi_read ldaa	#$FF
 ; ds 4 - sector
 ; ds 2 - buffer ptr
 ;
-sdreadsec proc
-	psha
+sd_read proc
+	pshx
+	pshb
 
-	pula
+;
+; sector * 512
+;
+	ldaa	#$FF
+	psha
+	clra
+	psha
+	ldaa	3,x
+	rola
+	psha
+	ldaa	2,x
+	rola
+	psha
+	ldaa	1,x
+	rola
+	psha
+	ldaa	#$51		; CMD17
+	psha
+	ldx	4,x		; buffer
+	pshx
+	tsx
+	inx
+	inx			; X to saved data for sd_command
+	jsr	show_cmd
+	pulx
+
+	tsta
+	beq	next
+	ldaa	#1
+	bra	exit
+
+next	ldab	#255
+next1	bsr	spi_read
+	cmpa	#$FF
+	bne	next2
+	jsr	sd_delay
+	decb
+	bne	next1
+	ldaa	#2
+	bra	exit
+next2	cmpa	#$FE
+	beq	next3
+	ldaa	#3
+	bra	exit
+next3	bsr	rcvr
+	bsr	rcvr
+	bsr	spi_read
+	bsr	spi_read
+	ldaa	#0
+
+exit	tsx
+	ldab	#6
+	abx
+	txs
+	bsr	sd_disable
+
+	pulb
+	pulx
+	rts
+
+rcvr	ldab	#0
+rcvr1	bsr	spi_read
+	staa	0,x
+	inx
+	decb
+	bne	rcvr1
 	rts
 	endp
 
-sec1	db	0, 0, 0, 0
-	dw	$1000
-
 hello	db	$0a, $0d, 'SD Card test!', $0a, $0d, 0
 bye	db	$0a, $0d, 'Bye!', $0a, $0d, 0
-
-buffer	ds	200
