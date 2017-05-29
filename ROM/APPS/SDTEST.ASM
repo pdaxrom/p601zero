@@ -39,6 +39,10 @@
 
 	swi
 
+	jsr	sd_flush
+
+	swi
+
 exit	ldx	#bye
 	jsr	F_UART_PUTS
 
@@ -157,11 +161,22 @@ exit	pulb
 	endp
 
 sd_enable proc
-	psha
+	pshx
 	ldaa	SPI_STATUS
 	anda	#($FF^SPI_SSN)
 	staa	SPI_STATUS
-	pula
+	jsr	spi_read
+	ldx	#5000
+loop	jsr	spi_read
+	cmpa	#$FF
+	beq	exit
+	jsr	sd_delay
+	dex
+	bne	loop
+	bsr	sd_disable
+	ldaa	#0
+exit	inca
+	pulx
 	rts
 	endp
 
@@ -353,6 +368,14 @@ xmit1	ldaa	0,x
 	decb
 	bne	xmit1
 	rts
+	endp
+
+sd_flush proc
+	jsr	sd_enable
+	tsta
+	bne	exit
+	jsr	sd_disable
+exit	rts
 	endp
 
 hello	db	$0a, $0d, 'SD Card test!', $0a, $0d, 0
