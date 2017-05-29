@@ -29,6 +29,16 @@
 
 	swi
 
+	ldx	#write_sec
+	jsr	sd_write
+
+	swi
+
+	ldx	#write_sec2
+	jsr	sd_write
+
+	swi
+
 exit	ldx	#bye
 	jsr	F_UART_PUTS
 
@@ -37,6 +47,11 @@ exit	ldx	#bye
 read_sec db	$00,$00,$00,$00
 	dw	read_buf
 read_sec2 db	$00,$00,$00,$01
+	dw	read_buf2
+
+write_sec db	$00,$00,$00,$01
+	dw	read_buf
+write_sec2 db	$00,$00,$00,$00
 	dw	read_buf2
 
 read_buf  equ $400
@@ -118,17 +133,17 @@ sd_command proc
 	bsr	sd_enable
 
 	ldaa	0,x		; cmd
-	bsr	spi_write
+	jsr	spi_write
 	ldaa	1,x		; arg
-	bsr	spi_write
+	jsr	spi_write
 	ldaa	2,x		; arg
-	bsr	spi_write
+	jsr	spi_write
 	ldaa	3,x		; arg
-	bsr	spi_write
+	jsr	spi_write
 	ldaa	4,x		; arg
-	bsr	spi_write
+	jsr	spi_write
 	ldaa	5,x		; CRC
-	bsr	spi_write
+	jsr	spi_write
 
 	pshb
 	ldab	#10
@@ -160,19 +175,10 @@ sd_disable proc
 	rts
 	endp
 
-spi_write proc
-	global	spi_read
-	staa	SPI_DATA
-loop	ldaa	SPI_STATUS
-	bita	#SPI_READY
-	beq	loop
-	ldaa	SPI_DATA
-	rts
-spi_read ldaa	#$FF
-	bra	spi_write
-	endp
-
+;
 ; read sector from SD
+;
+; A = 0 - No error
 ;
 ; X - ptr to structure:
 ; ds 4 - sector
@@ -248,6 +254,104 @@ rcvr1	bsr	spi_read
 	inx
 	decb
 	bne	rcvr1
+	rts
+	endp
+
+spi_write proc
+	global	spi_read
+	staa	SPI_DATA
+loop	ldaa	SPI_STATUS
+	bita	#SPI_READY
+	beq	loop
+	ldaa	SPI_DATA
+	rts
+spi_read ldaa	#$FF
+	bra	spi_write
+	endp
+
+;
+; write sector to SD
+;
+; A = 0 - No error
+;
+; X - ptr to structure:
+; ds 4 - sector
+; ds 2 - buffer ptr
+;
+sd_write proc
+	pshx
+	pshb
+
+;
+; sector * 512
+;
+	ldaa	#$FF
+	psha
+	clra
+	psha
+	ldaa	3,x
+	rola
+	psha
+	ldaa	2,x
+	rola
+	psha
+	ldaa	1,x
+	rola
+	psha
+	ldaa	#$58		; CMD24
+	psha
+	ldx	4,x		; buffer
+	pshx
+	tsx
+	inx
+	inx			; X to saved data for sd_command
+	jsr	show_cmd
+	pulx
+
+	tsta
+	beq	next
+	ldaa	#1
+	bra	exit
+
+next	ldab	#255
+next1	bsr	spi_read
+	cmpa	#$FF
+	beq	next2
+	jsr	sd_delay
+	decb
+	bne	next1
+	ldaa	#2
+	bra	exit
+next2	ldaa	#$FE
+	bsr	spi_write
+	bsr	xmit
+	bsr	xmit
+	bsr	spi_read
+	bsr	spi_read
+	bsr	spi_read
+	anda	#$1F
+	cmpa	#$05
+	bne	next3
+	ldaa	#0
+	bra	exit
+next3	ldaa	#3
+
+exit	tsx
+	ldab	#6
+	abx
+	txs
+	jsr	sd_disable
+
+	pulb
+	pulx
+	rts
+
+xmit	ldab	#0
+xmit1	ldaa	0,x
+	bsr	spi_write
+	inx
+	decb
+	bne	xmit1
 	rts
 	endp
 
