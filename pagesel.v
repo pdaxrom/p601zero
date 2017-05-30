@@ -7,12 +7,14 @@ module pagesel (
 	input wire rw,
 	input wire cs,
 
-	output reg [4:0] page
+	output reg [4:0] page,
+	output reg bram_disable
 );
 
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
 			page <= 5'b00000;
+			bram_disable <= 0;
 		end else begin
 			if (cs) begin
 				if (AD == 5'b10000) begin
@@ -20,8 +22,11 @@ module pagesel (
 					else page[3:0] <= DI[3:0];
 				end
 				if (AD == 5'b10001) begin
-					if (rw) DO <= { 7'b0000000, page[4]};
-					else page[4] <= DI[0];
+					if (rw) DO <= { 6'b000000, bram_disable, page[4]};
+					else begin
+						page[4] <= DI[0];
+						bram_disable <= DI[1];
+					end
 				end
 			end
 		end

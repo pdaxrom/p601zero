@@ -7,13 +7,14 @@
 
 	include BOOTROM.INC
 
-	org	$ff00
+	org	BOOTROM_BASE
 
-	bra	reset
-	bra	uart_in
-	bra	uart_out
-	bra	uart_puts
-	bra	uart_outhex_1
+	jmp	reset
+	jmp	uart_in
+	jmp	uart_out
+	jmp	uart_puts
+	jmp	uart_outhex_1
+;	jmp	sd_init
 
 reset
 	sei
@@ -156,6 +157,61 @@ get_word proc
 
 pylogo	db $0a, $0d, 'ZERO/pdaXrom', $0a, $0d, 0
 
+dump_regs proc
+	sts	$10
+
+	lds	#$80
+
+	ldx	#regstxt
+	bsr	uart_puts
+
+	ldx	$10
+	inx
+
+	ldaa	0,x		; CC
+	bsr	uart_outhex
+	ldaa	#' '
+	bsr	uart_out
+
+	ldaa	1,x		; A
+	bsr	uart_outhex
+	ldaa	#' '
+	bsr	uart_out
+
+	ldaa	2,x		; B
+	bsr	uart_outhex
+	ldaa	#' '
+	bsr	uart_out
+
+	ldaa	3,x		; XH
+	bsr	uart_outhex
+	ldaa	4,x		; XL
+	bsr	uart_outhex
+	ldaa	#' '
+	jsr	uart_out
+
+	ldaa	5,x		; PCH
+	bsr	uart_outhex
+	ldaa	6,x		; PCL
+	bsr	uart_outhex
+	ldaa	#' '
+	jsr	uart_out
+
+	dex
+	pshx
+
+	pula			; SPH
+	jsr	uart_outhex
+	pula			; SPL
+	jsr	uart_outhex
+
+	lds	$10
+
+	rti
+	endp
+
+;
+;
 ;----
 inthandlers proc
 	global vstub_irq, vstub_swi, vstub_nmi
@@ -169,13 +225,15 @@ vstub_swi
 
 vstub_nmi
 	ldx	#vectextNMI
-ret	bsr	uart_puts
-	rti
+ret	jsr	uart_puts
+	jmp	dump_regs
 	endp
 
 vectextIRQ	db	'IRQ',0
 vectextSWI	db	'SWI',0
 vectextNMI	db	'NMI',0
+
+regstxt		db	10, 13, 'C- B- A- X--- PC-- SP--', 10, 13, 0
 
 ;----
 intvectors proc
@@ -189,8 +247,9 @@ vec_swi
 	jmp	0,x
 
 vec_nmi
-	ldx	VNMI
-	jmp	0,x
+	jmp	vstub_nmi
+;	ldx	VNMI
+;	jmp	0,x
 	endp
 
 	ds	$fff8-*, $ff
