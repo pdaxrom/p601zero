@@ -25,6 +25,8 @@ module simpleio (
 	input wire cs,
 	output wire irq,
 	
+	input wire clk_in,
+	
 	// physical connections
 	output reg [7:0] leds,
 	output reg [7:0] hex_disp,
@@ -36,8 +38,26 @@ module simpleio (
 	reg [23:0] timer_cnt;
 	reg [23:0] timer_prescaler;
 	reg [7:0] timer_mode;
+	reg timer_eq_flag;
 	
 	assign irq = timer_mode[7] & timer_mode[6];
+	
+	always @ (posedge clk_in) begin
+		if (rst) begin
+			timer_cnt <= 0;
+			timer_eq_flag <= 0;
+		end else begin
+			if (timer_mode[0]) begin
+				if (timer_cnt == timer_prescaler) begin
+					timer_eq_flag <= 1;
+					timer_cnt <= 0;
+				end else begin
+					timer_cnt <= timer_cnt + 1'b1;
+					if (timer_mode[7]) timer_eq_flag <= 0;
+				end
+			end
+		end
+	end
 	
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
@@ -46,17 +66,9 @@ module simpleio (
 			rgb2 <= 8'b111;
 			hex_disp <= 0;
 			timer_mode <= 0;
-			timer_cnt <= 0;
 			timer_prescaler <= 0;
 		end else begin
-			if (timer_mode[0]) begin
-				if (timer_cnt == timer_prescaler) begin
-					timer_mode[7] <= 1;
-					timer_cnt <= 0;
-				end else begin
-					timer_cnt <= timer_cnt + 1'b1;
-				end
-			end
+			if (timer_eq_flag) timer_mode[7] <= 1;
 
 			if (cs) begin
 				if (rw) begin

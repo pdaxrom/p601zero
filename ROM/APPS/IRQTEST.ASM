@@ -17,9 +17,13 @@
 ; Setup timer
 	ldaa	#0
 	staa	TIMER_CONFIG
+
 ; Set 50 Hz interrupts
+; 24MHz/50 = 480000 = $75300
+;
+	ldaa	#$07
 	staa	TIMER_PRESCALER
-	ldx	#59999
+	ldx	#$52FF
 	stx	TIMER_PRESCALER+1
 ; Enable interrupts and start timer
 	ldaa	#(TIMER_IEN | TIMER_RUN)

@@ -134,6 +134,7 @@ module p601zero (
 		.DO(simpleiod),
 		.rw(sys_rw),
 		.cs(cs_simpleio),
+		.clk_in(clk_in),
 		.leds(leds),
 		.hex_disp(seg_byte),
 		.rgb1(rgb1),
