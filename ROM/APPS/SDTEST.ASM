@@ -94,7 +94,7 @@ sd_init_cmd16	db	$50, $00, $00, $02, $00, $FF
 sd_init	proc
 	pshb
 	pshx
-	ldaa	#5
+	ldaa	#40
 	staa	SPI_PRESCALER
 	jsr	sd_disable
 	ldab	#10

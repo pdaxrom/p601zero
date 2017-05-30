@@ -3,6 +3,7 @@
 	
 	$0    RW - RDY|XXX|XXX|XXX|XXX|XXX|XXX|SS0
 	$1    RW - DATA
+	$2    RW - PRESCALER
 	RDY - R- IO ready
 	SS0 - select SPI device 0
 */
@@ -15,6 +16,8 @@ module sdcardio (
 	input wire rw,
 	input wire cs,
 //	output wire irq,
+
+	input wire clk_in,
 
 	output wire sdcs,
 	output wire mosi,
@@ -69,7 +72,7 @@ module sdcardio (
 	assign mosi = ((bit_counter == 0) && (!msck))?1'b1:shifted_tx_data[7];
 //	assign mosi = ((bit_counter == 0) && (!msck))?1'bZ:shifted_tx_data[7];
 
-	always @ (posedge clk) begin
+	always @ (posedge clk_in) begin
 		if (rst) begin
 			msck <= 0;
 			rx_data <= 8'b11111111;

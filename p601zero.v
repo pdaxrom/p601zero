@@ -172,6 +172,8 @@ module p601zero (
 		.rw(sys_rw),
 		.cs(cs_sdcardio),
 		
+		.clk_in(clk_in),
+		
 		.sdcs(sdcs),
 		.mosi(mosi),
 		.msck(msck),
