@@ -1,9 +1,8 @@
 module p601zero (
-	input clk_in,
-	input b_reset,
+	input clk_ext,
 	
 	input  [3:0] switches,
-	input  [2:0] keys,
+	input  [3:0] keys,
 	output [8:0] seg_led_h,
 	output [8:0] seg_led_l,
 	output [7:0] leds,
@@ -24,15 +23,17 @@ module p601zero (
 	output msck,
 	input miso
 );
-	parameter OSC_CLOCK = 12000000;
+	parameter OSC_CLOCK = 24000000;
 
-	parameter CPU_CLOCK = 3000000;
+	parameter CPU_CLOCK = 6000000;
 
 	parameter CLK_DIV_PERIOD = (OSC_CLOCK / CPU_CLOCK) / 2;
 	
 	parameter LED_REFRESH_CLOCK = 50;
 	
 	parameter LED_DIV_PERIOD = (OSC_CLOCK / LED_REFRESH_CLOCK) / 2;
+
+	wire clk_in;
 
 	reg [24:0] sys_cnt;
 	reg sys_clk = 0;
@@ -76,9 +77,9 @@ module p601zero (
 		end
 	end
 
-	always @ (posedge sys_clk or negedge b_reset)
+	always @ (posedge sys_clk or negedge keys[3])
 	begin
-		if (!b_reset) begin
+		if (!keys[3]) begin
 			sys_res <= 1;
 			sys_hold <= 0;
 			sys_halt <= 0;
@@ -106,6 +107,11 @@ module p601zero (
 		.nibble (seg_byte[3:0]),
 		.segs (seg_led_l[6:0])
 		);
+
+	mcu_pll pll_impl(
+		.CLKI(clk_ext),
+		.CLKOP(clk_in)
+	);
 
 	wire DS0 = (AD[15:5] == 11'b11100110000); // $E600
 	wire DS1 = (AD[15:5] == 11'b11100110001); // $E620
