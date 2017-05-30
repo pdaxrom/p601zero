@@ -12,10 +12,10 @@ module p601zero (
 	input rxd,
 	output txd,
 
-	output[16:0] SRAM_AD,
-	inout[7:0] SRAM_DQ,
-	output SRAM_WE_n,
-	output SRAM_OE_n,
+	output[16:0] EXT_AD,
+	inout[7:0] EXT_DQ,
+	output EXT_WE_n,
+	output EXT_OE_n,
 	output SRAM_CS2,
 	
 	output sdcs,
@@ -217,26 +217,14 @@ module p601zero (
 		.cs(cs_bram)
 	);
 
-	wire en_ram = !(en_brom | en_bram | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
-	wire cs_ram = en_ram && sys_vma;
-	wire[7:0] ramd;
-	sram sram1 (
-		.clk(sys_clk),
-		.AD(AD),
-		.DI(DO),
-		.DO(ramd),
-		.rw(sys_rw),
-		.cs(cs_ram),
-		.page(mempage),
+	wire en_ext = !(en_brom | en_bram | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
+	wire pageen = mempage[3] && (AD[15:13] == 3'b110) && (!(mempage[4] && (!sys_rw)));
+	assign EXT_AD[16:0] = pageen ? {1'b1, mempage[2:0], AD[12:0]} : {1'b0, AD};
+	assign EXT_OE_n = ~((~sys_clk) &  (sys_rw));
+	assign EXT_WE_n = ~((~sys_clk) & (~sys_rw));
+	assign EXT_DQ = (sys_rw) ? 8'bZ : DO;
 
-		.SRAM_AD(SRAM_AD),
-		.SRAM_DQ(SRAM_DQ),
-		.SRAM_WE_n(SRAM_WE_n),
-		.SRAM_OE_n(SRAM_OE_n),
-		.SRAM_CS2(SRAM_CS2)
-	);
-
-	assign DI = en_ram      ? ramd:
+	assign DI = en_ext      ? EXT_DQ:
 				en_bram		? bramd:
 				en_brom		? bromd:
 				en_simpleio	? simpleiod:
@@ -244,6 +232,8 @@ module p601zero (
 				en_sdcardio ? sdcardiod:
 				en_pagesel  ? pageseld:
 				8'b11111111;
+
+	assign SRAM_CS2 = en_ext && sys_vma;
 
 	cpu68 mc6801 (
 		.clk(sys_clk),
