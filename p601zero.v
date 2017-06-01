@@ -21,7 +21,9 @@ module p601zero (
 	output sdcs,
 	output mosi,
 	output msck,
-	input miso
+	input miso,
+	
+	output [1:0] tvout
 );
 	parameter OSC_CLOCK = 24000000;
 
@@ -34,9 +36,8 @@ module p601zero (
 	parameter LED_DIV_PERIOD = (OSC_CLOCK / LED_REFRESH_CLOCK) / 2;
 
 	wire clk_in;
-
-	reg [24:0] sys_cnt;
-	reg sys_clk = 0;
+	wire sys_clk;
+	wire pixel_clk;
 	
 	reg [24:0] led_cnt;
 	reg [1:0] led_anode;
@@ -47,28 +48,29 @@ module p601zero (
  */
 
 	reg sys_res = 1;
-	reg sys_hold;
-	reg sys_halt;
 	wire sys_rw;	wire sys_vma;
 	wire [15:0] AD;
 	wire [7:0] DI;
 	wire [7:0] DO;
 
+	wire vpu_irq;
 	wire simpleio_irq;
 	wire uartio_irq;
-	wire sys_irq = (simpleio_irq | uartio_irq) && (!sys_res);
+	wire sys_irq = (vpu_irq | simpleio_irq | uartio_irq) && (!sys_res);
 
 	wire sys_nmi = (!keys[2]) && (!sys_res);
 
 	reg [2:0] sys_res_delay = 3'b100;
 
+	mcu_pll pll_impl(
+		.CLKI(clk_ext),
+		.CLKOP(clk_in),
+		.CLKOS(sys_clk),
+		.CLKOS2(pixel_clk)
+	);
+
 	always @ (posedge clk_in)
-	begin		if (sys_cnt == (CLK_DIV_PERIOD - 1)) begin
-			sys_clk <= !sys_clk;
-			sys_cnt <= 0;
-		end else sys_cnt <= sys_cnt + 1'b1;
-		
-		if (sys_res) led_anode <= 2'b01;
+	begin		if (sys_res) led_anode <= 2'b01;
 		else begin
 			if (led_cnt == (LED_DIV_PERIOD - 1)) begin
 				led_anode <= ~led_anode;
@@ -81,9 +83,6 @@ module p601zero (
 	begin
 		if (!keys[3]) begin
 			sys_res <= 1;
-			sys_hold <= 0;
-			sys_halt <= 0;
-			
 			sys_res_delay = 3'b100;
 		end else begin
 			if (sys_res_delay == 3'b000) begin
@@ -108,11 +107,6 @@ module p601zero (
 		.segs (seg_led_l[6:0])
 		);
 
-	mcu_pll pll_impl(
-		.CLKI(clk_ext),
-		.CLKOP(clk_in)
-	);
-
 	wire DS0 = (AD[15:5] == 11'b11100110000); // $E600
 	wire DS1 = (AD[15:5] == 11'b11100110001); // $E620
 	wire DS2 = (AD[15:5] == 11'b11100110010); // $E640
@@ -121,6 +115,22 @@ module p601zero (
 	wire DS5 = (AD[15:5] == 11'b11100110101); // $E6A0
 	wire DS6 = (AD[15:5] == 11'b11100110110); // $E6C0
 	wire DS7 = (AD[15:5] == 11'b11100110111); // $E6E0
+
+	wire en_vpu = DS0; // $E600
+	wire cs_vpu = en_vpu && sys_vma;
+	wire [7:0] vpud;
+	vpu vpu_impl(
+		.clk(sys_clk),
+		.rst(sys_res),
+		.irq(vpu_irq),
+		.AD(AD[2:0]),
+		.DI(DO),
+		.DO(vpud),
+		.rw(sys_rw),
+		.cs(cs_vpu),
+		.pixel_clk(pixel_clk),
+		.tvout(tvout)
+	);
 
 	wire en_simpleio = DS5 && (AD[4:3] == 2'b00); // $E6A0
 	wire cs_simpleio = en_simpleio && sys_vma;
@@ -220,7 +230,7 @@ module p601zero (
 		.cs(cs_bram)
 	);
 
-	wire en_ext = !(en_brom | en_bram | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
+	wire en_ext = !(en_brom | en_bram | en_vpu | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
 	wire pageen = mempage[3] && (AD[15:13] == 3'b110) && (!(mempage[4] && (!sys_rw)));
 	assign EXT_AD[16:0] = pageen ? {1'b1, mempage[2:0], AD[12:0]} : {1'b0, AD};
 	assign EXT_OE_n = ~((~sys_clk) &  (sys_rw));
@@ -230,6 +240,7 @@ module p601zero (
 	assign DI = en_ext      ? EXT_DQ:
 				en_bram		? bramd:
 				en_brom		? bromd:
+				en_vpu		? vpud:
 				en_simpleio	? simpleiod:
 				en_uartio	? uartiod:
 				en_sdcardio ? sdcardiod:
@@ -243,8 +254,8 @@ module p601zero (
 		.rst(sys_res),
 		.irq(sys_irq),
 		.nmi(sys_nmi),
-		.hold(sys_hold),
-		.halt(sys_halt),
+		.hold(1'b0),
+		.halt(1'b0),
 		.rw(sys_rw),
 		.vma(sys_vma),
 		.address(AD),
