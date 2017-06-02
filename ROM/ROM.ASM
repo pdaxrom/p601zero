@@ -247,9 +247,8 @@ vec_swi
 	jmp	0,x
 
 vec_nmi
-	jmp	vstub_nmi
-;	ldx	VNMI
-;	jmp	0,x
+	ldx	VNMI
+	jmp	0,x
 	endp
 
 	ds	$fff8-*, $ff

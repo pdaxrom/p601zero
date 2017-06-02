@@ -32,8 +32,8 @@ VPU_IRQ  equ	$80
 
 	sei
 
-	ldx	#videoirq
-	stx	VIRQ
+	ldx	#videohndl
+	stx	VNMI
 
 ; Set DMA step
 	ldaa	#1
@@ -78,7 +78,7 @@ but1txt	db	'Button 1 pressed!', 10, 13, 0
 but2txt db	'Button 2 pressed!', 10, 13, 0
 but3txt db	'Button 3 pressed!', 10, 13, 0
 
-videoirq proc
+videohndl proc
 	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ

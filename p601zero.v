@@ -56,9 +56,8 @@ module p601zero (
 	wire vpu_irq;
 	wire simpleio_irq;
 	wire uartio_irq;
-	wire sys_irq = (vpu_irq | simpleio_irq | uartio_irq) && (!sys_res);
-
-	wire sys_nmi = (!keys[2]) && (!sys_res);
+	wire sys_irq = (simpleio_irq | uartio_irq) && (!sys_res);
+	wire sys_nmi = (vpu_irq) && (!sys_res);
 
 	reg [2:0] sys_res_delay = 3'b100;
 
@@ -121,6 +120,7 @@ module p601zero (
 	wire [7:0] vpud;
 	
 	wire [15:0] VADDR;
+	wire vpu_vramcs;
 	wire vpu_hold;
 
 	vpu vpu_impl(
@@ -136,6 +136,7 @@ module p601zero (
 		
 		.VADDR(VADDR),
 		.VDATA(EXT_DQ),
+		.vramcs(vpu_vramcs),
 		.hold(vpu_hold),
 		
 		.tvout(tvout)
@@ -239,14 +240,13 @@ module p601zero (
 		.cs(cs_bram)
 	);
 
-	wire hold = vpu_hold;
 	wire en_ext = !(en_brom | en_bram | en_vpu | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
 	wire pageen = mempage[3] && (AD[15:13] == 3'b110) && (!(mempage[4] && (!sys_rw)));
-	assign EXT_AD[16:0] = vpu_hold ? {1'b0, VADDR} :
+	assign EXT_AD[16:0] = vpu_vramcs ? {1'b0, VADDR} :
 						  pageen   ? {1'b1, mempage[2:0], AD[12:0]} : {1'b0, AD};
-	assign EXT_OE_n = vpu_hold ? 1'b0 : ~((~sys_clk) &  (sys_rw));
-	assign EXT_WE_n = vpu_hold ? 1'b1 : ~((~sys_clk) & (~sys_rw));
-	assign EXT_DQ   = hold ? 8'bZ : (sys_rw) ? 8'bZ : DO;
+	assign EXT_OE_n = vpu_vramcs ? 1'b0 : ~((~sys_clk) &  (sys_rw));
+	assign EXT_WE_n = vpu_vramcs ? 1'b1 : ~((~sys_clk) & (~sys_rw));
+	assign EXT_DQ   = vpu_vramcs ? 8'bZ : (sys_rw) ? 8'bZ : DO;
 
 	assign DI = en_ext      ? EXT_DQ:
 				en_bram		? bramd:
@@ -258,7 +258,9 @@ module p601zero (
 				en_pagesel  ? pageseld:
 				8'b11111111;
 
-	assign SRAM_CS2 = (en_ext && sys_vma) | vpu_hold;
+	assign SRAM_CS2 = (en_ext && sys_vma) | vpu_vramcs;
+	
+	wire hold = vpu_hold;
 
 	cpu68 mc6801 (
 		.clk(sys_clk),

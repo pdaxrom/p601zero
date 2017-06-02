@@ -32,6 +32,7 @@ module vpu (
 	
 	output wire [15:0] VADDR,
 	input wire [7:0] VDATA,
+	output reg vramcs,
 	output reg hold,
 	
 	output wire [1:0] tvout
@@ -75,25 +76,30 @@ module vpu (
 			DMA_counter <= 0;
 			DMA_state <= 0;
 			hold <= 0;
+			vramcs <= 0;
 		end else begin
 			if (irq_request) cfg_reg[5] <= 1;
 			if (DMA_counter == DMA_length_reg) begin
 				case (DMA_state)
 				3'b000:  hold <= 0;
-				default: DMA_state <= 3'b000;
+				3'b001:  DMA_state <= 3'b000;
+				default: begin
+					vramcs <= 0;
+					DMA_state <= 3'b001;
+					end
 				endcase
 			end else begin
 				case (DMA_state)
 				3'b000: begin
 					hold <= 1'b1;
-					DMA_state <= 3'b010;
+					DMA_state <= 3'b001;
 					end
 				3'b001: begin
 					// empty
 					DMA_state <= 3'b010;
 					end
 				3'b010: begin
-					// empty
+					vramcs <= 1'b1;
 					DMA_state <= 3'b011;
 					end
 				3'b011: begin
