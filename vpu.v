@@ -8,6 +8,11 @@
 	$6 - R- VS counter hight byte
 	$7 - R- VS counter low byte
 	$8 - RW IRQ|IEN|XXX|XXX|XXX|XXX|VBL|HSN 
+	--- DMA Engine ---
+	$C - RW High external memory address byte
+	$D - RW Low external memory address byte
+	$E - RW Step
+	$F - RW Counter/Length
 	
 	IRQ  R- Interrupt occured
 	IEN  RW Enable interrupts
@@ -25,6 +30,10 @@ module vpu (
 	output wire irq,
 	input wire pixel_clk,
 	
+	output wire [15:0] VADDR,
+	input wire [7:0] VDATA,
+	output reg hold,
+	
 	output wire [1:0] tvout
 );
 	parameter CACHE_SIZE = 64;
@@ -38,6 +47,14 @@ module vpu (
 	wire vbl;
 	wire hsync;
 	wire out_sync;
+
+	//--- DMA
+	reg [15:0] DMA_ext_addr_reg;	reg [7:0] DMA_step_reg;
+	reg [7:0] DMA_length_reg;
+	reg [2:0] DMA_state;
+	
+	reg [7:0] DMA_counter;
+	//---
 	
 	wire hstart = (cntHS < 8);
 	wire vstart = (cntVS == 0) && (cntHS < 8);
@@ -45,14 +62,50 @@ module vpu (
 
 	assign irq = cfg_reg[5] & cfg_reg[4];
 
+	assign VADDR = DMA_ext_addr_reg;
+
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
 			vcache_cnt <= 0;
 			cfg_reg <= 0;
+			
+			DMA_ext_addr_reg <= 0;
+			DMA_step_reg <= 1;
+			DMA_length_reg <= 0;
+			DMA_counter <= 0;
+			DMA_state <= 0;
+			hold <= 0;
 		end else begin
 			if (irq_request) cfg_reg[5] <= 1;
+			if (DMA_counter == DMA_length_reg) begin
+				case (DMA_state)
+				2'b00: hold <= 0;
+				default: DMA_state <= 2'b00;
+				endcase
+			end else begin
+				case (DMA_state)
+				2'b00: begin
+					hold <= 1'b1;
+					DMA_state <= 2'b01;
+					end
+				2'b01: begin
+					// empty
+					DMA_state <= 2'b10;
+					end
+				2'b10: begin
+					vcache[vcache_cnt] <= VDATA;
+					vcache_cnt <= vcache_cnt + 1'b1;
+					DMA_state <= 2'b11;
+					end
+				2'b11: begin
+					DMA_ext_addr_reg <= DMA_ext_addr_reg + DMA_step_reg;
+					DMA_counter <= DMA_counter + 1'b1;
+					DMA_state <= 2'b10;
+					end
+				endcase
+			end
 
-			if (cs) begin
+			if (cs && (!hold)) begin
 				if (rw) begin
 					case (AD)
 					4'b0000: DO <= vcache_cnt[15:8];
@@ -73,6 +126,10 @@ module vpu (
 						DO <= {cfg_reg[5:0], vbl, hsync};
 						cfg_reg[5] <= 0;
 						end
+					4'b1100: DO <= DMA_ext_addr_reg[15:8];
+					4'b1101: DO <= DMA_ext_addr_reg[7:0];
+					4'b1110: DO <= DMA_step_reg;
+					4'b1111: DO <= DMA_length_reg;
 					endcase
 				end else begin
 					case (AD)
@@ -87,6 +144,13 @@ module vpu (
 						vcache_cnt <= vcache_cnt + 1'b1;
 						end
 					4'b1000: cfg_reg[4:0] <= DI[6:2];
+					4'b1100: DMA_ext_addr_reg[15:8] <= DI;
+					4'b1101: DMA_ext_addr_reg[7:0] <= DI;
+					4'b1110: DMA_step_reg <= DI;
+					4'b1111: begin
+						DMA_length_reg <= DI;
+						DMA_counter <= 0;
+						end
 					endcase
 				end
 			end
