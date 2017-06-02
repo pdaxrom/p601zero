@@ -27,21 +27,6 @@ VPU_IRQ  equ	$80
 	ldx	#hello
 	jsr	F_UART_PUTS
 
-;
-;
-start
-;	jmp	nodma
-
-;	ldx	#0
-;	stx	VPU_ADDR
-;	ldaa	#1
-;	staa	VPU_VSTEP
-;	ldx	#blackline
-;	stx	VPU_VADDR
-
-;	ldaa	#64
-;	staa	VPU_VSIZE
-
 	ldx	#kimscreen
 	stx	SCR_START
 
@@ -61,6 +46,10 @@ start
 	stx	VPU_VADDR
 	ldaa	#64
 	staa	VPU_VSIZE
+
+; let start DMA engine
+	nop
+	nop
 
 ; Enable IRQ
 	ldaa	VPU_CFG
@@ -115,16 +104,16 @@ outline	stab	VPU_VSIZE
 ; let start DMA engine
 	nop
 	nop
-	nop
 
 	rti
 
-black	ldx	#blackline
+black	cpx	#261
+	bge	exit
+	ldx	#blackline
 	stx	VPU_VADDR
 	stab	VPU_VSIZE
 
 ; let start DMA engine
-	nop
 	nop
 	nop
 
