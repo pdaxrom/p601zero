@@ -123,7 +123,7 @@ module p601zero (
 		.clk(sys_clk),
 		.rst(sys_res),
 		.irq(vpu_irq),
-		.AD(AD[2:0]),
+		.AD(AD[3:0]),
 		.DI(DO),
 		.DO(vpud),
 		.rw(sys_rw),

@@ -81,12 +81,60 @@ next	bita	#VPU_VBL
 	ldx	#11
 	stx	VPU_ADDR
 
+
 	ldx	VPU_VSCN
 	cpx	#60
 	blt	exit
 	cpx	#260
-	blt	outline
-	ldx	#0
+	bge	black
+
+	sts	STACK_PTR
+	lds	SCR_COUNT
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	pulx
+	stx	VPU_DATA
+	sts	SCR_COUNT
+	lds	STACK_PTR
+	rti
+
+black	ldx	#0
 	ldab	#20
 loop2	stx	VPU_DATA
 	decb
@@ -94,92 +142,6 @@ loop2	stx	VPU_DATA
 	ldx	SCR_START
 	dex
 	stx	SCR_COUNT
-	rti
-
-outline	sts	STACK_PTR
-	lds	SCR_COUNT
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	pula
-	staa	VPU_DATA
-	sts	SCR_COUNT
-	lds	STACK_PTR
 	rti
 	endp
 

@@ -1,12 +1,13 @@
 /*
 	$0 - RW High address byte
 	$1 - RW Low address byte
-	$2 - RW Video data byte
-	$3 - RW IRQ|IEN|XXX|XXX|XXX|XXX|VBL|HSN 
+	$2 - RW Video data high byte
+	$3 - RW Video data low byte
 	$4 - R- HS counter high byte
 	$5 - R- HS counter low byte
 	$6 - R- VS counter hight byte
 	$7 - R- VS counter low byte
+	$8 - RW IRQ|IEN|XXX|XXX|XXX|XXX|VBL|HSN 
 	
 	IRQ  R- Interrupt occured
 	IEN  RW Enable interrupts
@@ -16,7 +17,7 @@
 module vpu (
 	input wire clk,
 	input wire rst,
-	input wire [2:0] AD,
+	input wire [3:0] AD,
 	input wire [7:0] DI,
 	output reg [7:0] DO,
 	input wire rw,
@@ -54,30 +55,38 @@ module vpu (
 			if (cs) begin
 				if (rw) begin
 					case (AD)
-					3'b000: DO <= vcache_cnt[15:8];
-					3'b001: DO <= vcache_cnt[7:0];
-					3'b010: begin
+					4'b0000: DO <= vcache_cnt[15:8];
+					4'b0001: DO <= vcache_cnt[7:0];
+					4'b0010: begin
 						DO <= vcache[vcache_cnt];
 						vcache_cnt <= vcache_cnt + 1'b1;
 						end
-					3'b011: begin
+					4'b0011: begin
+						DO <= vcache[vcache_cnt];
+						vcache_cnt <= vcache_cnt + 1'b1;
+						end
+					4'b0100: DO <= { 7'b0, cntHS[8]};
+					4'b0101: DO <= cntHS[7:0];
+					4'b0110: DO <= { 7'b0, cntVS[8]};
+					4'b0111: DO <= cntVS[7:0];
+					4'b1000: begin
 						DO <= {cfg_reg[5:0], vbl, hsync};
 						cfg_reg[5] <= 0;
 						end
-					3'b100: DO <= { 7'b0, cntHS[8]};
-					3'b101: DO <= cntHS[7:0];
-					3'b110: DO <= { 7'b0, cntVS[8]};
-					3'b111: DO <= cntVS[7:0];
 					endcase
 				end else begin
 					case (AD)
-					3'b000: vcache_cnt[15:8] <= DI;
-					3'b001: vcache_cnt[7:0] <= DI;
-					3'b010: begin
+					4'b0000: vcache_cnt[15:8] <= DI;
+					4'b0001: vcache_cnt[7:0] <= DI;
+					4'b0010: begin
 						vcache[vcache_cnt] <= DI;
 						vcache_cnt <= vcache_cnt + 1'b1;
 						end
-					3'b011: cfg_reg[4:0] <= DI[6:2];
+					4'b0011: begin
+						vcache[vcache_cnt] <= DI;
+						vcache_cnt <= vcache_cnt + 1'b1;
+						end
+					4'b1000: cfg_reg[4:0] <= DI[6:2];
 					endcase
 				end
 			end
