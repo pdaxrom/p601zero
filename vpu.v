@@ -79,33 +79,37 @@ module vpu (
 			if (irq_request) cfg_reg[5] <= 1;
 			if (DMA_counter == DMA_length_reg) begin
 				case (DMA_state)
-				2'b00: hold <= 0;
-				default: DMA_state <= 2'b00;
+				3'b000:  hold <= 0;
+				default: DMA_state <= 3'b000;
 				endcase
 			end else begin
 				case (DMA_state)
-				2'b00: begin
+				3'b000: begin
 					hold <= 1'b1;
-					DMA_state <= 2'b01;
+					DMA_state <= 3'b010;
 					end
-				2'b01: begin
+				3'b001: begin
 					// empty
-					DMA_state <= 2'b10;
+					DMA_state <= 3'b010;
 					end
-				2'b10: begin
+				3'b010: begin
+					// empty
+					DMA_state <= 3'b011;
+					end
+				3'b011: begin
 					vcache[vcache_cnt] <= VDATA;
 					vcache_cnt <= vcache_cnt + 1'b1;
-					DMA_state <= 2'b11;
+					DMA_state <= 3'b100;
 					end
-				2'b11: begin
+				3'b100: begin
 					DMA_ext_addr_reg <= DMA_ext_addr_reg + DMA_step_reg;
 					DMA_counter <= DMA_counter + 1'b1;
-					DMA_state <= 2'b10;
+					DMA_state <= 3'b011;
 					end
 				endcase
 			end
 
-			if (cs && (!hold)) begin
+			if (cs) begin
 				if (rw) begin
 					case (AD)
 					4'b0000: DO <= vcache_cnt[15:8];

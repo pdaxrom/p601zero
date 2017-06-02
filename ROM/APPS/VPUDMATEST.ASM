@@ -111,11 +111,23 @@ next	bita	#VPU_VBL
 	bge	black
 
 outline	stab	VPU_VSIZE
+
+; let start DMA engine
+	nop
+	nop
+	nop
+
 	rti
 
 black	ldx	#blackline
 	stx	VPU_VADDR
 	stab	VPU_VSIZE
+
+; let start DMA engine
+	nop
+	nop
+	nop
+
 	ldx	SCR_START
 	stx	VPU_VADDR
 	rti
@@ -128,7 +140,6 @@ OLD_VIRQ dw	0
 
 hello	db	$0a, $0d, 'VPU TEST', $0a, $0d, 0
 byebye	db	10,13,'Bye!',10,13,0
-	ds $1000-*
 
 blackline ds 64,$00
 
