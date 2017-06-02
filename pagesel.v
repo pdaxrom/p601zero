@@ -1,3 +1,13 @@
+/*
+	$10 - RW 0000RPPP
+	$11 - RW 0 | 0 | 0 | 0 | 0 | 0 |RDS|LCK
+	
+	R   - RW Map ROM/RAM page
+	PPP - RW Page number
+	RDS - RW BuiltIn RAM disable (1 - disabled by default)
+	LCK - Disable to write to ROM pages
+ */
+
 module pagesel (
 	input wire clk,
 	input wire rst,
@@ -14,7 +24,7 @@ module pagesel (
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
 			page <= 5'b00000;
-			bram_disable <= 0;
+			bram_disable <= 1;
 		end else begin
 			if (cs) begin
 				if (AD == 5'b10000) begin
