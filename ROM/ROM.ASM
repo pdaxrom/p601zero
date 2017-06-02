@@ -9,7 +9,7 @@
 
 	org	BOOTROM_BASE
 
-	jmp	reset
+	jmp	warmres
 	jmp	uart_in
 	jmp	uart_out
 	jmp	uart_puts
@@ -19,8 +19,6 @@
 reset
 	sei
 
-	lds	#$ef
-
 ; setup stubs
 	ldx	#vstub_irq
 	stx	VIRQ
@@ -28,6 +26,9 @@ reset
 	stx	VSWI
 	ldx	#vstub_nmi
 	stx	VNMI
+
+warmres
+	lds	#$ef
 
 ; setup prescaler: 24MHz / (Baud * 8)
 	ldx	#26

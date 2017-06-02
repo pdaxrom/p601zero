@@ -11,7 +11,7 @@
 
 	org $e800
 
-	lds	#$efff
+	lds	#$efef
 
 ; disable ram pages
 	clr	RAMPAGE_CTL
@@ -25,7 +25,7 @@
 
 	ldx	#$0000
 	stx	RAM_START
-	ldx	#$E600
+	ldx	#$E000
 	stx	RAM_END
 
 ;
