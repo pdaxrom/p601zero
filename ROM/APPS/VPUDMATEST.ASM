@@ -36,7 +36,7 @@ VPU_IRQ  equ	$80
 	stx	VNMI
 
 ; Set DMA step
-	ldaa	#1
+	ldaa	#0
 	staa	VPU_VSTEP
 
 ; Clear screen
@@ -50,6 +50,10 @@ VPU_IRQ  equ	$80
 ; let start DMA engine
 	nop
 	nop
+
+; Set DMA step
+	ldaa	#1
+	staa	VPU_VSTEP
 
 ; Enable IRQ
 	ldaa	VPU_CFG
@@ -109,6 +113,9 @@ outline	stab	VPU_VSIZE
 
 black	cpx	#261
 	bge	exit
+
+	ldaa	#0
+	staa	VPU_VSTEP
 	ldx	#blackline
 	stx	VPU_VADDR
 	stab	VPU_VSIZE
@@ -117,10 +124,14 @@ black	cpx	#261
 	nop
 	nop
 
+	ldaa	#1
+	staa	VPU_VSTEP
 	ldx	SCR_START
 	stx	VPU_VADDR
 	rti
 	endp
+
+blackline db 0
 
 SCR_START dw 0
 SCR_COUNT dw 0
@@ -129,8 +140,6 @@ OLD_VIRQ dw	0
 
 hello	db	$0a, $0d, 'VPU TEST', $0a, $0d, 0
 byebye	db	10,13,'Bye!',10,13,0
-
-blackline ds 64,$00
 
 kimscreen
 	include	KIM.INC
