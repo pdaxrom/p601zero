@@ -59,7 +59,7 @@ module p601zero (
 	wire sys_irq = (simpleio_irq | uartio_irq) && (!sys_res);
 	wire sys_nmi = (vpu_irq) && (!sys_res);
 
-	reg [2:0] sys_res_delay = 3'b100;
+	reg [3:0] sys_res_delay = 4'b1000;
 
 	mcu_pll pll_impl(
 		.CLKI(clk_ext),
@@ -82,11 +82,11 @@ module p601zero (
 	begin
 		if (!keys[3]) begin
 			sys_res <= 1;
-			sys_res_delay = 3'b100;
+			sys_res_delay = 4'b1000;
 		end else begin
-			if (sys_res_delay == 3'b000) begin
+			if (sys_res_delay == 4'b0000) begin
 				sys_res <= 0;
-			end else sys_res_delay <= sys_res_delay - 3'b001;
+			end else sys_res_delay <= sys_res_delay - 4'b0001;
 		end
 	end
 

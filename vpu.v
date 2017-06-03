@@ -40,6 +40,7 @@ module vpu (
 	parameter CACHE_SIZE = 64;
 
 	reg [7:0] vcache[CACHE_SIZE - 1:0];
+	reg [15:0] vcache_cnt_reg;
 	reg [15:0] vcache_cnt;
 	reg [5:0] cfg_reg;
 
@@ -67,7 +68,7 @@ module vpu (
 
 	always @ (posedge clk or posedge rst) begin
 		if (rst) begin
-			vcache_cnt <= 0;
+			vcache_cnt_reg <= 0;
 			cfg_reg <= 0;
 			
 			DMA_ext_addr_reg <= 0;
@@ -118,16 +119,8 @@ module vpu (
 			if (cs) begin
 				if (rw) begin
 					case (AD)
-					4'b0000: DO <= vcache_cnt[15:8];
-					4'b0001: DO <= vcache_cnt[7:0];
-					4'b0010: begin
-						DO <= vcache[vcache_cnt];
-						vcache_cnt <= vcache_cnt + 1'b1;
-						end
-					4'b0011: begin
-						DO <= vcache[vcache_cnt];
-						vcache_cnt <= vcache_cnt + 1'b1;
-						end
+					4'b0000: DO <= vcache_cnt_reg[15:8];
+					4'b0001: DO <= vcache_cnt_reg[7:0];
 					4'b0100: DO <= { 7'b0, cntHS[8]};
 					4'b0101: DO <= cntHS[7:0];
 					4'b0110: DO <= { 7'b0, cntVS[8]};
@@ -143,16 +136,8 @@ module vpu (
 					endcase
 				end else begin
 					case (AD)
-					4'b0000: vcache_cnt[15:8] <= DI;
-					4'b0001: vcache_cnt[7:0] <= DI;
-					4'b0010: begin
-						vcache[vcache_cnt] <= DI;
-						vcache_cnt <= vcache_cnt + 1'b1;
-						end
-					4'b0011: begin
-						vcache[vcache_cnt] <= DI;
-						vcache_cnt <= vcache_cnt + 1'b1;
-						end
+					4'b0000: vcache_cnt_reg[15:8] <= DI;
+					4'b0001: vcache_cnt_reg[7:0] <= DI;
 					4'b1000: cfg_reg[4:0] <= DI[6:2];
 					4'b1100: DMA_ext_addr_reg[15:8] <= DI;
 					4'b1101: DMA_ext_addr_reg[7:0] <= DI;
@@ -160,6 +145,7 @@ module vpu (
 					4'b1111: begin
 						DMA_length_reg <= DI;
 						DMA_counter <= 0;
+						vcache_cnt <= vcache_cnt_reg;
 						end
 					endcase
 				end

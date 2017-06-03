@@ -57,6 +57,10 @@ GRSCR_START	equ	$A000
 	ldaa	#1
 	staa	VPU_VSTEP
 
+; Framebuffer position
+	ldx	#11
+	stx	VPU_ADDR
+
 ; Enable IRQ
 	ldaa	VPU_CFG
 	oraa	#VPU_IEN
@@ -77,9 +81,6 @@ videohndl proc
 exit	rti
 next	bita	#VPU_VBL
 	bne	exit
-
-	ldx	#11
-	stx	VPU_ADDR
 
 	ldx	VPU_VSCN
 	cpx	#60
