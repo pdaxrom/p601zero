@@ -33,17 +33,67 @@ VPU_IRQ		equ	$80
 	jsr	F_UART_PUTS
 
 	ldx	#kimscreen
+	ldaa	#1
+	jsr	setvideomode
+
+loop	jsr	F_UART_IN
+	cmpa	#'1'
+	beq	settext
+	cmpa	#'2'
+	beq	setgraf
+	cmpa	#'3'
+	bne	loop
+	jmp	F_RESET
+setgraf	ldx	#kimscreen
+	ldaa	#1
+	jsr	setvideomode
+	bra	loop
+settext	ldx	#textscreen
+	ldaa	#0
+	jsr	setvideomode
+	bra	loop
+
+; Set video mode
+; A = 0 - text, 1 - graphics
+; X = Video address
+setvideomode proc
+	pshx
+	psha
+	pshb
+	tab
+
+; Disable video interrupt
+	ldaa	VPU_CFG
+	anda	#($FF^VPU_IEN) ; $BF
+	staa	VPU_CFG
+
 	stx	SCR_START
 
-	sei
+	cmpb	#0
+	bne	initgrf
 
-	ldx	#videohndl
-	stx	VNMI
+	ldx	#videotxthndl
+
+; Set text mode
+	ldaa	VPU_CFG
+	anda	#($FF^VPU_GRF); $DF
+	staa	VPU_CFG
+
+; Set char line address
+	ldaa	#7
+	staa	VPU_CLINE
+
+	bra	next
+
+initgrf	ldx	#videohndl
 
 ; Set graphics mode
 	ldaa	VPU_CFG
 	oraa	#VPU_GRF
 	staa	VPU_CFG
+
+; Set video interrupt handler
+next	stx	VNMI
 
 ; Set start line
 	ldx	#60
@@ -77,32 +127,16 @@ VPU_IRQ		equ	$80
 	ldx	#11
 	stx	VPU_ADDR
 
-; Enable IRQ
+; Enable video interrupts
 	ldaa	VPU_CFG
 	oraa	#VPU_IEN
 	staa	VPU_CFG
 
-	cli
-
-loop	ldaa	INPUT_SWKEYS
-	staa	LED_8BIT
-	bita	#1
-	beq	next
-	ldx	#but1txt
-	bra	print
-next	bita	#2
-	beq	next2
-	ldx	#but2txt
-	bra	print
-next2	bita	#4
-	beq	loop
-	ldx	#but3txt
-print	jsr	F_UART_PUTS
-	bra	loop
-
-but1txt	db	'Button 1 pressed!', 10, 13, 0
-but2txt db	'Button 2 pressed!', 10, 13, 0
-but3txt db	'Button 3 pressed!', 10, 13, 0
+	pulb
+	pula
+	pulx
+	rts
+	endp
 
 videohndl proc
 	sei
@@ -143,6 +177,53 @@ blank	bita	#VPU_EVL
 	rti
 	endp
 
+videotxthndl proc
+	sei
+	ldaa	VPU_STAT
+	bita	#VPU_IRQ
+	bne	next
+exit	rti
+next	bita	#VPU_SVL
+	beq	blank
+
+	ldaa	VPU_CLINE
+	inca
+	anda	#$07
+	staa	VPU_CLINE
+	bne	exit
+
+	ldaa	#40
+	staa	VPU_VSIZE
+
+; let start DMA engine
+	nop
+	nop
+
+	rti
+
+blank	bita	#VPU_EVL
+	beq	exit
+
+	ldaa	#0
+	staa	VPU_VSTEP
+	ldx	#blackline
+	stx	VPU_VADDR
+	ldaa	#40
+	staa	VPU_VSIZE
+
+; let start DMA engine
+	nop
+	nop
+
+	ldaa	#1
+	staa	VPU_VSTEP
+	ldx	SCR_START
+	stx	VPU_VADDR
+	ldaa	#7
+	staa	VPU_CLINE
+	rti
+	endp
+
 blackline db 0
 
 SCR_START dw 0
@@ -155,3 +236,5 @@ byebye	db	10,13,'Bye!',10,13,0
 
 kimscreen
 	include	KIM.INC
+textscreen
+	db	'VPU TEXT MODE! vpu text mode! Hello! HELLO!'
