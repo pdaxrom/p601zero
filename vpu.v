@@ -1,8 +1,8 @@
 /*
 	$0 - RW High address byte
 	$1 - RW Low address byte
-	$2 - RW 
-	$3 - RW IRQ|IEN|XXX|XXX|EVL|SVL|VBL|HSN 
+	$2 - RW 00000NNN - Charset vertical address
+	$3 - RW IRQ|IEN|GRF|XXX|EVL|SVL|VBL|HSN 
 	$4 - R- HS counter high byte
 	$5 - R- HS counter low byte
 	$6 - R- VS counter hight byte
@@ -17,6 +17,7 @@
 	
 	IRQ  R- Interrupt occurred
 	IEN  RW Enable interrupts
+	GRF  RW Graphics/Charset(Text) mode
 	EVL  R- End visible lines
 	SVL  R- Start vibible lines
 	VBL  R- Vertical blanking
@@ -46,6 +47,8 @@ module vpu (
 	reg [15:0] vcache_cnt_reg;
 	reg [15:0] vcache_cnt;
 	reg [5:0] cfg_reg;
+
+	reg [2:0] char_line;
 
 	reg [8:0] SVL_reg;
 	reg [8:0] EVL_reg;
@@ -92,6 +95,7 @@ module vpu (
 			cfg_reg <= 0;
 			SVL_reg <= 0;
 			EVL_reg <= 0;
+			char_line <= 0;
 
 			DMA_ext_addr_reg <= 0;
 			DMA_step_reg <= 1;
@@ -143,6 +147,7 @@ module vpu (
 					case (AD)
 					4'b0000: DO <= vcache_cnt_reg[15:8];
 					4'b0001: DO <= vcache_cnt_reg[7:0];
+					4'b0010: DO <= { 5'b0, char_line };
 					4'b0011: begin
 						DO <= {cfg_reg[5:2], evl_flag, svl_flag, vbl, hsync};
 						cfg_reg[5] <= 0;
@@ -164,6 +169,7 @@ module vpu (
 					case (AD)
 					4'b0000: vcache_cnt_reg[15:8] <= DI;
 					4'b0001: vcache_cnt_reg[7:0] <= DI;
+					4'b0010: char_line <= DI[2:0];
 					4'b0011: cfg_reg[4:2] <= DI[6:4];
 					4'b1000: SVL_reg[8] <= DI[0];
 					4'b1001: SVL_reg[7:0] <= DI;
@@ -186,6 +192,7 @@ module vpu (
 	reg [7:0] vcache_out_cnt;
 	reg [2:0] pixel_cnt;
 	reg [7:0] shift_reg;
+	wire [7:0] vrom_data;
 	
 	always @ (posedge pixel_clk) begin
 		if (hsync) begin
@@ -193,7 +200,7 @@ module vpu (
 			pixel_cnt <= 0;
 		end else begin
 			if (pixel_cnt == 0) begin
-				shift_reg <= vcache[vcache_out_cnt];
+				shift_reg <= cfg_reg[3]?vcache[vcache_out_cnt]:vrom_data;
 				vcache_out_cnt <= vcache_out_cnt + 1'b1;
 			end else begin
 				shift_reg <= shift_reg << 1;
@@ -213,6 +220,13 @@ module vpu (
 		.vbl(vbl),
 		.hsync(hsync),
 		.out_sync(out_sync)
+	);
+	
+	wire [7:0] char_addr = vcache[vcache_out_cnt];
+	
+	vrom vrom_impl (
+		.Address({char_addr[6:0], char_addr[7], char_line}),
+		.Q(vrom_data)
 	);
 	
 endmodule

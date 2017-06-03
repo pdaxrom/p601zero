@@ -7,7 +7,7 @@
 	include ../BOOTROM.INC
 
 VPU_ADDR	equ	$E600
-VPU_DATA	equ	$E602
+VPU_CLINE	equ	$E602
 VPU_CFG 	equ	$E603
 VPU_STAT	equ	$E603
 VPU_HSCN	equ	$E604
@@ -22,6 +22,7 @@ VPU_HSN		equ	$01
 VPU_VBL		equ	$02
 VPU_SVL		equ	$04
 VPU_EVL		equ	$08
+VPU_GRF		equ	$20
 VPU_IEN		equ	$40
 VPU_IRQ		equ	$80
 
@@ -39,6 +40,11 @@ GRSCR_START	equ	$A000
 
 	ldx	#videohndl
 	stx	VNMI
+
+; Set graphics mode
+	ldaa	VPU_CFG
+	oraa	#VPU_GRF
+	staa	VPU_CFG
 
 ; Set start line
 	ldx	#60
