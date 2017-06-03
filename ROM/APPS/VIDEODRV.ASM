@@ -6,21 +6,24 @@
 
 	include ../BOOTROM.INC
 
-VPU_ADDR equ	$E600
-VPU_DATA equ	$E602
-VPU_HSCN equ	$E604
-VPU_VSCN equ	$E606
-VPU_CFG  equ	$E608
-VPU_STAT equ	$E608
-VPU_VADDR equ	$E60C
-VPU_VSTEP equ	$E60E
-VPU_VSIZE equ	$E60F
+VPU_ADDR	equ	$E600
+VPU_DATA	equ	$E602
+VPU_CFG 	equ	$E603
+VPU_STAT	equ	$E603
+VPU_HSCN	equ	$E604
+VPU_VSCN	equ	$E606
+VPU_VSTART	equ	$E608
+VPU_VEND	equ	$E60A
+VPU_VADDR	equ	$E60C
+VPU_VSTEP	equ	$E60E
+VPU_VSIZE	equ	$E60F
 
-VPU_HSN  equ	$01
-VPU_VBL  equ	$02
-VPU_IEN  equ	$40
-VPU_IRQ  equ	$80
-
+VPU_HSN		equ	$01
+VPU_VBL		equ	$02
+VPU_SVL		equ	$04
+VPU_EVL		equ	$08
+VPU_IEN		equ	$40
+VPU_IRQ		equ	$80
 
 GRSCR_START	equ	$A000
 
@@ -36,6 +39,14 @@ GRSCR_START	equ	$A000
 
 	ldx	#videohndl
 	stx	VNMI
+
+; Set start line
+	ldx	#60
+	stx	VPU_VSTART
+
+; Set end line
+	ldx	#260
+	stx	VPU_VEND
 
 ; Set DMA step
 	ldaa	#0
@@ -79,19 +90,11 @@ videohndl proc
 	bita	#VPU_IRQ
 	bne	next
 exit	rti
-next	bita	#VPU_VBL
-	bne	exit
+next	bita	#VPU_SVL
+	beq	blank
 
-	ldx	VPU_VSCN
-	cpx	#60
-	blt	exit
-
-	ldab	#40
-
-	cpx	#260
-	bge	black
-
-outline	stab	VPU_VSIZE
+	ldaa	#40
+	staa	VPU_VSIZE
 
 ; let start DMA engine
 	nop
@@ -99,14 +102,15 @@ outline	stab	VPU_VSIZE
 
 	rti
 
-black	cpx	#261
-	bge	exit
+blank	bita	#VPU_EVL
+	beq	exit
 
 	ldaa	#0
 	staa	VPU_VSTEP
 	ldx	#blackline
 	stx	VPU_VADDR
-	stab	VPU_VSIZE
+	ldaa	#40
+	staa	VPU_VSIZE
 
 ; let start DMA engine
 	nop

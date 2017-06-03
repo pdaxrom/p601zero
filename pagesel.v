@@ -4,7 +4,7 @@
 	
 	R   - RW Map ROM/RAM page
 	PPP - RW Page number
-	RDS - RW BuiltIn RAM disable (1 - disabled by default)
+	RDS - RW Disable BuiltIn RAM (disabled on reset/power on)
 	LCK - Disable to write to ROM pages
  */
 
