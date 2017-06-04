@@ -27,8 +27,21 @@ reset
 	ldx	#vstub_nmi
 	stx	VNMI
 
-warmres
-	lds	#$ef
+	ldaa	RAMPAGE_CTL
+	oraa	#BRAM_DISABLE
+	staa	RAMPAGE_CTL
+
+	ldx	#$A55A
+	stx	$f0
+	ldx	$f0
+	cpx	#$A55A
+	beq	warmres
+
+	ldaa	RAMPAGE_CTL
+	anda	#($FF^BRAM_DISABLE)
+	staa	RAMPAGE_CTL
+
+warmres	lds	#$ef
 
 ; setup prescaler: 24MHz / (Baud * 8)
 	ldx	#26
@@ -40,6 +53,14 @@ warmres
 
 	ldx	#pylogo
 	bsr	uart_puts
+
+	ldaa	RAMPAGE_CTL
+	bita	#BRAM_DISABLE
+	beq	bramen
+	ldx	#txt_extram
+	bra	ramtxt
+bramen	ldx	#txt_bram
+ramtxt	bsr	uart_puts
 
 loop
 	bsr	uart_in
@@ -156,8 +177,6 @@ get_word proc
 	rts
 	endp
 
-pylogo	db $0a, $0d, 'ZERO/pdaXrom', $0a, $0d, 0
-
 dump_regs proc
 	sts	$10
 
@@ -189,22 +208,22 @@ dump_regs proc
 	ldaa	4,x		; XL
 	bsr	uart_outhex
 	ldaa	#' '
-	jsr	uart_out
+	bsr	uart_out
 
 	ldaa	5,x		; PCH
 	bsr	uart_outhex
 	ldaa	6,x		; PCL
 	bsr	uart_outhex
 	ldaa	#' '
-	jsr	uart_out
+	bsr	uart_out
 
 	dex
 	pshx
 
 	pula			; SPH
-	jsr	uart_outhex
+	bsr	uart_outhex
 	pula			; SPL
-	jsr	uart_outhex
+	bsr	uart_outhex
 
 	lds	$10
 
@@ -227,7 +246,7 @@ vstub_swi
 vstub_nmi
 	ldx	#vectextNMI
 ret	jsr	uart_puts
-	jmp	dump_regs
+	bra	dump_regs
 	endp
 
 vectextIRQ	db	'IRQ',0
@@ -251,6 +270,10 @@ vec_nmi
 	ldx	VNMI
 	jmp	0,x
 	endp
+
+pylogo		db 10, 13, 'ZERO/pdaXrom (c) sashz <sash@pdaXrom>, 1997-2017', 10, 13, 0
+txt_bram	db 'Internal RAM enabled.', 10, 13, 0
+txt_extram	db 'External RAM enabled.', 10, 13, 0
 
 	ds	$fff8-*, $ff
 	dw	vec_irq

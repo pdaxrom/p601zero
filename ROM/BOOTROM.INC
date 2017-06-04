@@ -2,9 +2,9 @@
 ; BootROM variables and functions
 ;
 
-VIRQ	equ	$EFFA
-VSWI	equ	$EFFC
-VNMI	equ	$EFFE
+VIRQ	equ	VEC_IRQ_ADDR
+VSWI	equ	VEC_SWI_ADDR
+VNMI	equ	VEC_NMI_ADDR
 
 END_ADDR	equ	$F0
 
