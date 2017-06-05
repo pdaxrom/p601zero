@@ -19,11 +19,11 @@ module sdcardio (
 
 	input wire clk_in,
 
-	output wire sdcs,
 	output wire mosi,
 	output reg msck,
 	input wire miso
 );
+	reg [7:0] spics_reg;
 	reg [7:0] config_reg;
 	reg [7:0] rx_data;
 	reg [7:0] tx_data;
@@ -51,6 +51,7 @@ module sdcardio (
 							DO <= rx_data;
 						end
 					3'b010: DO <= prescaler;
+					3'b011: DO <= spics_reg;
 					endcase
 				end else begin
 					case (AD[2:0])
@@ -60,6 +61,7 @@ module sdcardio (
 							start <= 1'b1;
 						end
 					3'b010: prescaler <= DI;
+					3'b011: spics_reg <= DI;
 					endcase
 				end
 			end else begin
@@ -68,9 +70,7 @@ module sdcardio (
 		end
 	end
 
-	assign sdcs = config_reg[0];
 	assign mosi = ((bit_counter == 0) && (!msck))?1'b1:shifted_tx_data[7];
-//	assign mosi = ((bit_counter == 0) && (!msck))?1'bZ:shifted_tx_data[7];
 
 	always @ (posedge clk_in) begin
 		if (rst) begin

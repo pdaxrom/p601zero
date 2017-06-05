@@ -183,6 +183,10 @@ module p601zero (
 	wire en_sdcardio = DS6; // $E6C0
 	wire cs_sdcardio = en_sdcardio && sys_vma;
 	wire [7:0] sdcardiod;
+
+	// write to external register
+	assign sdcs = (cs_sdcardio && (AD[2:0] == 3'b011)) ? ((~sys_clk) & (~sys_rw)) : 1'b0;
+
 	sdcardio sdcardio_impl(
 		.clk(sys_clk),
 		.rst(sys_res),
@@ -194,7 +198,6 @@ module p601zero (
 		
 		.clk_in(clk_in),
 		
-		.sdcs(sdcs),
 		.mosi(mosi),
 		.msck(msck),
 		.miso(miso)

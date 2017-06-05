@@ -10,6 +10,9 @@
 	ldaa	#5
 	staa	SPI_PRESCALER
 
+	ldaa	#$FF
+	staa	SPI_SELECT
+
 	ldaa	SPI_STATUS
 	staa	LED_HEX
 

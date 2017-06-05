@@ -162,9 +162,9 @@ exit	pulb
 
 sd_enable proc
 	pshx
-	ldaa	SPI_STATUS
-	anda	#($FF^SPI_SSN)
-	staa	SPI_STATUS
+	ldaa	SPI_SELECT
+	anda	#($FF^SPI_SELSD)
+	staa	SPI_SELECT
 	jsr	spi_read
 	ldx	#5000
 loop	jsr	spi_read
@@ -182,9 +182,9 @@ exit	inca
 
 sd_disable proc
 	psha
-	ldaa	SPI_STATUS
-	oraa	#SPI_SSN
-	staa	SPI_STATUS
+	ldaa	SPI_SELECT
+	oraa	#SPI_SELSD
+	staa	SPI_SELECT
 	bsr	spi_read
 	pula
 	rts
