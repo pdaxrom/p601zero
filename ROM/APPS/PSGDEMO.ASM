@@ -15,13 +15,51 @@
 
 	bsr	bc1on
 
+;	reset ext devices
+	ldaa	SPI_SELECT
+	anda	#($FF^SPI_SELEXTRES)
+	staa	SPI_SELECT
+
+	ldaa	SPI_SELECT
+	oraa	#SPI_SELEXTRES
+	staa	SPI_SELECT
+
+; Configure port A for output
+;	ldaa	#7
+;	ldab	#$C0
+;	bsr	psg_write
+
+; write to port A
+;	ldaa	#14
+;	ldab	#$AA
+;	bsr	psg_write
+
+;
 	ldaa	#7
-	ldab	#$C0
+	ldab	#(62 | $C0)
 	bsr	psg_write
 
-	ldaa	#14
-	ldab	#$FD
+	ldaa	#0
+	ldab	#200
 	bsr	psg_write
+
+	ldaa	#1
+	ldab	#3
+	bsr	psg_write
+
+	ldaa	#8
+	ldab	#15
+	bsr	psg_write
+
+;;
+;	ldaa	#14
+;	ldab	#$AA
+;	bsr	psg_write
+;;
+
+;cycle	bsr	spi_send
+;	bra	cycle
+;;
 
 exit	ldx	#bye
 	jsr	F_UART_PUTS
@@ -53,18 +91,18 @@ busy	ldab	SPI_STATUS
 
 bc1off	proc
 	psha
-	ldaa	SPI_STATUS
-	anda	#($FF^SPI_SSN)
-	staa	SPI_STATUS
+	ldaa	SPI_SELECT
+	anda	#($FF^SPI_SELPSGBC1)
+	staa	SPI_SELECT
 	pula
 	rts
 	endp
 
 bc1on	proc
 	psha
-	ldaa	SPI_STATUS
-	oraa	#SPI_SSN
-	staa	SPI_STATUS
+	ldaa	SPI_SELECT
+	oraa	#SPI_SELPSGBC1
+	staa	SPI_SELECT
 	pula
 	rts
 	endp
