@@ -10,10 +10,7 @@
 	ldaa	#5
 	staa	SPI_PRESCALER
 
-	ldaa	SPI_STATUS
-	staa	LED_HEX
-
-	bsr	bc1on
+	jsr	bc1on
 
 ;	reset ext devices
 	ldaa	SPI_SELECT
@@ -24,66 +21,60 @@
 	oraa	#SPI_SELEXTRES
 	staa	SPI_SELECT
 
-; Configure port A for output
-;	ldaa	#7
-;	ldab	#$C0
-;	bsr	psg_write
+loop	ldx	#buf
+read	jsr	F_UART_IN
+	staa	0,x
+	inx
+	cpx	#buf+16
+	bne	read
 
-; write to port A
-;	ldaa	#14
-;	ldab	#$AA
-;	bsr	psg_write
-
-;
-	ldaa	#7
-	ldab	#($38 | $C0)
-	bsr	psg_write
-
+	ldx	#buf
 	ldaa	#0
-	ldab	#100
+
+	ldab	0,x
 	bsr	psg_write
-
-	ldaa	#1
-	ldab	#3
+	inca
+	ldab	1,x
 	bsr	psg_write
-
-	ldaa	#2
-	ldab	#100
+	inca
+	ldab	2,x
 	bsr	psg_write
-
-	ldaa	#3
-	ldab	#3
+	inca
+	ldab	3,x
 	bsr	psg_write
-
-	ldaa	#4
-	ldab	#200
+	inca
+	ldab	4,x
 	bsr	psg_write
-
-	ldaa	#5
-	ldab	#3
+	inca
+	ldab	5,x
 	bsr	psg_write
-
-	ldaa	#8
-	ldab	#15
+	inca
+	ldab	6,x
 	bsr	psg_write
-
-	ldaa	#9
-	ldab	#15
+	inca
+	ldab	7,x
 	bsr	psg_write
-
-	ldaa	#10
-	ldab	#15
+	inca
+	ldab	8,x
 	bsr	psg_write
+	inca
+	ldab	9,x
+	bsr	psg_write
+	inca
+	ldab	10,x
+	bsr	psg_write
+	inca
+	ldab	11,x
+	bsr	psg_write
+	inca
+	ldab	12,x
+	bsr	psg_write
+	inca
+	ldab	13,x
+	bsr	psg_write
+	inca
 
-;;
-;	ldaa	#14
-;	ldab	#$AA
-;	bsr	psg_write
-;;
-
-;cycle	bsr	spi_send
-;	bra	cycle
-;;
+	bra	loop
 
 exit	ldx	#bye
 	jsr	F_UART_PUTS
@@ -131,5 +122,7 @@ bc1on	proc
 	rts
 	endp
 
-hello	db	$0a, $0d, 'PSG test!', $0a, $0d, 0
+hello	db	$0a, $0d, 'AY-3-8912 CHIPTUNE!', $0a, $0d, 0
 bye	db	$0a, $0d, 'Bye!', $0a, $0d, 0
+
+buf	ds	16
