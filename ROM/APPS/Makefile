@@ -11,4 +11,4 @@ all: DEMO1.CMD IRQTEST.CMD DEMO2.CMD DEMO3.CMD \
 	../6803 $< $(basename $@) $@
 
 clean:
-	rm -f *.LST *.CMD
+	rm -f *.LST *.CMD ymstreamer
