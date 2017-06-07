@@ -12,14 +12,7 @@
 
 	jsr	bc1on
 
-;	reset ext devices
-	ldaa	SPI_SELECT
-	anda	#($FF^SPI_SELEXTRES)
-	staa	SPI_SELECT
-
-	ldaa	SPI_SELECT
-	oraa	#SPI_SELEXTRES
-	staa	SPI_SELECT
+	jsr	psg_reset
 
 loop	ldx	#buf
 read	jsr	F_UART_IN
@@ -74,11 +67,30 @@ read	jsr	F_UART_IN
 	bsr	psg_write
 	inca
 
-	bra	loop
+;	ldaa	#15
+;	ldab	#0
+;	bsr	psg_write	; empty write
 
-exit	ldx	#bye
+	ldaa	INPUT_SWKEYS
+	bita	#1
+	beq	loop
+
+exit	bsr	psg_reset
+	ldx	#bye
 	jsr	F_UART_PUTS
 	jmp	F_RESET
+
+psg_reset proc
+;	reset ext devices
+	ldaa	SPI_SELECT
+	anda	#($FF^SPI_SELEXTRES)
+	staa	SPI_SELECT
+
+	ldaa	SPI_SELECT
+	oraa	#SPI_SELEXTRES
+	staa	SPI_SELECT
+	rts
+	endp
 
 ; Write to PSG
 ; A - Address reg
