@@ -38,6 +38,7 @@ module vpu (
 	input wire [7:0] VDATA,
 	output reg vramcs,
 	output reg hold,
+	input wire vrambusy,
 	
 	output wire [1:0] tvout
 );
@@ -118,8 +119,10 @@ module vpu (
 			end else begin
 				case (DMA_state)
 				3'b000: begin
-					hold <= 1'b1;
-					DMA_state <= 3'b001;
+						if (!vrambusy) begin
+							hold <= 1'b1;
+							DMA_state <= 3'b001;
+						end else DMA_state <= 3'b000;
 					end
 				3'b001: begin
 					// empty

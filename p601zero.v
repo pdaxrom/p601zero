@@ -36,6 +36,7 @@ module p601zero (
 	parameter LED_DIV_PERIOD = (OSC_CLOCK / LED_REFRESH_CLOCK) / 2;
 
 	wire clk_in;
+	wire sys_clk_out;
 	wire sys_clk;
 	wire pixel_clk;
 	
@@ -64,7 +65,7 @@ module p601zero (
 	mcu_pll pll_impl(
 		.CLKI(clk_ext),
 		.CLKOP(clk_in),
-		.CLKOS(sys_clk),
+		.CLKOS(sys_clk_out),
 		.CLKOS2(pixel_clk)
 	);
 
@@ -138,6 +139,7 @@ module p601zero (
 		.VDATA(EXT_DQ),
 		.vramcs(vpu_vramcs),
 		.hold(vpu_hold),
+		.vrambusy(cpu_vma),
 		
 		.tvout(tvout)
 	);
@@ -243,49 +245,15 @@ module p601zero (
 		.cs(cs_bram)
 	);
 
-	reg extbus_delay;
-
 	wire en_ext = !(en_brom | en_bram | en_vpu | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
 	wire pageen = mempage[3] && (AD[15:13] == 3'b110) && (!(mempage[4] && (!sys_rw)));
 	assign EXT_AD[16:0] = vpu_vramcs ? {1'b0, VADDR} :
 						  pageen   ? {1'b1, mempage[2:0], AD[12:0]} : {1'b0, AD};
 
-//	assign EXT_OE_n = vpu_vramcs ? 1'b0 : ~((~sys_clk) &  (sys_rw));
-//	assign EXT_WE_n = vpu_vramcs ? 1'b1 : ~((~sys_clk) & (~sys_rw));
-	assign EXT_OE_n = vpu_vramcs ? 1'b0 : ~((~extbus_delay) & ( sys_rw));
-	assign EXT_WE_n = vpu_vramcs ? 1'b1 : ~((~extbus_delay) & (~sys_rw));
+	assign EXT_OE_n = vpu_vramcs ? 1'b0 : ~((~sys_clk) &  (sys_rw));
+	assign EXT_WE_n = vpu_vramcs ? 1'b1 : ~((~sys_clk) & (~sys_rw));
 	assign EXT_DQ   = vpu_vramcs ? 8'bZ : (sys_rw) ? 8'bZ : DO;
-
-	reg [2:0] extbus_state;
-	reg extbus_hold;
-	
-	always @ (posedge sys_clk) begin
-		if (sys_res) begin
-			extbus_state <= 0;
-			extbus_hold <= 0;
-			extbus_delay <= 1;
-		end	else begin
-			case (extbus_state)
-			3'b000: begin
-					if (en_ext && sys_vma) begin
-						extbus_hold <= 1;
-						extbus_state <= 3'b001;
-					end else extbus_delay <= 1;
-				end
-			3'b001: extbus_state <= 3'b010;
-			3'b010: begin
-					extbus_delay <= 0;
-					extbus_state <= 3'b011;					
-				end
-			3'b011: begin
-					extbus_hold <= 0;
-					extbus_state <= 3'b100;
-				end
-			3'b100: extbus_state <= 3'b000;
-			endcase
-		end
-	end
-
+ 
 	assign DI = en_ext      ? EXT_DQ:
 				en_bram		? bramd:
 				en_brom		? bromd:
@@ -297,8 +265,20 @@ module p601zero (
 				8'b11111111;
 
 	assign SRAM_CS2 = (en_ext && sys_vma) | vpu_vramcs;
-	
-	wire hold = extbus_hold | vpu_hold;
+
+	reg [2:0] extbus_clkdiv_cnt;
+	reg dyn_clk;
+	always @ (posedge sys_clk_out) begin
+		if (extbus_clkdiv_cnt >= (((en_ext && sys_vma) || vpu_vramcs)?3'b001:3'b000)) begin
+			dyn_clk <= ~dyn_clk;
+			extbus_clkdiv_cnt <= 0;
+		end else extbus_clkdiv_cnt <= extbus_clkdiv_cnt + 1'b1;
+	end
+
+//	assign sys_clk = dyn_clk;
+	assign sys_clk = sys_clk_out;
+
+	wire hold = vpu_hold;
 
 	cpu68 mc6801 (
 		.clk(sys_clk),

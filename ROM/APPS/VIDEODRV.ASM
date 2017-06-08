@@ -63,12 +63,10 @@ GRSCR_START	equ	$A000
 	stx	VPU_ADDR
 	ldx	#blackline
 	stx	VPU_VADDR
-	ldaa	#64
-	staa	VPU_VSIZE
 
 ; let start DMA engine
-	nop
-	nop
+	ldaa	#64
+	staa	VPU_VSIZE
 
 ; Set DMA step
 	ldaa	#1
@@ -99,12 +97,9 @@ exit	rti
 next	bita	#VPU_SVL
 	beq	blank
 
+; let start DMA engine
 	ldaa	#40
 	staa	VPU_VSIZE
-
-; let start DMA engine
-	nop
-	nop
 
 	rti
 
@@ -115,12 +110,9 @@ blank	bita	#VPU_EVL
 	staa	VPU_VSTEP
 	ldx	#blackline
 	stx	VPU_VADDR
+; let start DMA engine
 	ldaa	#40
 	staa	VPU_VSIZE
-
-; let start DMA engine
-	nop
-	nop
 
 	ldaa	#1
 	staa	VPU_VSTEP

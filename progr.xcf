@@ -20,8 +20,8 @@
 				<BScanVal>0</BScanVal>
 			</Bypass>
 			<File>/home/sash/Work/FPGA/step-mxo2/p601zero/impl1/p601zero_impl1.jed</File>
-			<FileTime>06/06/17 12:43:25</FileTime>
-			<JedecChecksum>0xFF4B</JedecChecksum>
+			<FileTime>06/08/17 11:34:05</FileTime>
+			<JedecChecksum>0x12F6</JedecChecksum>
 			<Operation>FLASH Erase,Program,Verify</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
