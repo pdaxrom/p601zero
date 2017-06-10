@@ -71,7 +71,7 @@ module vpu (
 	wire svl_flag = (cntVS >= SVL_reg) && (cntVS <  EVL_reg);
 	wire evl_flag = (cntVS >  SVL_reg) && (cntVS <= EVL_reg);
 	
-	wire irq_condition = (svl_flag || evl_flag) && (cntHS < 8);
+	wire irq_condition = (svl_flag || evl_flag) && (cntHS < 2);
 
 	assign irq = cfg_reg[5] & cfg_reg[4];
 

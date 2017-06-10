@@ -266,14 +266,14 @@ module p601zero (
 
 	assign SRAM_CS2 = (en_ext && sys_vma) | vpu_vramcs;
 
-	reg [2:0] extbus_clkdiv_cnt;
-	reg dyn_clk;
-	always @ (posedge sys_clk_out) begin
-		if (extbus_clkdiv_cnt >= (((en_ext && sys_vma) || vpu_vramcs)?3'b001:3'b000)) begin
-			dyn_clk <= ~dyn_clk;
-			extbus_clkdiv_cnt <= 0;
-		end else extbus_clkdiv_cnt <= extbus_clkdiv_cnt + 1'b1;
-	end
+//	reg [2:0] extbus_clkdiv_cnt;
+//	reg dyn_clk;
+//	always @ (posedge sys_clk_out) begin
+//		if (extbus_clkdiv_cnt >= (((en_ext && sys_vma))?3'b001:3'b000)) begin
+//			dyn_clk <= !dyn_clk;
+//			extbus_clkdiv_cnt <= 0;
+//		end else extbus_clkdiv_cnt <= extbus_clkdiv_cnt + 1'b1;
+//	end
 
 //	assign sys_clk = dyn_clk;
 	assign sys_clk = sys_clk_out;
