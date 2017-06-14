@@ -102,7 +102,7 @@ program asm6800;
      (mnemonic:'ADCB' ;large:false  ;code:( 0  , $C9, $D9, $F9, $E9, 0  ) ) ,
      (mnemonic:'ADDA' ;large:false  ;code:( 0  , $8B, $9B, $BB, $AB, 0  ) ) ,
      (mnemonic:'ADDB' ;large:false  ;code:( 0  , $CB, $DB, $FB, $EB, 0  ) ) ,
-     (mnemonic:'ADDD' ;large:false  ;code:( 0  , $C3, $D3, $F3, $E3, 0  ) ) , { 6803 }
+     (mnemonic:'ADDD' ;large:true   ;code:( 0  , $C3, $D3, $F3, $E3, 0  ) ) , { 6803 }
      (mnemonic:'ANDA' ;large:false  ;code:( 0  , $84, $94, $B4, $A4, 0  ) ) ,
      (mnemonic:'ANDB' ;large:false  ;code:( 0  , $C4, $D4, $F4, $E4, 0  ) ) ,
      (mnemonic:'ASL'  ;large:false  ;code:( 0  , 0  , 0  , $78, $68, 0  ) ) ,
@@ -222,7 +222,7 @@ program asm6800;
      (mnemonic:'STX'  ;large:false  ;code:( 0  , 0  , $DF, $FF, $EF, 0  ) ) ,
      (mnemonic:'SUBA' ;large:false  ;code:( 0  , $80, $90, $B0, $A0, 0  ) ) ,
      (mnemonic:'SUBB' ;large:false  ;code:( 0  , $C0, $D0, $F0, $E0, 0  ) ) ,
-     (mnemonic:'SUBD' ;large:false  ;code:( 0  , $83, $93, $B3, $A3, 0  ) ) , { 6803 }
+     (mnemonic:'SUBD' ;large:true   ;code:( 0  , $83, $93, $B3, $A3, 0  ) ) , { 6803 }
      (mnemonic:'SWI'  ;large:false  ;code:( $3F, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'TAB'  ;large:false  ;code:( $16, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'TAP'  ;large:false  ;code:( $6 , 0  , 0  , 0  , 0  , 0  ) ) ,
