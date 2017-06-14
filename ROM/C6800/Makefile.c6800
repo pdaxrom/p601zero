@@ -1,0 +1,6 @@
+all: c6800
+
+CFLAGS = -g
+
+clean:
+	rm -f c6800

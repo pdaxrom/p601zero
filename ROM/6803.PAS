@@ -457,7 +457,7 @@ program asm6800;
     readln(s);
     end
   else s:= paramstr(1);
-  upstr(s);
+{  upstr(s); }
   i:= pos(';', s); skip:= i<>0;
   if skip then s[0]:= chr(i-1);
   base:= s;
@@ -479,7 +479,7 @@ program asm6800;
 	 readln(s);
 	 end
     else s:= paramstr(2);
-  upstr(s);
+{  upstr(s); }
   i:= pos(';', s); skip:= i<>0;
   if skip then s[0]:= chr(i-1);
   if length(s)<>0 then
@@ -498,7 +498,7 @@ program asm6800;
       write('Object filename [', base,'.PGM]: ')
     else
       write('Object filename [', base,'.CMD]: ');
-    readln(s); upstr(s);
+    readln(s); { upstr(s); }
     end
   else s:= paramstr(3);
   i:= pos(';', s); skip:= i<>0;
