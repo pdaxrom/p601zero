@@ -623,7 +623,7 @@ newfunc()
 	/* we had better see open paren for args... */
 	if(match("(")==0)error("missing open paren");
 	outname(n);
-	outstr(" proc");
+	outasm(" proc");
 	nl();	/* print function name */
 	argstk=0;		/* init arg count */
 	while(match(")")==0)	/* then count args */
@@ -756,16 +756,16 @@ doif()
 	locptr=flev;	/* and deallocate any locals */
 	if (amatch("else",4)==0)	/* if...else ? */
 		/* simple "if"...print false label */
-		{printlabel(flab1);col();nl();
+		{printlabel(flab1); /* col();nl(); */
 		return;		/* and exit */
 		}
 	/* an "if...else" statement. */
 	jump(flab2=getlabel());	/* jump around false code */
-	printlabel(flab1);col();nl();	/* print false label */
+	printlabel(flab1); /* col();nl() */;	/* print false label */
 	statement();		/* and do "else" clause */
 	Zsp=modstk(fsp);		/* then clean up stk ptr */
 	locptr=flev;		/* and deallocate locals */
-	printlabel(flab2);col();nl();	/* print true label */
+	printlabel(flab2); /* col();nl(); */	/* print true label */
 	}
 /*					*/
 /*	"while" statement		*/

@@ -27,7 +27,7 @@ RT_CCGINT proc
 	endp
 
 RT_COMP	proc
-	global RT_CCNE
+	global RT_CCNE, RT_CCEQ, RT_CCLT, RT_CCGT, RT_CCLE, RT_CCGE
 RT_CCNE	bsr	cmpwz
 	tstb
 	bne	true
@@ -36,14 +36,28 @@ RT_CCEQ	bsr	cmpwz
 	tstb
 	bne	false
 	bra	true
+RT_CCLT	bsr	cmpwz
+	cmpb	#2
+	beq	true
+	bra	false
+RT_CCGT	bsr	cmpwz
+	cmpb	#1
+	beq	true
+	bra	false
+RT_CCLE	bsr	cmpwz
+	cmpb	#1
+	beq	false
+	bra	true
+RT_CCGE	bsr	cmpwz
+	cmpb	#2
+	beq	false
+	bra	true
 false	ldd	#0
 	rts
 true	ldd	#1
 	rts
-	endp
 
-cmpwz	proc
-	pshx
+cmpwz	pshx
 	tsx
 	cmpa 	0,x
 	bgt 	mgt
