@@ -291,7 +291,7 @@ dumpglbs()
 	while(cptr<glbptr)
 		{if(cptr[ident]!=function)
 			/* do if anything but function */
-			{outname(cptr);col();
+			{outname(cptr); /* col(); */
 				/* output name as label... */
 			defstorage();	/* define storage */
 			j=((cptr[offset]&255)+
@@ -779,12 +779,12 @@ dowhile()
 	wq[wqlab]=getlabel();	/* and exit label */
 	addwhile(wq);		/* add entry to queue */
 				/* (for "break" statement) */
-	printlabel(wq[wqloop]);col();nl(); /* loop label */
+	printlabel(wq[wqloop]); /*col();nl(); loop label */
 	test(wq[wqlab]);	/* see if true */
 	statement();		/* if so, do a statement */
 	Zsp = modstk(wq[wqsp]);	/* zap local vars: 9/25/80 gtf */
 	jump(wq[wqloop]);	/* loop to label */
-	printlabel(wq[wqlab]);col();nl(); /* exit label */
+	printlabel(wq[wqlab]);  /* col();nl(); exit label */
 	locptr=wq[wqsym];	/* deallocate locals */
 	delwhile();		/* delete queue entry */
 	}
@@ -1386,7 +1386,7 @@ blanks()
 	}
 /* output a decimal number - rewritten 4/1/81 gtf */
 outdec(n)
-int n;
+short n;
 {
 	if(n<0)
 		outbyte('-');
@@ -2238,7 +2238,7 @@ testjump(label)
 	int label;
 {
 	debug_ol("; testjump");
-	ol("addd	#0");
+	ol("tstb");
 	ot("beq	");
 	printlabel(label);
 	nl();
