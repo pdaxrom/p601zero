@@ -12,6 +12,17 @@ RT_CCGCHAR proc
 	psha
 	pulx
 	clra
+	ldab	0,x
+	bpl	exit
+	deca
+exit	rts
+	endp
+
+RT_CCGCHAR1 proc
+	pshb
+	psha
+	pulx
+	clra
 	ldab	1,x
 	bpl	exit
 	deca
@@ -23,6 +34,33 @@ RT_CCGINT proc
 	psha
 	pulx
 	ldd	0,x
+	rts
+	endp
+
+RT_MATH proc
+	global RT_CCAND, RT_CCOR, RT_CCXOR, RT_CCNEG
+RT_CCAND pshx
+	tsx
+	anda	0,x
+	andb	1,x
+	pulx
+	rts
+RT_CCOR	pshx
+	tsx
+	oraa	0,x
+	orab	1,x
+	pulx
+	rts
+RT_CCXOR pshx
+	tsx
+	eora	0,x
+	eorb	1,x
+	pulx
+	rts
+RT_CCNEG comb
+	coma
+	addb	#1
+	adca	#0
 	rts
 	endp
 
@@ -80,11 +118,17 @@ exit	pulx
 QZPUTC	proc
 	tsx
 	ldaa	3,x
-	jmp	F_UART_OUTHEX
+	jmp	F_UART_OUT
 	endp
 
 QZPUTS	proc
 	tsx
 	ldx	2,x
 	jmp	F_UART_PUTS
+	endp
+
+QZPUTHEX proc
+	tsx
+	ldaa	2,x
+	jmp	F_UART_OUTHEX
 	endp

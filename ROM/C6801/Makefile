@@ -1,6 +1,16 @@
-all: hello2
+all: hello2.cmd hello3.cmd hello4.cmd hello5.cmd hello6.cmd hello7.cmd hello8.cmd hello9.c
 
-CC = c68
+CC = ./c6801
+
+CFLAGS = -fc -fo
+
+.SUFFIXES: .asm .cmd
+
+.asm.cmd: ../DEVMAP.INC ../BOOTROM.INC CLIB.INC
+	../6803 $< $(basename $@) $@
+
+.c.asm:
+	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -f hello2 *.asm *.o
+	rm -f *.asm *.obj *.lst *.cmd *.LST *.CMD *.ERR

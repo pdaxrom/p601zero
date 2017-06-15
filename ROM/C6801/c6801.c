@@ -121,6 +121,13 @@
 #define	stcont	5
 #define	stasm	6
 #define	stexp	7
+#define STDO 8
+#define STFOR 9
+#define STSWITCH 10
+/* #define STGOTO 11 */
+#define STCASE 12
+#define STDEF 13
+/* #define STLABEL 14 */
 
 /* Define how to carve up a name too long for the assembler */
 
@@ -677,26 +684,20 @@ statement()
 			/* zabort(); */
 
 	if ((ch()==0) & (eof)) return;
-	else if(amatch("char",4))
-		{declloc(cchar);ns();}
-	else if(amatch("int",3))
-		{declloc(cint);ns();}
-	else if(match("{"))compound();
-	else if(amatch("if",2))
-		{doif();lastst=stif;}
-	else if(amatch("while",5))
-		{dowhile();lastst=stwhile;}
-	else if(amatch("return",6))
-		{doreturn();ns();lastst=streturn;}
-	else if(amatch("break",5))
-		{dobreak();ns();lastst=stbreak;}
-	else if(amatch("continue",8))
-		{docont();ns();lastst=stcont;}
+	else if(match("{")) 		compound();
+	else if(amatch("char",4))	{ declloc(cchar);ns(); }
+	else if(amatch("int",3))	{ declloc(cint);ns();  }
+	else if(amatch("if",2))		{ doif();lastst=stif; }
+	else if(amatch("do",2))		{ dodo();ns();lastst=STDO; }
+	else if(amatch("for",3))	{ dofor();lastst=STFOR; }
+	else if(amatch("while",5))	{ dowhile();lastst=stwhile; }
+	else if(amatch("return",6))	{ doreturn();ns();lastst=streturn; }
+	else if(amatch("break",5))	{ dobreak();ns();lastst=stbreak; }
+	else if(amatch("continue",8))	{ docont();ns();lastst=stcont; }
 	else if(match(";"));
-	else if(match("#asm"))
-		{doasm();lastst=stasm;}
+	else if(match("#asm"))		{ doasm();lastst=stasm; }
 	/* if nothing else, assume it's an expression */
-	else{expression();ns();lastst=stexp;}
+	else { expression();ns();lastst=stexp; }
 	return lastst;
 }
 /*					*/
@@ -714,16 +715,72 @@ compound()
 	while (match("}")==0) statement(); /* do one */
 	--ncmp;		/* close current level */
 	}
+
+dodo() {
+	int wq[wqsiz], wqtop;
+	wq[wqsym]=locptr;	/* record local level */
+	wq[wqsp]=Zsp;		/* and stk ptr */
+	wqtop=getlabel();	/* and top label */
+	wq[wqloop]=getlabel();	/* and looping label */
+	wq[wqlab]=getlabel();	/* and exit label */
+	addwhile(wq);		/* add entry to queue */
+				/* (for "break" statement) */
+	printlabel(wqtop);
+	statement();
+	Zsp = modstk(wq[wqsp]);	/* zap local vars: 9/25/80 gtf */
+	needbrack("while");
+	printlabel(wq[wqloop]);
+	test(wq[wqlab],1);
+	jump(wqtop);
+	printlabel(wq[wqlab]);
+	delwhile();
+}
+
+dofor() {
+	int wq[wqsiz], wqtop, wqfor;
+	wq[wqsym]=locptr;	/* record local level */
+	wq[wqsp]=Zsp;		/* and stk ptr */
+	wqtop=getlabel();	/* and top label */
+	wq[wqloop]=getlabel();	/* and looping label */
+	wqfor=getlabel();	/* label for for */
+	wq[wqlab]=getlabel();	/* and exit label */
+	addwhile(wq);		/* add entry to queue */
+				/* (for "break" statement) */
+	needbrack("(");
+	if (match(";") == 0) {
+		doexpression();
+		ns();
+	}
+	printlabel(wqtop);
+	if (match(";") == 0) {
+		test(wq[wqlab], 0);
+		ns();
+	}
+	jump(wqfor);
+	printlabel(wq[wqloop]);
+	if (match(")") == 0) {
+		doexpression();
+		needbrack(")");
+	}
+	jump(wqtop);
+	printlabel(wqfor);
+	statement();
+	Zsp = modstk(wq[wqsp]);	/* zap local vars: 9/25/80 gtf */
+	jump(wq[wqloop]);
+	printlabel(wq[wqlab]);
+	delwhile();
+}
+
 /*					*/
 /*		"if" statement		*/
 /*					*/
 doif()
-	{
+{
 	int flev,fsp,flab1,flab2;
 	flev=locptr;	/* record current local level */
 	fsp=Zsp;		/* record current stk ptr */
 	flab1=getlabel(); /* get label for false branch */
-	test(flab1);	/* get expression, and branch false */
+	test(flab1, 1);	/* get expression, and branch false */
 	statement();	/* if true, do a statement */
 	Zsp=modstk(fsp);	/* then clean up the stack */
 	locptr=flev;	/* and deallocate any locals */
@@ -739,13 +796,14 @@ doif()
 	Zsp=modstk(fsp);		/* then clean up stk ptr */
 	locptr=flev;		/* and deallocate locals */
 	printlabel(flab2); /* col();nl(); */	/* print true label */
-	}
+}
+
 /*					*/
 /*	"while" statement		*/
 /*					*/
 dowhile()
-	{
-	int wq[4];		/* allocate local queue */
+{
+	int wq[wqsiz];		/* allocate local queue */
 	wq[wqsym]=locptr;	/* record local level */
 	wq[wqsp]=Zsp;		/* and stk ptr */
 	wq[wqloop]=getlabel();	/* and looping label */
@@ -753,14 +811,15 @@ dowhile()
 	addwhile(wq);		/* add entry to queue */
 				/* (for "break" statement) */
 	printlabel(wq[wqloop]); /*col();nl(); loop label */
-	test(wq[wqlab]);	/* see if true */
+	test(wq[wqlab], 1);	/* see if true */
 	statement();		/* if so, do a statement */
 	Zsp = modstk(wq[wqsp]);	/* zap local vars: 9/25/80 gtf */
 	jump(wq[wqloop]);	/* loop to label */
 	printlabel(wq[wqlab]);  /* col();nl(); exit label */
 	locptr=wq[wqsym];	/* deallocate locals */
 	delwhile();		/* delete queue entry */
-	}
+}
+
 /*					*/
 /*	"return" statement		*/
 /*					*/
@@ -825,14 +884,19 @@ callfunction(ptr)
 	nargs=0;
 	blanks();	/* already saw open paren */
 	if(ptr==0)zpush();	/* calling HL */
-	while(streq(line+lptr,")")==0)
-		{if(endst())break;
-		expression();	/* get an argument */
+	while(streq(line+lptr,")")==0) {
+		int t;
+		if(endst())break;
+		t = expression();	/* get an argument */
 		if(ptr==0)swapstk(); /* don't push addr */
-		zpush();	/* push argument */
+		if (t == cchar) {
+			zpushchar();
+		} else {
+			zpush();	/* push argument */
+		}
 		nargs=nargs+2;	/* count args*2 */
 		if (match(",")==0) break;
-		}
+	}
 	needbrack(")");
 	if(ptr)zcall(ptr);
 	else callstk();
@@ -1345,8 +1409,8 @@ amatch(lit,len)
 		}
 	return 0;
  }
-blanks()
-	{while(1)
+blanks() {
+	while(1)
 		{while(ch()==0)
 			{_inline();
 			preprocess();
@@ -1356,7 +1420,8 @@ blanks()
 		else if(ch()==9)gch();
 		else return;
 		}
-	}
+}
+
 /* output a decimal number - rewritten 4/1/81 gtf */
 outdec(n)
 short n;
@@ -1403,11 +1468,24 @@ char c;
 
 /* as of 5/5/81 rj */
 
+doexpression()
+{
+ char *before, *start;
+ while(1) {
+  expression();
+  if(ch() != ',') break;
+  inbyte();
+ }
+}
+
 expression()
 {
 	int lval[2];
 	if(heir1(lval))rvalue(lval);
+
+	return lval[1];
 }
+
 heir1(lval)
 	int lval[];
 {
@@ -1889,12 +1967,13 @@ rvalue(lval)
 		getmem(lval[0]);
 		else indirect(lval[1]);
 }
-test(label)
+test(label, bracket)
 	int label;
+	int bracket;
 {
-	needbrack("(");
+	if (bracket) needbrack("(");
 	expression();
-	needbrack(")");
+	if (bracket) needbrack(")");
 	testjump(label);
 }
 constant(val)
@@ -2139,6 +2218,16 @@ zpush()
 	ol("psha");
 	Zsp=Zsp-2;
 }
+
+/* Push the primary register onto the stack */
+zpushchar()
+{
+	debug_ol("; zpushchar");
+	ol("psha");
+	ol("pshb");
+	Zsp=Zsp-2;
+}
+
 /* Pop the top of the stack into the secondary register */
 zpop()
 {
@@ -2269,10 +2358,9 @@ modstk(newsp)
 
 	ol("pshb");
 	ol("psha");
-	ol("ldab	#");
-	outdec(k & 255);
-	ol("ldaa	#");
-	outdec(k >> 8);
+	ot("ldd	#");
+	outdec(k);
+	nl();
 	ol("tsx");
 	ol("inx");
 	ol("inx");
