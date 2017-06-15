@@ -1468,6 +1468,26 @@ char c;
 
 /* as of 5/5/81 rj */
 
+casting()
+{
+	int k;
+
+	if (k = streq(line + lptr, "(")) {
+		if (streq(line + lptr + k, "int") ||
+		    streq(line + lptr + k, "char")) {
+			match("(");
+			if (match("int")) {
+				needbrack(")");
+				return cint;
+			} else	if (match("char")) {
+				needbrack(")");
+				return cchar;
+			}
+		}
+	}
+	return -1;
+}
+
 doexpression()
 {
  char *before, *start;
@@ -1481,7 +1501,13 @@ doexpression()
 expression()
 {
 	int lval[2];
+	int cast;
+
+	cast = casting();
+
 	if(heir1(lval))rvalue(lval);
+
+	if (cast != -1) lval[1] = cast;
 
 	return lval[1];
 }
@@ -1491,15 +1517,19 @@ heir1(lval)
 {
 	int k,lval2[2];
 	k=heir2(lval);
-	if (match("="))
-		{if(k==0){needlval();return 0;}
-		if (lval[1])zpush();
-		if(heir1(lval2))rvalue(lval2);
+	if (match("=")) {
+		if(k==0) {
+			needlval();
+			return 0;
+		}
+		if (lval[1]) zpush();
+		if(heir1(lval2)) rvalue(lval2);
 		store(lval);
 		return 0;
-		}
-	else return k;
+	}
+	return k;
 }
+
 heir2(lval)
 	int lval[];
 {	int k,lval2[2];
@@ -1917,11 +1947,11 @@ primary(lval)
 	int *lval;
 {	char *ptr,sname[namesize];int num[1];
 	int k;
-	if(match("("))
-		{k=heir1(lval);
+	if(match("(")) {
+		k=heir1(lval);
 		needbrack(")");
 		return k;
-		}
+	}
 	if(symname(sname))
 		{if(ptr=findloc(sname))
 			{getloc(ptr);
