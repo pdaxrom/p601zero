@@ -229,7 +229,8 @@ char **argv;
 	trailer();		/* follow-up code */
 	closeout();		/* close the output (if any) */
 	errorsummary();		/* summarize errors (on console!) */
-	return;			/* then exit to system */
+	if (ncmp || errcnt) return 1;
+	else return 0;			/* then exit to system */
 }
 
 /*					*/
