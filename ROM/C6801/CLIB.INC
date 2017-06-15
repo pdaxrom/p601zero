@@ -115,9 +115,60 @@ exit	pulx
 	rts
 	endp
 
+RT_CCDIV proc
+DIV	equ	3
+QUO	equ	1
+KT	equ	0
+
+	pshb		; divisor
+	psha		;
+	pshx		; dividend
+	ldab	#1
+	pshb		; counter
+	tsx
+
+	ldd	DIV,x
+	beq	error
+	bmi	DIV002
+DIV001	inc	KT,x
+	asld
+	bpl	DIV001
+	std	DIV,x
+DIV002	ldd	QUO,x
+	clr	QUO,x
+	clr	QUO+1,x
+DIV003	subd	DIV,x
+	bcc	DIV004
+	addd	DIV,x
+	clc
+	bra	DIV005
+DIV004	sec
+DIV005	rol	QUO+1,x
+	rol	QUO,x
+	lsr	DIV,x
+	ror	DIV+1,x
+	dec	KT,x
+	bne	DIV003
+
+	pshb
+	psha
+	ldd	QUO,x
+	pulx
+
+	clc
+	bra	okay
+error	sec
+okay	ins
+	ins
+	ins
+	ins
+	ins
+	rts
+	endp
+
 QZPUTC	proc
 	tsx
-	ldaa	3,x
+	ldaa	2,x
 	jmp	F_UART_OUT
 	endp
 
