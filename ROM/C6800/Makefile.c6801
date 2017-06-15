@@ -1,0 +1,4 @@
+all: c6801
+
+clean:
+	rm -f c6801
