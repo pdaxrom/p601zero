@@ -9,13 +9,13 @@
 
 /* with minor mods by RDK */
 
-#define BANNER  "<><><>   Small-C  V1.2  DOS--CP/M Cross Compiler   <><><>"
+#define BANNER  "Small-C V1.2 Compiler"
 
-#define VERSION "<><><><><>   CP/M Large String Space Version   <><><><><>"
+#define VERSION "for MC6801/HD6303"
 
-#define AUTHOR  "<><><><><><><><><><>   By Ron Cain   <><><><><><><><><><>"
+#define AUTHOR  "by Alexander Chukov <sash@pdaXrom.org>, 2017"
 
-#define LINE    "<><><><><><><><><><><><><><>X<><><><><><><><><><><><><><>"
+#define LINE    "Based on sources by Ron Cain."
 
 
 /*
@@ -154,6 +154,7 @@ int	nxtlab,		/* next avail label # */
 	ncmp,		/* # open compound statements */
 	errcnt,		/* # errors in compilation */
 	errstop,	/* stop on error			gtf 7/17/80 */
+	opcodebug,	/* show opcodes in output file */
 	eof,		/* set non-zero on final input eof */
 	input,		/* iob # for input file */
 	output,		/* iob # for output file (if any) */
@@ -178,13 +179,21 @@ char   *currfn,		/* ptr to symtab entry for current fn.	gtf 7/17/80 */
 char	quote[2];	/* literal string for '"' */
 char	*cptr;		/* work ptr to any char buffer */
 int	*iptr;		/* work ptr to any int buffer */
+
+int argcs;
+char **argvs;     /* statig argc and argv */
+
 /*	>>>>> start cc1 <<<<<<		*/
 
 /*					*/
 /*	Compiler begins execution here	*/
 /*					*/
-main()
-	{
+main(argc, argv)
+int argc;
+char **argv;
+{
+	argcs=argc;
+	argvs=argv;
 	glbptr=startglb;	/* clear global symbols */
 	locptr=startloc;	/* clear local symbols */
 	wqptr=wq;		/* clear while queue */
@@ -213,8 +222,6 @@ main()
 	/*	compiler body		*/
 	/*				*/
 	ask();			/* get user options */
-	openout();		/* get an output file */
-	openin();		/* and initial input file */
 	header();		/* intro code */
 	parse(); 		/* process ALL input */
 	dumplits();		/* then dump literal pool */
@@ -223,7 +230,7 @@ main()
 	closeout();		/* close the output (if any) */
 	errorsummary();		/* summarize errors (on console!) */
 	return;			/* then exit to system */
-	}
+}
 
 /*					*/
 /*	Abort compilation		*/
@@ -325,6 +332,8 @@ errorsummary()
 /*					*/
 ask()
 	{
+	int i;
+	char *argptr;
 	int k,num[1];
 	kill();			/* clear input line */
 	outbyte(12);		/* clear the screen */
@@ -335,97 +344,60 @@ ask()
 	pl(VERSION);
 	pl(LINE);
 	nl();nl();
-	/* see if user wants to interleave the c-text */
-	/*	in form of comments (for clarity) */
-	pl("Do you want the c-text to appear (y,N) ? ");
-	gets(line);		/* get answer */
+	glbflag=1;	/* define globals */
+	mainflg=1;	/* first file to assembler */
+	nxtlab =0;	/* start numbers at lowest possible */
 	ctext=0;		/* assume no */
-	if((ch()=='Y')|(ch()=='y'))
-		ctext=1;	/* user said yes */
-	/* see if the user is compiling everything at once */
-	/*	(as is usually the case) - gtf 4/9/80 */
-	pl("Are you compiling the whole program at once (Y,n) ? ");
-	gets(line);
-	if((ch()!='N')&(ch()!='n')){	/* single file - assume... */
-		glbflag=1;	/* define globals */
-		mainflg=1;	/* first file to assembler */
-		nxtlab =0;	/* start numbers at lowest possible */
-		}
-	else {		/* one of many - ask everything */
-	 	/* see if user wants us to allocate static */
-	 	/*  variables by name in this module	*/
-	 	/*	(pseudo external capability)	*/
-	 	pl("Do you want the globals to be defined (y,N) ? ");
-	 	gets(line);
-	 	glbflag=0;
-	 	if((ch()=='Y')|(ch()=='y'))
-	 		glbflag=1;	/* user said yes */
-	 	/* see if we should put out the stuff	*/
-	 	/*	needed for the first assembler	*/
-	 	/*	file. - gtf 4/9/80		*/
-		pl(
-	"Is the output file the first one the assembler will see (y,N) ? ");
-	 	gets(line);
-	 	mainflg=0;
-	 	if((ch()=='Y')|(ch()=='y'))
-	 		mainflg=1;	/* indeed it is */
-	 	/* get first allowable number for compiler-generated */
-	 	/*	labels (in case user will append modules) */
-	 	while(1){
-	 		pl("Starting number for labels (0) ? ");
-	 		gets(line);
-	 		if(ch()==0){num[0]=0;break;}
-	 		if(k=number(num))break;
-	 		}
-	 	nxtlab=num[0];
-		}
-	/* see if user wants to be sure to see all errors */
-	pl("Should I pause after an error (y,N) ? ");
-	gets(line);
 	errstop=0;
-	if((ch()=='Y')|(ch()=='y'))
-		errstop=1;
+	opcodebug = 0;
+
+	i = 0;
+	while (--argcs) {
+		argptr=argvs[++i];
+		if(*argptr == '-') {
+			if (*++argptr == 'o') {
+				argcs--;
+				if((output=fopen(argvs[++i],"w"))==NULL) {
+					error("output file errrpt");
+					exit(1);
+				} else continue;
+			} else if (*argptr == 'f') {
+				if (*++argptr == 'c') {
+				    ctext = 1;
+				    continue;
+				} else if (*argptr == 'p') {
+				    errstop = 1;
+				    continue;
+				} else if (*argptr == 'o') {
+				    opcodebug = 1;
+				    continue;
+				}
+			}
+			error("unknown option!");
+			exit(1);
+		} else {
+			if((input=fopen(argptr,"r"))==NULL) {
+				error("input file error!");
+				exit(1);
+			} else newfile();
+		}
+	}
+
+	if (!input) {
+		error("No input file!\n");
+		exit(1);
+	}
+
+	if (!output) {
+		if((output = fopen("out.asm", "w")) == NULL) {
+			error("output file errrpt");
+			exit(1);
+		}
+	}
 
 	litlab=getlabel();	/* first label=literal pool */ 
 	kill();			/* erase line */
-	}
-/*					*/
-/*	Get output filename		*/
-/*					*/
-openout()
-	{
-	kill();			/* erase line */
-	output=0;		/* start with none */
-	pl("Output filename? "); /* ask...*/
-	gets(line);	/* get a filename */
-	if(ch()==0)return;	/* none given... */
-	if((output=fopen(line,"w"))==NULL) /* if given, open */
-		{output=0;	/* can't open */
-		error("Open failure!");
-		}
-	kill();			/* erase line */
 }
-/*					*/
-/*	Get (next) input file		*/
-/*					*/
-openin()
-{
-	input=0;		/* none to start with */
-	while(input==0){	/* any above 1 allowed */
-		kill();		/* clear line */
-		if(eof)break;	/* if user said none */
-		pl("Input filename? ");
-		gets(line);	/* get a name */
-		if(ch()==0)
-			{eof=1;break;} /* none given... */
-		if((input=fopen(line,"r"))!=NULL)
-			newfile();			/* gtf 7/16/80 */
-		else {	input=0;	/* can't open it */
-			pl("Open failure");
-			}
-		}
-	kill();		/* erase line */
-	}
 
 /*					*/
 /*	Reset line count, etc.		*/
@@ -1054,7 +1026,7 @@ _inline()
 {
 	int k,unit;
 	while(1)
-		{if (input==0)openin();
+		{if (input==0) eof=1;
 		if(eof)return;
 		if((unit=input2)==0)unit=input;
 		kill();
@@ -1988,7 +1960,9 @@ qstr(val)
 debug_ol(p)
 char *p;
 {
-	ol(p);
+	if (opcodebug) {
+		ol(p);
+	}
 }
 
 /*	>>>>>> start of cc8 <<<<<<<	*/
