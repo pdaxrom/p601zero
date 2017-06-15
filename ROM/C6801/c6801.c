@@ -2107,19 +2107,16 @@ getmem(sym)
 	char *sym;
 {
 	debug_ol("; getmem");
-	if((sym[ident]!=pointer)&(sym[type]==cchar))
-		{
+	if((sym[ident]!=pointer)&(sym[type]==cchar)) {
 		ot("ldab	");
 		outname(sym+name);
 		nl();
 		callrts("ccsex");
-		}
-	else
-		{
+	} else	{
 		ot("ldd	");
 		outname(sym+name);
 		nl();
-		}
+	}
 }
 /* Fetch the address of the specified symbol */
 /*	into the primary register */
@@ -2157,7 +2154,7 @@ char typeobj;
 {
 	debug_ol("; putstk");
 	zpop();
-	if(typeobj==cint) {
+	if (typeobj == cint) {
 		ol("std	0,x");
 	} else {
 		ol("stab	0,x");		/* per Ron Cain: gtf 9/25/80 */
@@ -2170,28 +2167,15 @@ char typeobj;
 indirect(typeobj)
 	char typeobj;
 {
-	if(typeobj==cchar)callrts("ccgchar");
-	else callrts("ccgint");
-}
-
-/*
-indirect(typeobj)
-	char typeobj;
-{
-	debug_ol("; indirect");
-	if(typeobj==cchar) {
-	    ol("pshb");
-	    ol("psha");
-	    ol("pulx");
-	    ol("ldab	0,x");
-	} else {
-	    ol("pshb");
-	    ol("psha");
-	    ol("pulx");
+	if (typeobj == cint) {
+	    ol("xgdx");
 	    ol("ldd	0,x");
+	} else {
+	    ol("xgdx");
+	    ol("ldab	0,x");
+	    callrts("ccsex");
 	}
 }
- */
 
 /* Swap the primary and secondary registers */
 swap()
