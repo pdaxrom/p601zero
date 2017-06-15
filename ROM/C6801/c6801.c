@@ -2112,6 +2112,7 @@ getmem(sym)
 		ot("ldab	");
 		outname(sym+name);
 		nl();
+		callrts("ccsex");
 		}
 	else
 		{
@@ -2196,12 +2197,7 @@ indirect(typeobj)
 swap()
 {
 	debug_ol("; swap");
-	ol("pshx");
-	ol("pshb");
-	ol("psha");
-	ol("pulx");
-	ol("pula");
-	ol("pulb");
+	ol("xgdx");
 }
 /* Print partial instruction to get an immediate value */
 /*	into the primary register */
@@ -2365,9 +2361,7 @@ modstk(newsp)
 	ol("inx");
 	ol("inx");
 	zadd();
-	ol("pshb");
-	ol("psha");
-	ol("pulx");
+	ol("xgdx");
 	ol("pula");
 	ol("pulb");
 	ol("txs");
@@ -2397,11 +2391,10 @@ zsub()
 	debug_ol("; zsub");
 	ol("pshb");
 	ol("psha");
-	ol("pshx");
-	ol("pula");
-	ol("pulb");
+	ol("xgdx");
 	ol("tsx");
 	ol("subd	0,x");
+	ol("pulx");
 }
 /* Multiply the primary and secondary registers */
 /*	(results in primary */

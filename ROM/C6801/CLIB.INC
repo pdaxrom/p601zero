@@ -18,23 +18,20 @@ RT_CCGCHAR proc
 exit	rts
 	endp
 
-RT_CCGCHAR1 proc
-	pshb
-	psha
-	pulx
-	clra
-	ldab	1,x
-	bpl	exit
-	deca
-exit	rts
-	endp
-
 RT_CCGINT proc
 	pshb
 	psha
 	pulx
 	ldd	0,x
 	rts
+	endp
+
+RT_CCSEX proc
+	clra
+	tstb
+	bpl	exit
+	deca
+exit	rts
 	endp
 
 RT_MATH proc
