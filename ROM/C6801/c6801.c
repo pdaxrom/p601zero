@@ -2090,24 +2090,48 @@ constant(val)
 	nl();
 	return 1;
 }
-number(val)
-	int val[];
-{	int k,minus;char c;
-	k=minus=1;
-	while(k)
-		{k=0;
-		if (match("+")) k=1;
-		if (match("-")) {minus=(-minus);k=1;}
+
+number (val)
+int	val[];
+{
+	int	k, minus, base;
+	char	c;
+
+	k = minus = 1;
+	while (k) {
+		k = 0;
+		if (match ("+"))
+			k = 1;
+		if (match ("-")) {
+			minus = (-minus);
+			k = 1;
 		}
-	if(numeric(ch())==0)return 0;
-	while (numeric(ch()))
-		{c=inbyte();
-		k=k*10+(c-'0');
+	}
+	if (numeric (c = ch ()) == 0)
+		return (0);
+	if (match ("0x") || match ("0X"))
+		while ((numeric (c = ch ()) != 0) |
+		       ((c >= 'a') & (c <= 'f'))  |
+		       ((c >= 'A') & (c <= 'F'))) {
+			inbyte ();
+			if (numeric(c)) k = k * 16 + (c - '0');
+			else k = k * 16 + ((c & 07) + 9);
 		}
-	if (minus<0) k=(-k);
-	val[0]=k;
-	return 1;
+	else {
+		if (c == '0') base = 8;
+		else base = 10;
+		while (numeric (ch ())) {
+			c = inbyte ();
+			k = k * base + (c - '0');
+		}
+	}
+	if (minus < 0)
+		k = (-k);
+	val[0] = k;
+	return (1);
 }
+
+#if 0
 pstr(val)
 	int val[];
 {	int k;char c;
@@ -2136,6 +2160,80 @@ qstr(val)
 	gch();
 	litq[litptr++]=0;
 	return 1;
+}
+#endif
+
+pstr (val)
+int     val[];
+{
+        int     k;
+        char    c;
+
+        k = 0;
+        if (match ("'") == 0)
+                return (0);
+        while ((c = gch ()) != 39) {
+		if (c == '\\') c = spechar();
+                k = (k & 255) * 256 + (c & 255);
+        }
+        val[0] = k;
+        return (1);
+
+}
+
+qstr (val)
+int     val[];
+{
+        char    c;
+
+        if (match (quote) == 0)
+                return (0);
+        val[0] = litptr;
+        while (ch () != '"') {
+                if (ch () == 0)
+                        break;
+                if (litptr >= litmax) {
+                        error ("string space exhausted");
+                        while (match (quote) == 0)
+                                if (gch () == 0)
+                                        break;
+                        return (1);
+                }
+                c = gch();
+		if (c == '\\') litq[litptr++] = spechar();
+                else litq[litptr++] = c;
+        }
+        gch ();
+        litq[litptr++] = 0;
+        return (1);
+
+}
+
+#define EOS     0
+#define EOL     10
+#define BKSP    8
+#define CR      13
+#define FFEED   12
+#define TAB     9
+
+/*
+ *      decode special characters (preceeded by back slashes)
+ */
+spechar() {
+        char c;
+        c = ch();
+
+        if      (c == 'n') c = EOL;
+        else if (c == 't') c = TAB;
+        else if (c == 'r') c = CR;
+        else if (c == 'f') c = FFEED;
+        else if (c == 'b') c = BKSP;
+        else if (c == '0') c = EOS;
+        else if (c == EOS) return;
+
+        gch();
+        return (c);
+
 }
 
 debug_ol(p)
