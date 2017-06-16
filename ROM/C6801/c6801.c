@@ -198,7 +198,7 @@ char **argvs;     /* statig argc and argv */
 /*					*/
 main(argc, argv)
 int argc;
-char **argv;
+char *argv[];
 {
 	argcs=argc;
 	argvs=argv;
@@ -281,7 +281,7 @@ parse()
 dumplits()
 	{int j,k;
 	if (litptr==0) return;	/* if nothing there, exit...*/
-	printlabel(litlab); /* print literal label */
+	printlabel(litlab);	/* print literal label */
 	k=0;			/* init an index... */
 	while (k<litptr)	/* 	to loop with */
 		{defbyte();	/* pseudo-op to define byte */
@@ -772,14 +772,14 @@ dodo() {
 	wq[wqlab]=getlabel();	/* and exit label */
 	addwhile(wq);		/* add entry to queue */
 				/* (for "break" statement) */
-	printlabel(wqtop);
+	printlabel(wqtop); nl();
 	statement();
 	Zsp = modstk(wq[wqsp]);	/* zap local vars: 9/25/80 gtf */
 	needbrack("while");
-	printlabel(wq[wqloop]);
+	printlabel(wq[wqloop]); nl();
 	test(wq[wqlab],1);
 	jump(wqtop);
-	printlabel(wq[wqlab]);
+	printlabel(wq[wqlab]); nl();
 	delwhile();
 }
 
@@ -798,23 +798,23 @@ dofor() {
 		doexpression();
 		ns();
 	}
-	printlabel(wqtop);
+	printlabel(wqtop); nl();
 	if (match(";") == 0) {
 		test(wq[wqlab], 0);
 		ns();
 	}
 	jump(wqfor);
-	printlabel(wq[wqloop]);
+	printlabel(wq[wqloop]); nl();
 	if (match(")") == 0) {
 		doexpression();
 		needbrack(")");
 	}
 	jump(wqtop);
-	printlabel(wqfor);
+	printlabel(wqfor); nl();
 	statement();
 	Zsp = modstk(wq[wqsp]);	/* zap local vars: 9/25/80 gtf */
 	jump(wq[wqloop]);
-	printlabel(wq[wqlab]);
+	printlabel(wq[wqlab]); nl();
 	delwhile();
 }
 
@@ -824,25 +824,25 @@ dofor() {
 doif()
 {
 	int flev,fsp,flab1,flab2;
-	flev=locptr;	/* record current local level */
-	fsp=Zsp;		/* record current stk ptr */
-	flab1=getlabel(); /* get label for false branch */
-	test(flab1, 1);	/* get expression, and branch false */
-	statement();	/* if true, do a statement */
-	Zsp=modstk(fsp);	/* then clean up the stack */
-	locptr=flev;	/* and deallocate any locals */
-	if (amatch("else",4)==0)	/* if...else ? */
+	flev=locptr;			/* record current local level */
+	fsp=Zsp;			/* record current stk ptr */
+	flab1=getlabel();		/* get label for false branch */
+	test(flab1, 1);			/* get expression, and branch false */
+	statement();			/* if true, do a statement */
+	Zsp=modstk(fsp);		/* then clean up the stack */
+	locptr=flev;			/* and deallocate any locals */
+	if (amatch("else",4)==0) {	/* if...else ? */
 		/* simple "if"...print false label */
-		{printlabel(flab1); /* col();nl(); */
-		return;		/* and exit */
-		}
+		printlabel(flab1); nl(); /* col();nl(); */
+		return;			/* and exit */
+	}
 	/* an "if...else" statement. */
-	jump(flab2=getlabel());	/* jump around false code */
-	printlabel(flab1); /* col();nl() */;	/* print false label */
-	statement();		/* and do "else" clause */
+	jump(flab2=getlabel());		/* jump around false code */
+	printlabel(flab1); nl();	/* col();nl() */;	/* print false label */
+	statement();			/* and do "else" clause */
 	Zsp=modstk(fsp);		/* then clean up stk ptr */
-	locptr=flev;		/* and deallocate locals */
-	printlabel(flab2); /* col();nl(); */	/* print true label */
+	locptr=flev;			/* and deallocate locals */
+	printlabel(flab2); nl();	/* col();nl(); */	/* print true label */
 }
 
 /*					*/
@@ -857,12 +857,12 @@ dowhile()
 	wq[wqlab]=getlabel();	/* and exit label */
 	addwhile(wq);		/* add entry to queue */
 				/* (for "break" statement) */
-	printlabel(wq[wqloop]); /*col();nl(); loop label */
+	printlabel(wq[wqloop]); nl(); /*col();nl(); loop label */
 	test(wq[wqlab], 1);	/* see if true */
 	statement();		/* if so, do a statement */
 	Zsp = modstk(wq[wqsp]);	/* zap local vars: 9/25/80 gtf */
 	jump(wq[wqloop]);	/* loop to label */
-	printlabel(wq[wqlab]);  /* col();nl(); exit label */
+	printlabel(wq[wqlab]); nl();  /* col();nl(); exit label */
 	locptr=wq[wqsym];	/* deallocate locals */
 	delwhile();		/* delete queue entry */
 }
@@ -1066,7 +1066,8 @@ getlabel()
 /* Print specified number as label */
 printlabel(label)
 	int label;
-{	outasm("cc");
+{
+	outasm("cc");
 	outdec(label);
 }
 /* Test if given character is alpha */
@@ -2371,7 +2372,8 @@ testjump(label)
 {
 	debug_ol("; testjump");
 	ol("tstb");
-	ot("beq	");
+	ol("bne	*+5");
+	ot("jmp	");
 	printlabel(label);
 	nl();
 }
