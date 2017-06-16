@@ -180,3 +180,11 @@ QZPUTHEX proc
 	ldaa	2,x
 	jmp	F_UART_OUTHEX
 	endp
+
+QZPUTHEX16 proc
+	tsx
+	ldaa	2,x
+	jsr	F_UART_OUTHEX
+	ldaa	3,x
+	jmp	F_UART_OUTHEX
+	endp

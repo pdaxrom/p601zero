@@ -157,7 +157,8 @@ int	lptr,mptr;		/* ptrs into each */
 int	nxtlab,		/* next avail label # */
 	litlab,		/* label # assigned to literal pool */
 	Zsp,		/* compiler relative stk ptr */
-	argstk,		/* function arg sp */
+	argstk,		/* function arg counter */
+	argscnt,	/* function arg sp */
 	ncmp,		/* # open compound statements */
 	errcnt,		/* # errors in compilation */
 	errstop,	/* stop on error			gtf 7/17/80 */
@@ -575,7 +576,8 @@ needsub()
 /* Called from "parse" this routine tries to make a function */
 /*	out of what follows.	*/
 newfunc()
-	{
+{
+	char *argsptr;
 	char n[namesize];	/* ptr => currfn,  gtf 7/16/80 */
 	if (symname(n)==0)
 		{error("illegal function or declaration");
@@ -606,38 +608,75 @@ newfunc()
 	outasm(" proc");
 	nl();	/* print function name */
 	argstk=0;		/* init arg count */
-	while(match(")")==0)	/* then count args */
+	while(match(")")==0) {
+		/* then count args */
 		/* any legal name bumps arg count */
-		{if(symname(n))argstk=argstk+2;
-		else{error("illegal argument name");junk();}
+		if (symname(n)) argstk=argstk + 1;
+		else {
+			error("illegal argument name");
+			junk();
+		}
 		blanks();
 		/* if not closing paren, should be comma */
-		if(streq(line+lptr,")")==0)
-			{if(match(",")==0)
-			error("expected comma");
-			}
-		if(endst())break;
+		if(streq(line+lptr,")")==0) {
+			if(match(",")==0) error("expected comma");
 		}
+		if(endst())break;
+	}
+
 	locptr=startloc;	/* "clear" local symbol table*/
 	Zsp=0;			/* preset stack ptr */
-	while(argstk)
+
+	argscnt = 0;
+
+	while(argstk) {
 		/* now let user declare what types of things */
 		/*	those arguments were */
-		{if(amatch("char",4)){getarg(cchar);ns();}
-		else if(amatch("int",3)){getarg(cint);ns();}
-		else{error("wrong number args");break;}
+		if (amatch("char",4)) {
+			getarg(cchar);
+			ns();
+		} else if (amatch("int",3)) {
+			getarg(cint);
+			ns();
+		} else {
+			error("wrong number args");
+			break;
 		}
+	}
+
+	argsptr = locptr - symsiz;
+
+	/* skip function return address */
+	argstk = 2;
+	argscnt = argscnt + 2;
+
+	/* Fix local table args offsets */
+	 while (argstk != argscnt) {
+		argsptr[offset]     = argstk & 255;
+		argsptr[offset + 1] = argstk >> 8;
+		if ((argsptr[ident] == variable) & (argsptr[type] == cchar)) {
+		    fprintf(output, "; -- CHAR\t+%d\n", argstk);
+		    argstk = argstk + 1;
+		} else {
+		    fprintf(output, "; -- INT\t+%d\n", argstk);
+		    argstk = argstk + 2;
+		}
+		argsptr = argsptr - symsiz;
+	}
+
 	if(statement()!=streturn) /* do a statement, but if */
 				/* it's a return, skip */
 				/* cleaning up the stack */
-		{modstk(0);
+	{
+		modstk(0);
 		zret();
-		}
+	}
 	Zsp=0;			/* reset stack ptr again */
 	locptr=startloc;	/* deallocate all locals */
 	infunc=0;		/* not in fn. any more		gtf 7/2/80 */
 	ol("endp");
-	}
+}
+
 /*					*/
 /*	Declare argument types		*/
 /*					*/
@@ -645,28 +684,36 @@ newfunc()
 /*	local symbol table for each named argument */
 getarg(t)		/* t = cchar or cint */
 	int t;
-	{
-	char n[namesize],c;int j;
-	while(1)
-		{if(argstk==0)return;	/* no more args */
-		if(match("*"))j=pointer;
-			else j=variable;
+{
+	char n[namesize],c;
+	int j;
+
+	while(1) {
+		if (argstk==0) return;	/* no more args */
+		if (match("*")) j=pointer;
+		else j=variable;
 		if(symname(n)==0) illname();
-		if(findloc(n))multidef(n);
+		if(findloc(n)) multidef(n);
 		if(match("["))	/* pointer ? */
 		/* it is a pointer, so skip all */
 		/* stuff between "[]" */
-			{while(inbyte()!=']')
-				if(endst())break;
-			j=pointer;
+		{
+		    while(inbyte()!=']')
+			if(endst())break;
+			    j=pointer;
 			/* add entry as pointer */
-			}
-		addloc(n,j,t,argstk);
-		argstk=argstk-2;	/* cnt down */
-		if(endst())return;
-		if(match(",")==0)error("expected comma");
 		}
+		addloc(n,j,t,argstk << 1); /* argstk is not used now */
+
+		if ((t == cchar) & (j == variable)) argscnt = argscnt + 1;
+		else argscnt = argscnt + 2;
+
+		argstk = argstk - 1;	/* cnt down */
+		if(endst()) return;
+		if(match(",")==0) error("expected comma");
 	}
+}
+
 /*					*/
 /*	Statement parser		*/
 /*					*/
@@ -880,28 +927,42 @@ doasm()
 /*	zero, will call the contents of HL		*/
 callfunction(ptr)
 	char *ptr;	/* symbol table entry (or 0) */
-{	int nargs;
-	nargs=0;
+{
+	int cargs;
+	int nargs;
+	nargs = 0;
+	cargs = 1;
+
 	blanks();	/* already saw open paren */
+
 	if(ptr==0)zpush();	/* calling HL */
+
 	while(streq(line+lptr,")")==0) {
 		int t;
 		if(endst())break;
 		t = expression();	/* get an argument */
 		if(ptr==0)swapstk(); /* don't push addr */
+
+		if (ptr) {
+		    fprintf(output, "; arg type %s\n", ptr);//[cargs * symsiz]);
+		}
+
 		if (t == cchar) {
 			zpushchar();
+			nargs=nargs+1;	/* count args*2 */
 		} else {
 			zpush();	/* push argument */
+			nargs=nargs+2;	/* count args*2 */
 		}
-		nargs=nargs+2;	/* count args*2 */
 		if (match(",")==0) break;
+		cargs = cargs + 1;
 	}
 	needbrack(")");
 	if(ptr)zcall(ptr);
 	else callstk();
 	Zsp=modstk(Zsp+nargs);	/* clean up arguments */
 }
+
 junk()
 {	if(an(inbyte()))
 		while(an(ch()))gch();
@@ -2233,9 +2294,8 @@ zpush()
 zpushchar()
 {
 	debug_ol("; zpushchar");
-	ol("psha");
 	ol("pshb");
-	Zsp=Zsp-2;
+	Zsp=Zsp-1;
 }
 
 /* Pop the top of the stack into the secondary register */
