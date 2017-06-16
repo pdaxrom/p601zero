@@ -2314,15 +2314,9 @@ zpop()
 swapstk()
 {
 	debug_ol("; swapstk");
-	ol("tsx");
-	ol("ldx	0,x");
+	ol("pulx");
+	ol("xgdx");
 	ol("pshx");
-	ol("tsx");
-	ol("inx");
-	ol("inx");
-	ol("std	0,x");
-	ol("pula");
-	ol("pulb");
 }
 /* Call the specified subroutine name */
 zcall(sname)

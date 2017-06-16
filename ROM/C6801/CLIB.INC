@@ -1,3 +1,8 @@
+;
+; Pyldin 601/Zero Small-C compiler Run-time support library
+; Copyleft 2017, sashz <sash@pdaXrom.org>
+;
+
 	include	../DEVMAP.INC
 	include	../BOOTROM.INC
 
@@ -128,6 +133,74 @@ mlt	ldab 	#1
 mgt	ldab    #2
 exit	pulx
 	rts
+	endp
+
+RT_CCULT proc
+	pshx
+	tsx
+	cmpa	0,x
+	beq	equel
+	bhi	true
+false	ldd	#0
+exit	pulx
+	rts
+true	ldd	#1
+	bra	exit
+equel	cmpb	1,x
+	beq	false
+	bhi	true
+	bra	false
+	endp
+
+RT_CCULE proc
+	pshx
+	tsx
+	cmpa	0,x
+	beq	equel
+	bhi	true
+false	ldd	#0
+exit	pulx
+	rts
+true	ldd	#1
+	bra	exit
+equel	cmpb	1,x
+	beq	true
+	bhi	true
+	bra	false
+	endp
+
+RT_CCUGT proc
+	pshx
+	tsx
+	cmpa	0,x
+	beq	equel
+	bls	true
+false	ldd	#0
+exit	pulx
+	rts
+true	ldd	#1
+	bra	exit
+equel	cmpb	1,x
+	beq	false
+	bls	true
+	bra	false
+	endp
+
+RT_CCUGE proc
+	pshx
+	tsx
+	cmpa	0,x
+	beq	equel
+	bls	true
+false	ldd	#0
+exit	pulx
+	rts
+true	ldd	#1
+	bra	exit
+equel	cmpb	1,x
+	beq	true
+	bls	true
+	bra	false
 	endp
 
 RT_CCDIV proc
