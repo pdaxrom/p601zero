@@ -302,19 +302,13 @@ MUL004	ldaa	P,x
 
 QZPUTC	proc
 	tsx
-	ldaa	2,x
+	ldaa	3,x
 	jmp	F_UART_OUT
-	endp
-
-QZPUTS	proc
-	tsx
-	ldx	2,x
-	jmp	F_UART_PUTS
 	endp
 
 QZPUTHEX proc
 	tsx
-	ldaa	2,x
+	ldaa	3,x
 	jmp	F_UART_OUTHEX
 	endp
 
@@ -324,4 +318,10 @@ QZPUTHEX16 proc
 	jsr	F_UART_OUTHEX
 	ldaa	3,x
 	jmp	F_UART_OUTHEX
+	endp
+
+QZPUTS	proc
+	tsx
+	ldx	2,x
+	jmp	F_UART_PUTS
 	endp

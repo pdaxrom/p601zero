@@ -30,48 +30,31 @@ int value;
         for( x = 0; x < 7; x++ ) putc( str[x] );
 }
 
-printn(value)
-int value;
-{
-    printnum(value);
-    putc((char)10);
-    putc((char)13);
-}
-
-prints(str)
-char *str;
-{
-    puts(str);
-    putc((char)10);
-    putc((char)13);
-}
-
 test(t, real, testn) int t; int real; char *testn;
 {
-	prints("Test");
+	puts("Test\n\r");
 	if (t != real) {
-		prints(testn);
-		prints(" failed\n");
-		prints("Should be: ");
+		puts(testn);
+		puts(" failed\n\r");
+		puts("Should be: ");
 		printnum(real); printnum(10);
-		prints(" was: ");
+		puts(" was: ");
 		printnum(t); printnum(10);
-		putc((char)10);
-		putc((char)13);
+		puts("\n\r");
 	}
 	if (*temp != ret) {
-		prints("retst");
+		puts("retst");
 	}
 	if (locaddr == 0) locaddr = &t;
 	else if (locaddr != &t) {
-		prints("locst during");
-		prints(testn);
+		puts("locst during");
+		puts(testn);
 	}
 }
 
 main(){
 	int x;
-	prints("Starting test");
+	puts("Starting test\n\r");
 	i = 1;
 	address = &x;
 	locaddr = 0;
@@ -128,5 +111,5 @@ main(){
 	test((0 < 1) ? 1 : 0, 1, "(0 < 1) ? 1 : 0");
 	test((1000 > 1000) ? 0: 1, 1, "(1000 > 1000) ? 0 : 1");
  */
-	prints("ending test");
+	puts("ending test\n\r");
 }

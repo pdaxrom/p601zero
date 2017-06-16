@@ -171,6 +171,8 @@ int	nxtlab,		/* next avail label # */
 	ctext,		/* non-zero to intermix c-source */
 	cmode,		/* non-zero while parsing c-code */
 			/* zero when passing assembly code */
+	optabi,	/* optimization for argument sizes (strong */
+			/* casting for function args) */
 	lastst,		/* last executed statement type */
 	mainflg,	/* output is to be first asm file	gtf 4/9/80 */
 	saveout,	/* holds output ptr when diverted to console	   */
@@ -359,6 +361,7 @@ ask()
 	ctext=0;		/* assume no */
 	errstop=0;
 	opcodebug = 0;
+	optabi = 0;
 
 	i = 0;
 	while (--argcs) {
@@ -380,6 +383,13 @@ ask()
 				} else if (*argptr == 'o') {
 				    opcodebug = 1;
 				    continue;
+				}
+			} else if (*argptr == 'O') {
+				if (*++argptr == 'a') {
+				    if ((argptr[1] == 'b') & (argptr[2] == 'i')) {
+					optabi = 1;
+					continue;
+				    }
 				}
 			}
 			error("unknown option!");
@@ -652,6 +662,9 @@ newfunc()
 
 	/* Fix local table args offsets */
 	 while (argstk != argscnt) {
+		if ((argsptr[ident] == variable) & (argsptr[type] == cchar) & (optabi == 0)) {
+		    argstk = argstk + 1;
+		}
 		argsptr[offset]     = argstk & 255;
 		argsptr[offset + 1] = argstk >> 8;
 		if ((argsptr[ident] == variable) & (argsptr[type] == cchar)) {
@@ -705,7 +718,7 @@ getarg(t)		/* t = cchar or cint */
 		}
 		addloc(n,j,t,argstk << 1); /* argstk is not used now */
 
-		if ((t == cchar) & (j == variable)) argscnt = argscnt + 1;
+		if ((t == cchar) & (j == variable) & (optabi != 0)) argscnt = argscnt + 1;
 		else argscnt = argscnt + 2;
 
 		argstk = argstk - 1;	/* cnt down */
@@ -943,7 +956,7 @@ callfunction(ptr)
 		t = expression();	/* get an argument */
 		if(ptr==0)swapstk(); /* don't push addr */
 
-		if (t == cchar) {
+		if ((t == cchar) & (optabi != 0)) {
 			zpushchar();
 			nargs=nargs+1;	/* count args*2 */
 		} else {
@@ -2130,38 +2143,6 @@ int	val[];
 	val[0] = k;
 	return (1);
 }
-
-#if 0
-pstr(val)
-	int val[];
-{	int k;char c;
-	k=0;
-	if (match("'")==0) return 0;
-	while((c=gch())!=39)
-		k=(k&255)*256 + (c&127);
-	val[0]=k;
-	return 1;
-}
-qstr(val)
-	int val[];
-{	char c;
-	if (match(quote)==0) return 0;
-	val[0]=litptr;
-	while (ch()!='"')
-		{if(ch()==0)break;
-		if(litptr>=litmax)
-			{error("string space exhausted");
-			while(match(quote)==0)
-				if(gch()==0)break;
-			return 1;
-			}
-		litq[litptr++]=gch();
-		}
-	gch();
-	litq[litptr++]=0;
-	return 1;
-}
-#endif
 
 pstr (val)
 int     val[];
