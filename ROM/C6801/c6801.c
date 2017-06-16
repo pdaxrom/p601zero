@@ -1847,7 +1847,12 @@ heir10(lval)
 {
 	int k;
 	char *ptr;
-	if(match("++"))
+	if (match("~")) {
+		k=heir10(lval);
+		if(k) rvalue(lval);
+		com();
+		return 0;
+	} else if (match("++"))
 		{if((k=heir10(lval))==0)
 			{needlval();
 			return 0;
@@ -2515,7 +2520,11 @@ neg()
 	{callrts("ccneg");}
 /* Form one's complement of primary register */
 com()
-	{callrts("cccom");}
+{
+	ol("comb");
+	ol("coma");
+	/*callrts("cccom");*/
+}
 /* Increment the primary register by one */
 inc()
 {

@@ -35,7 +35,7 @@ exit	rts
 	endp
 
 RT_MATH proc
-	global RT_CCAND, RT_CCOR, RT_CCXOR, RT_CCNEG
+	global RT_CCAND, RT_CCOR, RT_CCXOR, RT_CCNEG, RT_CCCOM, RT_CCASL, RT_CCASR
 RT_CCAND pshx
 	tsx
 	anda	0,x
@@ -59,6 +59,24 @@ RT_CCNEG comb
 	addb	#1
 	adca	#0
 	rts
+RT_CCCOM comb
+	coma
+	rts
+RT_CCASL xgdx
+asll	cpx	#0
+	beq	aslret
+	dex
+	asld
+	bra	asll
+aslret	rts
+RT_CCASR xgdx
+asrl	cpx	#0
+	beq	asrret
+	dex
+	asra
+	rorb
+	bra	asrl
+asrret	rts
 	endp
 
 RT_COMP	proc
@@ -160,6 +178,52 @@ okay	ins
 	ins
 	ins
 	ins
+	rts
+	endp
+
+RT_CCMULT proc
+P	equ	0
+Q	equ	2
+R	equ	4
+	pshx		; R
+	pshx		; R
+	pshx		; Q
+	pshb		; P
+	psha		; P
+	tsx
+
+	clrb
+	clra
+	std	R,x
+	ldaa	P+1,x
+	ldab	Q+1,x
+	mul
+	std	R+2,x
+	ldaa	P,x
+	ldab	Q+1,x
+	mul
+	addd	R+1,x
+	std	R+1,x
+	bcc	MUL002
+	inc	R,x
+MUL002	ldaa	P+1,x
+	ldab	Q,x
+	mul
+	addd	R+1,x
+	std	R+1,x
+	bcc	MUL004
+	inc	R,x
+MUL004	ldaa	P,x
+	ldab	Q,x
+	mul
+	addd	R,x
+;	std	R,x
+;	ldx	R+2,x
+	pulx
+	pulx
+	pulx
+	pulx
+	xgdx
 	rts
 	endp
 
