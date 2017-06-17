@@ -1,20 +1,23 @@
-foo(a, b)
-char a;
-char b;
-{
-    puthex(a);
-    puthex(b);
-}
+#asm
+    include ../DEVEL/LIBROM.INC
+#endasm
+
+char *framebuf;
+int fb_size;
 
 main()
 {
-    char a;
+    puts("Hello, World!\n\r");
 
-    a = -1;
+    framebuf = 0xa000;
 
-    puthex(a);
-    puts("Hello, World!\n");
+    fb_size = 0;
 
-    foo(2, 255^a);
+    while (fb_size++ < 8000) {
+	*framebuffer++ = 0;
+    }
+
+    puts("Bye!\n\r");
+
     return 0;
 }
