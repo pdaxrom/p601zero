@@ -2299,6 +2299,7 @@ header()
 	if(mainflg){		/* do stuff needed for first */
 		if (binout) {
 		    ol("org	$100");
+		    ol("jmp	QZMAIN");
 		    ol("include clib.inc");
 		}
 	}

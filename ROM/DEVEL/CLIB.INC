@@ -3,8 +3,6 @@
 ; Copyleft 2017, sashz <sash@pdaXrom.org>
 ;
 
-	jmp	QZMAIN
-
 RT_CCGCHAR proc
 	pshb
 	psha

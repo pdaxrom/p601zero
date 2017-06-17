@@ -4,7 +4,5 @@
 ;
 ; Library module
 
-	extern	QZMAIN
-
 	include	CLIB.INC
 	include CLIB.EXP
