@@ -1,6 +1,14 @@
 	include	../DEVMAP.INC
 	include	../BOOTROM.INC
 
+QZEXIT	proc
+	jmp	F_RESET
+	endp
+
+QZGETC	proc
+	jmp	F_UART_IN
+	endp
+
 QZPUTC	proc
 	tsx
 	ldaa	3,x
