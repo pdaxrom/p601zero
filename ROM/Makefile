@@ -1,10 +1,10 @@
-all: 6803 ../mcu_rom.v bootloader ../vrom.v ../mcu_pll.v
+all: uniasm ../mcu_rom.v bootloader ../vrom.v ../mcu_pll.v
 
-6803: 6803.PAS
+uniasm: uniasm.pas
 	fpc $^
 
 rom.mem: ROM.ASM BOOTROM.INC DEVMAP.INC
-	./6803 ROM.ASM ROM.LST ROM.CMD
+	./uniasm ROM.ASM ROM.LST ROM.CMD
 	hexdump -v -e '"%04_ax: " 16/1 "%02x " "\n"' ROM.CMD > rom.mem
 	cp -f ROM.CMD rom.bin
 
@@ -33,4 +33,4 @@ bootloader: bootloader.c
 	$(CC) $^ -o $@ -Wall -O2 -g
 
 clean:
-	rm -f rom.bin *.LST *.CMD 6803 *.o *.mem bootloader
+	rm -f rom.bin *.LST *.CMD uniasm *.o *.mem bootloader

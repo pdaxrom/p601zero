@@ -7,7 +7,7 @@ CFLAGS = -fc -fo
 .SUFFIXES: .asm .cmd
 
 .asm.cmd: ../DEVMAP.INC ../BOOTROM.INC CLIB.INC
-	../6803 $< $(basename $@) $@
+	../uniasm $< $(basename $@) $@
 
 .c.asm:
 	$(CC) $(CFLAGS) $< -o $@
