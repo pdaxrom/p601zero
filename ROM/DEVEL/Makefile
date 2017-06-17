@@ -1,4 +1,4 @@
-all: uniasm unilib unilink unic CLIB.OBJ LIBROM.OBJ
+all: uniasm unilib unilink unic CLIB.OBJ LIBROM.OBJ CRT0.OBJ
 
 .SUFFIXES: .pas .ASM .OBJ .EXP .INC
 

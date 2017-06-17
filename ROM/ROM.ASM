@@ -96,7 +96,8 @@ cmd_sa1	ldaa	0,x
 
 cmd_go
 	bsr	get_word
-	jmp	0,x
+	jsr	0,x
+	bra	warmres
 
 get_block_addr proc
 	bsr	get_word
