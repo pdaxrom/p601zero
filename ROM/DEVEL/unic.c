@@ -45,8 +45,8 @@
 
 /*	Define the symbol table parameters	*/
 
-#define	symsiz	14
-#define	symtbsz	5040
+#define	symsiz	16
+#define	symtbsz	5760		/* 360 records */
 #define numglbs 300
 #define	startglb symtab
 #define	endglb	startglb+numglbs*symsiz
@@ -56,15 +56,15 @@
 /*	Define symbol table entry format	*/
 
 #define	name	0
-#define	ident	9
-#define	type	10
-#define	storage	11
-#define	offset	12
+#define	ident	11
+#define	type	12
+#define	storage	13
+#define	offset	14
 
 /*	System wide name size (for symbols)	*/
 
-#define	namesize 9
-#define namemax  8
+#define	namesize 11
+#define namemax  10
 
 /*	Define possible entries for "ident"	*/
 
