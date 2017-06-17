@@ -1,14 +1,12 @@
-all: uniasm unilib unilink ../mcu_rom.v bootloader ../vrom.v ../mcu_pll.v
+UNIASM = DEVEL/uniasm
 
-uniasm: uniasm.pas
-	fpc $^
-unilib: unilib.pas
-	fpc $^
-unilink: unilink.pas
-	fpc $^
+all: $(UNIASM) ../mcu_rom.v bootloader ../vrom.v ../mcu_pll.v
+
+$(UNIASM):
+	make -C $(shell dirname $(UNIASM)) $(shell basename $(UNIASM))
 
 rom.mem: ROM.ASM BOOTROM.INC DEVMAP.INC
-	./uniasm ROM.ASM ROM.LST ROM.CMD
+	$(UNIASM) ROM.ASM ROM.LST ROM.CMD
 	hexdump -v -e '"%04_ax: " 16/1 "%02x " "\n"' ROM.CMD > rom.mem
 	cp -f ROM.CMD rom.bin
 
@@ -37,4 +35,4 @@ bootloader: bootloader.c
 	$(CC) $^ -o $@ -Wall -O2 -g
 
 clean:
-	rm -f rom.bin *.LST *.CMD uniasm unilib unilink *.o *.mem bootloader
+	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader
