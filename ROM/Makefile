@@ -1,6 +1,10 @@
-all: uniasm ../mcu_rom.v bootloader ../vrom.v ../mcu_pll.v
+all: uniasm unilib unilink ../mcu_rom.v bootloader ../vrom.v ../mcu_pll.v
 
 uniasm: uniasm.pas
+	fpc $^
+unilib: unilib.pas
+	fpc $^
+unilink: unilink.pas
 	fpc $^
 
 rom.mem: ROM.ASM BOOTROM.INC DEVMAP.INC
@@ -33,4 +37,4 @@ bootloader: bootloader.c
 	$(CC) $^ -o $@ -Wall -O2 -g
 
 clean:
-	rm -f rom.bin *.LST *.CMD uniasm *.o *.mem bootloader
+	rm -f rom.bin *.LST *.CMD uniasm unilib unilink *.o *.mem bootloader
