@@ -1,4 +1,7 @@
-all: DEMO1.CMD IRQTEST.CMD DEMO2.CMD DEMO3.CMD \
+UNIASM = ../DEVEL/uniasm
+
+all: $(UNIASM) \
+    DEMO1.CMD IRQTEST.CMD DEMO2.CMD DEMO3.CMD \
     MICROBASIC.CMD MICROBASICPLUS.CMD RAMCHK.CMD \
     DEMO4.CMD RAMPAGECHK.CMD DEMO6.CMD \
     SDTEST.CMD SPITEST.CMD VPUTEST.CMD VPUTEST16.CMD \
@@ -6,10 +9,13 @@ all: DEMO1.CMD IRQTEST.CMD DEMO2.CMD DEMO3.CMD \
     PSGDEMO.CMD RAMTEST.CMD CHIPTUNE.CMD ymstreamer \
     DEMO8.CMD
 
+$(UNIASM):
+	make -C $(shell dirname $(UNIASM)) $(shell basename $(UNIASM))
+
 .SUFFIXES: .ASM .CMD
 
 .ASM.CMD: ../DEVMAP.INC ../BOOTROM.INC
-	../uniasm $< $(basename $@) $@
+	$(UNIASM) $< $(basename $@) $@
 
 clean:
 	rm -f *.LST *.CMD ymstreamer
