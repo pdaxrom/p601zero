@@ -180,8 +180,9 @@ int	nxtlab,		/* next avail label # */
 	ctext,		/* non-zero to intermix c-source */
 	cmode,		/* non-zero while parsing c-code */
 			/* zero when passing assembly code */
-	optabi,	/* optimization for argument sizes (strong */
+	optabi,		/* optimization for argument sizes (strong */
 			/* casting for function args) */
+	binout,		/* non relative code, for cmd/rom files */
 	lastst,		/* last executed statement type */
 	mainflg,	/* output is to be first asm file	gtf 4/9/80 */
 	saveout,	/* holds output ptr when diverted to console	   */
@@ -397,6 +398,7 @@ ask()
 	errstop=0;
 	opcodebug = 0;
 	optabi = 0;
+	binout = 0;
 
 	i = 0;
 	while (--argcs) {
@@ -417,6 +419,9 @@ ask()
 				    continue;
 				} else if (*argptr == 'o') {
 				    opcodebug = 1;
+				    continue;
+				} else if (*argptr == 'b') {
+				    binout = 1;
 				    continue;
 				}
 			} else if (*argptr == 'O') {
@@ -2256,7 +2261,7 @@ spechar() {
         else if (c == 'f') c = FFEED;
         else if (c == 'b') c = BKSP;
         else if (c == '0') c = EOS;
-        else if (c == EOS) return;
+        else if (c == EOS) return 0;
 
         gch();
         return (c);
@@ -2292,7 +2297,10 @@ header()
 	comment();
 	nl();
 	if(mainflg){		/* do stuff needed for first */
-		ol("include clib.inc");
+		if (binout) {
+		    ol("org	$100");
+		    ol("include clib.inc");
+		}
 	}
 }
 /* Print any assembler stuff needed after all code */
@@ -2510,6 +2518,7 @@ defextern()
 
 defpublic()
 {
+	if (binout) return;
 	if (cptr[storage] == STATIC) return;
 	if (cptr[storage] == EXTERN) return;
 	ot("PUBLIC ");

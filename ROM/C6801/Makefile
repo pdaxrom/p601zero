@@ -2,7 +2,7 @@ all: hello2.cmd hello3.cmd hello4.cmd hello5.cmd hello6.cmd hello7.cmd hello8.cm
 
 CC = ./c6801
 
-CFLAGS = -fc -fo
+CFLAGS = -fc -fo -fb
 
 .SUFFIXES: .asm .cmd
 

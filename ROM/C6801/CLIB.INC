@@ -6,8 +6,6 @@
 	include	../DEVMAP.INC
 	include	../BOOTROM.INC
 
-;	org	$100
-
 	jsr	QZMAIN
 
 	jmp	F_RESET
