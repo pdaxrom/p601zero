@@ -1,5 +1,8 @@
 #asm
-    include ../DEVEL/LIBROM.INC
+    org		$100
+    jmp		QZMAIN
+    include	../DEVEL/CLIB.INC
+    include	../DEVEL/LIBROM.INC
 #endasm
 
 char *framebuf;

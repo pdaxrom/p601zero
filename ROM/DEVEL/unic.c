@@ -2297,11 +2297,13 @@ header()
 	comment();
 	nl();
 	if(mainflg){		/* do stuff needed for first */
+/*
 		if (binout) {
 		    ol("org	$100");
 		    ol("jmp	QZMAIN");
 		    ol("include clib.inc");
 		}
+ */
 	}
 }
 /* Print any assembler stuff needed after all code */
