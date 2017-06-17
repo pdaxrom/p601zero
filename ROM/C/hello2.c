@@ -17,7 +17,7 @@ main()
     fb_size = 0;
 
     while (fb_size++ < 8000) {
-	*framebuffer++ = 0;
+	*framebuf++ = 0;
     }
 
     puts("Bye!\n\r");

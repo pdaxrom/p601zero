@@ -1,3 +1,10 @@
+#asm
+    org		$100
+    jmp		QZMAIN
+    include	../DEVEL/CLIB.INC
+    include	../DEVEL/LIBROM.INC
+#endasm
+
 #define	chkstk	1
 #define	NOSUP	1
 int address;

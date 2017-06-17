@@ -1,7 +1,11 @@
-#define LED_8BIT	0xE6A0
-#define LED_2RGB	0xE6A1
-#define LED_HEX		0xE6A2
-#define INPUT_SWKEYS	0xE6A3
+#asm
+    org		$100
+    jmp		QZMAIN
+    include	../DEVEL/CLIB.INC
+    include	../DEVEL/LIBROM.INC
+#endasm
+
+#include ../DEVEL/DEVMAP.H
 
 char *ptr_inp;
 char *ptr_hex;
