@@ -78,9 +78,18 @@
 #define	cchar	1
 #define	cint	2
 
+/* possible entries for storage */
+
+#define PUBLIC  1
+#define AUTO    2
+#define EXTERN  3
+
+#define STATIC  4
+#define LSTATIC 5
+#define DEFAUTO 6
+
 /*	Define possible entries for "storage"	*/
 
-#define	statik	1
 #define	stkloc	2
 
 /*	Define the "while" statement queue	*/
@@ -265,18 +274,42 @@ zabort()
 /*	defines, includes, and function */
 /*	definitions are legal...	*/
 parse()
-	{
-	while (eof==0)		/* do until no more input */
-		{
-		if(amatch("char",4)){declglb(cchar);ns();}
-		else if(amatch("int",3)){declglb(cint);ns();}
-		else if(match("#asm"))doasm();
-		else if(match("#include"))doinclude();
-		else if(match("#define"))addmac();
+{
+	while (eof==0) {		/* do until no more input */
+		if (amatch("extern", 6))
+		    dodcls(EXTERN);
+		else if (amatch("static", 6))
+		    dodcls(STATIC);
+		else if (dodcls(PUBLIC));
+//		if(amatch("char",4)){declglb(cchar);ns();}
+//		else if(amatch("int",3)){declglb(cint);ns();}
+		else if(match("#asm"))
+		    doasm();
+		else if(match("#include"))
+		    doinclude();
+		else if(match("#define"))
+		    addmac();
 		else newfunc();
 		blanks();	/* force eof if pending */
-		}
 	}
+}
+
+dodcls(stclass)
+int stclass;
+{
+    blanks();
+    if (amatch("char", 4))
+        declglb(cchar, stclass);
+    else if (amatch("int", 3))
+        declglb(cint, stclass);
+    else if (stclass == PUBLIC)
+        return (0);
+    else
+        declglb(cint, stclass);
+    ns();
+    return (1);
+}
+
 /*					*/
 /*	Dump the literal pool		*/
 /*					*/
@@ -301,15 +334,16 @@ dumplits()
 /*					*/
 /*	Dump all static variables	*/
 /*					*/
-dumpglbs()
-	{
+dumpglbs() {
 	int j;
 	if(glbflag==0)return;	/* don't if user said no */
 	cptr=startglb;
-	while(cptr<glbptr)
-		{if(cptr[ident]!=function)
+	while (cptr < glbptr) {
+		defpublic(cptr);
+		if (cptr[ident] != function) {
+		    if (cptr[storage] != EXTERN) {
 			/* do if anything but function */
-			{outname(cptr); /* col(); */
+			outname(cptr); /* col(); */
 				/* output name as label... */
 			defstorage();	/* define storage */
 			j=((cptr[offset]&255)+
@@ -320,10 +354,11 @@ dumpglbs()
 				j=j+j;
 			outdec(j);	/* need that many */
 			nl();
-			}
-		cptr=cptr+symsiz;
+		    }
 		}
+		cptr=cptr+symsiz;
 	}
+}
 /*					*/
 /*	Report errors for user		*/
 /*					*/
@@ -488,31 +523,40 @@ closeout()
 /*					*/
 /* makes an entry in the symbol table so subsequent */
 /*  references can call symbol by name	*/
-declglb(typ)		/* typ is cchar or cint */
-	int typ;
-{	int k,j;char sname[namesize];
-	while(1)
-		{while(1)
-			{if(endst())return;	/* do line */
+declglb(typ, stor)		/* typ is cchar or cint */
+	int typ,
+	    stor;
+{	
+	int k,j;
+	char sname[namesize];
+	while(1) {
+		while(1) {
+			if(endst())return;	/* do line */
 			k=1;		/* assume 1 element */
 			if(match("*"))	/* pointer ? */
 				j=pointer;	/* yes */
-				else j=variable; /* no */
-			 if (symname(sname)==0) /* name ok? */
+			else j=variable; /* no */
+			if (symname(sname)==0) /* name ok? */
 				illname(); /* no... */
 			if(findglb(sname)) /* already there? */
 				multidef(sname);
-			if (match("["))		/* array? */
-				{k=needsub();	/* get size */
-				if(k)j=array;	/* !0=array */
+			if(match("()"))  j = function;
+			else if (match("[")) {		/* array? */
+				k=needsub();	/* get size */
+				if((k != 0) | (stor == EXTERN)) j=array;	/* !0=array */
 				else j=pointer; /* 0=ptr */
-				}
-			addglb(sname,j,typ,k); /* add symbol */
-			break;
 			}
-		if (match(",")==0) return; /* more? */
+			if (stor == EXTERN) {
+				defextern();
+				outname(sname);
+				nl();
+			}
+			addglb(sname, j, typ, k, stor); /* add symbol */
+			break;
 		}
+		if (match(",")==0) return; /* more? */
 	}
+}
 /*					*/
 /*	Declare local variables		*/
 /*	(i.e. define for use)		*/
@@ -606,7 +650,7 @@ newfunc()
 			/*  assumed to be a function */
 		}
 	/* if not in table, define as a function now */
-	else currfn=addglb(n,function,cint,function);
+	else currfn=addglb(n, function, cint, function, PUBLIC);
 
 	toconsole();					/* gtf 7/16/80 */
 	outstr("====== "); outstr(currfn+name); outstr("()"); nl();
@@ -1023,20 +1067,22 @@ findloc(sname)
 		}
 	return 0;
 }
-addglb(sname,id,typ,value)
+addglb(sname, id, typ, value, stor)
 	char *sname,id,typ;
-	int value;
-{	char *ptr;
-	if(cptr=findglb(sname))return cptr;
-	if(glbptr>=endglb)
-		{error("global symbol table overflow");
+	int value,
+	    stor;
+{
+	char *ptr;
+	if(cptr=findglb(sname)) return cptr;
+	if(glbptr>=endglb) {
+		error("global symbol table overflow");
 		return 0;
-		}
+	}
 	cptr=ptr=glbptr;
 	while(an(*ptr++ = *sname++));	/* copy name */
 	cptr[ident]=id;
 	cptr[type]=typ;
-	cptr[storage]=statik;
+	cptr[storage]=stor;
 	cptr[offset]=value;
 	cptr[offset+1]=value>>8;
 	glbptr=glbptr+symsiz;
@@ -2056,7 +2102,7 @@ primary(lval)
 			lval[1]=ptr[type];
 			return 0;
 			}
-		ptr=addglb(sname,function,cint,0);
+		ptr=addglb(sname, function, cint, 0, PUBLIC);
 		lval[0]=ptr;
 		lval[1]=0;
 		return 0;
@@ -2456,17 +2502,35 @@ testjump(label)
 	printlabel(label);
 	nl();
 }
+/* Print pseudo-op to define external */
+defextern()
+{
+	ot("EXTERN ");
+}
+
+defpublic()
+{
+	if (cptr[storage] == STATIC) return;
+	if (cptr[storage] == EXTERN) return;
+	ot("PUBLIC ");
+	outname(cptr);
+	nl();
+}
+
 /* Print pseudo-op to define a byte */
 defbyte()
-{	ot("DB ");
+{
+	ot("DB ");
 }
 /*Print pseudo-op to define storage */
 defstorage()
-{	ot("DS ");
+{
+	ot("DS ");
 }
 /* Print pseudo-op to define a word */
 defword()
-{	ot("DW ");
+{
+	ot("DW ");
 }
 /* Modify the stack pointer to the new value indicated */
 modstk(newsp)
