@@ -21,7 +21,7 @@ module tvout (
 		end else begin
 			if (cntHS == 511) begin
 				cntHS <= 0;
-				if (cntVS == 311) cntVS <= 0;
+				if (cntVS == 312) cntVS <= 0;
 				else cntVS <= cntVS + 1'b1;
 			end else cntHS <= cntHS + 1'b1;
 
@@ -31,8 +31,11 @@ module tvout (
 			end else if (cntVS == 2) begin
 				if ((cntHS < 240) || ((cntHS >= 256) && (cntHS < 272))) vbl_sync <= 0;
 				else vbl_sync <= 1;
+			end else if (cntVS == 312) begin
+				if ((cntHS <  16) || ((cntHS >= 256) && (cntHS < 496))) vbl_sync <= 0;
+				else vbl_sync <= 1;				
 			end else begin
-				if ((cntHS < 16) || ((cntHS >= 256) && (cntHS < 272))) vbl_sync <= 0;
+				if ((cntHS <  16) || ((cntHS >= 256) && (cntHS < 272))) vbl_sync <= 0;
 				else vbl_sync <= 1;
 			end			
 		end
