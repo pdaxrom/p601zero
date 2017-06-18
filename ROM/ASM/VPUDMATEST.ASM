@@ -140,16 +140,15 @@ videohndl proc
 	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
-	bne	next
-exit	rti
-next	bita	#VPU_SVL
+	beq	exit
+	bita	#VPU_SVL
 	beq	blank
 
 ; let start DMA engine
 	ldaa	#40
 	staa	VPU_VSIZE
 
-	rti
+exit	rti
 
 blank	bita	#VPU_EVL
 	beq	exit
@@ -173,9 +172,8 @@ videotxthndl proc
 	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
-	bne	next
-exit	rti
-next	bita	#VPU_SVL
+	beq	exit
+	bita	#VPU_SVL
 	beq	blank
 
 	ldaa	VPU_CLINE
@@ -188,7 +186,7 @@ next	bita	#VPU_SVL
 	ldaa	#40
 	staa	VPU_VSIZE
 
-	rti
+exit	rti
 
 blank	bita	#VPU_EVL
 	beq	exit
