@@ -13,16 +13,20 @@ module tvout (
 	wire screen_sync = (cntHS < 37) ? 1'b0 : 1'b1;
 	wire in_vbl = ((cntVS >= 5) & (cntVS < 309)) ? 1'b0 : 1'b1;
 	reg vbl_sync;
+	reg interlace;
 
  	always @ (posedge pixel_clk) begin
 		if (rst) begin
 			cntHS <= 0;
 			cntVS <= 0;
+			interlace <= 0;
 		end else begin
 			if (cntHS == 511) begin
 				cntHS <= 0;
-				if (cntVS == 312) cntVS <= 0;
-				else cntVS <= cntVS + 1'b1;
+				if ((cntVS == 312) || ((cntVS == 311) && interlace)) begin
+					cntVS <= 0;
+					interlace <= ~interlace;
+				end else cntVS <= cntVS + 1'b1;
 			end else cntHS <= cntHS + 1'b1;
 
 			if (cntVS < 2) begin
