@@ -211,7 +211,6 @@ blank	bita	#VPU_EVL
 blackline db 0
 
 SCR_START dw 0
-SCR_COUNT dw 0
 
 OLD_VIRQ dw	0
 
