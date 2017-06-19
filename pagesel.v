@@ -29,7 +29,7 @@ module pagesel (
 	reg [23:0] swi_addr;
 	reg [23:0] irq_addr;
 
-	always @ (posedge clk or posedge rst) begin
+	always @ (posedge clk) begin
 		if (rst) begin
 			page <= 5'b00000;
 			bram_disable <= 1;

@@ -14,6 +14,8 @@
 	$D - RW Low external memory address byte
 	$E - RW Step
 	$F - RW Counter/Length
+	$1C- RW User reg 0 (2bytes)
+	$1D- RW User reg 1 (2bytes)
 	
 	IRQ  R- Interrupt occurred
 	IEN  RW Enable interrupts
@@ -26,7 +28,7 @@
 module vpu (
 	input wire clk,
 	input wire rst,
-	input wire [3:0] AD,
+	input wire [4:0] AD,
 	input wire [7:0] DI,
 	output reg [7:0] DO,
 	input wire rw,
@@ -53,6 +55,8 @@ module vpu (
 
 	reg [8:0] SVL_reg;
 	reg [8:0] EVL_reg;
+
+	reg [31:0] user_reg;
 
 	wire [8:0] cntHS;
 	wire [8:0] cntVS;
@@ -119,10 +123,11 @@ module vpu (
 			end else begin
 				case (DMA_state)
 				3'b000: begin
-						if (!vrambusy) begin
+//						if (vrambusy) DMA_state <= 3'b000;
+//						else begin
 							hold <= 1'b1;
 							DMA_state <= 3'b001;
-						end else DMA_state <= 3'b000;
+//						end
 					end
 				3'b001: begin
 					// empty
@@ -148,44 +153,52 @@ module vpu (
 			if (cs) begin
 				if (rw) begin
 					case (AD)
-					4'b0000: DO <= vcache_cnt_reg[15:8];
-					4'b0001: DO <= vcache_cnt_reg[7:0];
-					4'b0010: DO <= { 5'b0, char_line };
-					4'b0011: begin
+					5'b00000: DO <= vcache_cnt_reg[15:8];
+					5'b00001: DO <= vcache_cnt_reg[7:0];
+					5'b00010: DO <= { 5'b0, char_line };
+					5'b00011: begin
 						DO <= {cfg_reg[5:2], evl_flag, svl_flag, vbl, hsync};
 						cfg_reg[5] <= 0;
 						end
-					4'b0100: DO <= { 7'b0, cntHS[8]};
-					4'b0101: DO <= cntHS[7:0];
-					4'b0110: DO <= { 7'b0, cntVS[8]};
-					4'b0111: DO <= cntVS[7:0];
-					4'b1000: DO <= { 7'b0, SVL_reg[8]};
-					4'b1001: DO <= SVL_reg[7:0];
-					4'b1010: DO <= { 7'b0, EVL_reg[8]};
-					4'b1011: DO <= EVL_reg[7:0];
-					4'b1100: DO <= DMA_ext_addr_reg[15:8];
-					4'b1101: DO <= DMA_ext_addr_reg[7:0];
-					4'b1110: DO <= DMA_step_reg;
-					4'b1111: DO <= DMA_length_reg;
+					5'b00100: DO <= { 7'b0, cntHS[8]};
+					5'b00101: DO <= cntHS[7:0];
+					5'b00110: DO <= { 7'b0, cntVS[8]};
+					5'b00111: DO <= cntVS[7:0];
+					5'b01000: DO <= { 7'b0, SVL_reg[8]};
+					5'b01001: DO <= SVL_reg[7:0];
+					5'b01010: DO <= { 7'b0, EVL_reg[8]};
+					5'b01011: DO <= EVL_reg[7:0];
+					5'b01100: DO <= DMA_ext_addr_reg[15:8];
+					5'b01101: DO <= DMA_ext_addr_reg[7:0];
+					5'b01110: DO <= DMA_step_reg;
+					5'b01111: DO <= DMA_length_reg;
+					5'b11100: DO <= user_reg[7:0];
+					5'b11101: DO <= user_reg[15:8];
+					5'b11110: DO <= user_reg[23:16];
+					5'b11111: DO <= user_reg[31:24];
 					endcase
 				end else begin
 					case (AD)
-					4'b0000: vcache_cnt_reg[15:8] <= DI;
-					4'b0001: vcache_cnt_reg[7:0] <= DI;
-					4'b0010: char_line <= DI[2:0];
-					4'b0011: cfg_reg[4:2] <= DI[6:4];
-					4'b1000: SVL_reg[8] <= DI[0];
-					4'b1001: SVL_reg[7:0] <= DI;
-					4'b1010: EVL_reg[8] <= DI[0];
-					4'b1011: EVL_reg[7:0] <= DI;
-					4'b1100: DMA_ext_addr_reg[15:8] <= DI;
-					4'b1101: DMA_ext_addr_reg[7:0] <= DI;
-					4'b1110: DMA_step_reg <= DI;
-					4'b1111: begin
+					5'b00000: vcache_cnt_reg[15:8] <= DI;
+					5'b00001: vcache_cnt_reg[7:0] <= DI;
+					5'b00010: char_line <= DI[2:0];
+					5'b00011: cfg_reg[4:2] <= DI[6:4];
+					5'b01000: SVL_reg[8] <= DI[0];
+					5'b01001: SVL_reg[7:0] <= DI;
+					5'b01010: EVL_reg[8] <= DI[0];
+					5'b01011: EVL_reg[7:0] <= DI;
+					5'b01100: DMA_ext_addr_reg[15:8] <= DI;
+					5'b01101: DMA_ext_addr_reg[7:0] <= DI;
+					5'b01110: DMA_step_reg <= DI;
+					5'b01111: begin
 						DMA_length_reg <= DI;
 						DMA_counter <= 0;
 						vcache_cnt <= vcache_cnt_reg;
 						end
+					5'b11100: user_reg[7:0] <= DI;
+					5'b11101: user_reg[15:8] <= DI;
+					5'b11110: user_reg[23:16] <= DI;
+					5'b11111: user_reg[31:24] <= DI;
 					endcase
 				end
 			end
@@ -212,7 +225,7 @@ module vpu (
 		end
 	end
 
-	assign tvout[1] = vbl?1'b0:shift_reg[7];
+	assign tvout[1] = (vbl || ~svl_flag)?1'b0:shift_reg[7];
 	assign tvout[0] = out_sync;
 
 	tvout tvout_impl (

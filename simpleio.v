@@ -59,7 +59,7 @@ module simpleio (
 		end
 	end
 	
-	always @ (posedge clk or posedge rst) begin
+	always @ (posedge clk) begin
 		if (rst) begin
 			leds <= 8'b11111111;
 			rgb1 <= 8'b111;

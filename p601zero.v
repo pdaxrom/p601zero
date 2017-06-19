@@ -128,7 +128,7 @@ module p601zero (
 		.clk(sys_clk),
 		.rst(sys_res),
 		.irq(vpu_irq),
-		.AD(AD[3:0]),
+		.AD(AD[4:0]),
 		.DI(DO),
 		.DO(vpud),
 		.rw(sys_rw),
@@ -139,7 +139,7 @@ module p601zero (
 		.VDATA(EXT_DQ),
 		.vramcs(vpu_vramcs),
 		.hold(vpu_hold),
-		.vrambusy(cpu_vma),
+		.vrambusy(sys_vma),
 		
 		.tvout(tvout)
 	);
@@ -222,14 +222,14 @@ module p601zero (
 		.bram_disable(bram_disable)
 	);
 
-	wire en_brom = (AD[15:12] == 4'b1111);
+	wire en_brom = (AD[15:11] == 5'b11111);
 	wire cs_brom = en_brom && sys_vma;
 	wire [7:0] bromd;
 	mcu_rom brom (
 		.OutClock(sys_clk),
 		.Reset(sys_res),
 		.OutClockEn(cs_brom),
-		.Address(AD[9:0]),
+		.Address(AD[10:0]),
 		.Q(bromd)
 	);
 

@@ -90,12 +90,13 @@ next	stx	VNMI
 ; Set DMA step
 	ldaa	#0
 	staa	VPU_VSTEP
-
+	psha
 ; Clear screen
 	ldx	#0
 	stx	VPU_ADDR
-	ldx	#blackline
+	tsx
 	stx	VPU_VADDR
+	pula
 
 ; let start DMA engine
 	ldaa	#64
@@ -137,16 +138,6 @@ exit	rti
 blank	bita	#VPU_EVL
 	beq	exit
 
-	ldaa	#0
-	staa	VPU_VSTEP
-	ldx	#blackline
-	stx	VPU_VADDR
-; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
-
-	ldaa	#1
-	staa	VPU_VSTEP
 	ldx	SCR_START
 	stx	VPU_VADDR
 	rti
@@ -175,16 +166,6 @@ exit	rti
 blank	bita	#VPU_EVL
 	beq	exit
 
-	ldaa	#0
-	staa	VPU_VSTEP
-	ldx	#blackline
-	stx	VPU_VADDR
-; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
-
-	ldaa	#1
-	staa	VPU_VSTEP
 	ldx	SCR_START
 	stx	VPU_VADDR
 	ldaa	#7
@@ -192,12 +173,10 @@ blank	bita	#VPU_EVL
 	rti
 	endp
 
-blackline db 0
-
-OLD_VIRQ dw	0
-
 hello	db	$0a, $0d, 'VPU TEST', $0a, $0d, 0
 byebye	db	10,13,'Bye!',10,13,0
+
+	ds	$1000-*
 
 kimscreen
 	include	KIM.INC
