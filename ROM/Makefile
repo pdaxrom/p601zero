@@ -1,6 +1,6 @@
 UNIASM = DEVEL/uniasm
 
-all: $(UNIASM) ../mcu_rom.v bootloader ../vrom.v ../mcu_pll.v
+all: $(UNIASM) bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v
 
 $(UNIASM):
 	make -C $(shell dirname $(UNIASM)) $(shell basename $(UNIASM))
@@ -23,7 +23,14 @@ vrom.mem:
 	export LD_LIBRARY_PATH="/opt/diamond/3.9_x64/tcltk/lib:/opt/diamond/3.9_x64/ispfpga/bin/lin64:/opt/diamond/3.9_x64/bin/lin64:/opt/diamond/3.9_x64/ispfpga/bin/lin64"; \
 	export FOUNDRY="/opt/diamond/3.9_x64/ispfpga"; \
 	cd .. && \
-	/opt/diamond/3.9_x64/ispfpga/bin/lin64/scuba -w -n vrom -lang verilog -synth lse -bus_exp 7 -bb -arch xo2c00 -type rom -addr_width 8 -num_rows 2048 -data_width 8 -outdata UNREGISTERED -cascade -1 -resetmode SYNC -sync_reset  -memfile ROM/vrom.mem -memformat orca
+	/opt/diamond/3.9_x64/ispfpga/bin/lin64/scuba -w -n vrom -lang verilog -synth lse -bus_exp 7 -bb -arch xo2c00 -type bram -wp 00 -rp 1100 -addr_width 11 -data_width 8 -num_rows 2048 -cascade -1 -memfile ROM/vrom.mem -memformat orca
+#	/opt/diamond/3.9_x64/ispfpga/bin/lin64/scuba -w -n vrom -lang verilog -synth lse -bus_exp 7 -bb -arch xo2c00 -type rom -addr_width 8 -num_rows 2048 -data_width 8 -outdata UNREGISTERED -cascade -1 -resetmode SYNC -sync_reset  -memfile ROM/vrom.mem -memformat orca
+
+../vpu_cache.v:
+	export LD_LIBRARY_PATH="/opt/diamond/3.9_x64/tcltk/lib:/opt/diamond/3.9_x64/ispfpga/bin/lin64:/opt/diamond/3.9_x64/bin/lin64:/opt/diamond/3.9_x64/ispfpga/bin/lin64"; \
+	export FOUNDRY="/opt/diamond/3.9_x64/ispfpga"; \
+	cd .. && \
+	/opt/diamond/3.9_x64/ispfpga/bin/lin64/scuba -w -n vpu_cache -lang verilog -synth lse -bus_exp 7 -bb -arch xo2c00 -type sdpram -rdata_width 8 -data_width 8 -num_rows 64 -outData UNREGISTERED
 
 ../mcu_pll.v:
 	export LD_LIBRARY_PATH="/opt/diamond/3.9_x64/tcltk/lib:/opt/diamond/3.9_x64/ispfpga/bin/lin64:/opt/diamond/3.9_x64/bin/lin64:/opt/diamond/3.9_x64/ispfpga/bin/lin64"; \
@@ -35,4 +42,4 @@ bootloader: bootloader.c
 	$(CC) $^ -o $@ -Wall -O2 -g
 
 clean:
-	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader
+	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v

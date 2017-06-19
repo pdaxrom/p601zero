@@ -43,11 +43,10 @@ module vpu (
 	
 	output wire [1:0] tvout
 );
-	parameter CACHE_SIZE = 64;
-
-	reg [7:0] vcache[CACHE_SIZE - 1:0];
 	reg [15:0] vcache_cnt_reg;
 	reg [15:0] vcache_cnt;
+	reg vcache_we;
+
 	reg [5:0] cfg_reg;
 
 	reg [2:0] char_line;
@@ -82,6 +81,7 @@ module vpu (
  
 	always @ (posedge clk) begin
 		if (rst) begin
+			vcache_we <= 0;
 			vcache_cnt_reg <= 0;
 			cfg_reg <= 0;
 			SVL_reg <= 0;
@@ -124,11 +124,13 @@ module vpu (
 					DMA_state <= 3'b011;
 					end
 				3'b011: begin
-					vcache[vcache_cnt] <= VDATA;
-					vcache_cnt <= vcache_cnt + 1'b1;
+//					vcache[vcache_cnt] <= VDATA;
+					vcache_we <= 1;
 					DMA_state <= 3'b100;
 					end
 				3'b100: begin
+					vcache_we <= 0;
+					vcache_cnt <= vcache_cnt + 1'b1;
 					DMA_ext_addr_reg <= DMA_ext_addr_reg + DMA_step_reg;
 					DMA_counter <= DMA_counter + 1'b1;
 					DMA_state <= 3'b011;
@@ -194,6 +196,7 @@ module vpu (
 	reg [7:0] vcache_out_cnt;
 	reg [2:0] pixel_cnt;
 	reg [7:0] shift_reg;
+	wire [7:0] vcache_data;
 	wire [7:0] vrom_data;
 	
 	always @ (posedge pixel_clk) begin
@@ -202,7 +205,7 @@ module vpu (
 			pixel_cnt <= 0;
 		end else begin
 			if (pixel_cnt == 0) begin
-				shift_reg <= cfg_reg[3]?vcache[vcache_out_cnt]:vrom_data;
+				shift_reg <= cfg_reg[3]?vcache_data:vrom_data;
 				vcache_out_cnt <= vcache_out_cnt + 1'b1;
 			end else begin
 				shift_reg <= shift_reg << 1;
@@ -224,10 +227,21 @@ module vpu (
 		.out_sync(out_sync)
 	);
 	
-	wire [7:0] char_addr = vcache[vcache_out_cnt];
+	vpu_cache vcache(
+		.WrAddress(vcache_cnt[5:0]),
+		.Data(VDATA),
+		.WrClock(clk),
+		.WE(vcache_we),
+		.WrClockEn(1'b1),
+		.RdAddress(vcache_out_cnt[5:0]),
+		.Q(vcache_data)
+	);
 	
 	vrom vrom_impl (
-		.Address({char_addr[6:0], char_addr[7], char_line}),
+		.Address({vcache_data[6:0], vcache_data[7], char_line}),
+		.OutClock(pixel_clk),
+		.OutClockEn(1'b1),
+		.Reset(rst),
 		.Q(vrom_data)
 	);
 	
