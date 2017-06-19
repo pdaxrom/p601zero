@@ -152,9 +152,6 @@ videotxthndl proc
 	beq	blank
 
 	ldaa	VPU_CLINE
-	inca
-	anda	#$07
-	staa	VPU_CLINE
 	bne	exit
 
 ; let start DMA engine

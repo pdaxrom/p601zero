@@ -40,7 +40,6 @@ module vpu (
 	input wire [7:0] VDATA,
 	output reg vramcs,
 	output reg hold,
-	input wire vrambusy,
 	
 	output wire [1:0] tvout
 );
@@ -80,19 +79,6 @@ module vpu (
 	assign irq = cfg_reg[5] & cfg_reg[4];
 
 	assign VADDR = DMA_ext_addr_reg;
-
-/*
-	reg irq_request;
-
-	always @ (posedge pixel_clk) begin
-		if (rst) irq_request <= 0;
-		else begin
-			if (irq_condition && (~cfg_reg[5])) begin
-				irq_request <= 1;
-			end else if (cfg_reg[5]) irq_request <= 0;
-		end
-	end
- */
  
 	always @ (posedge clk) begin
 		if (rst) begin
@@ -110,7 +96,10 @@ module vpu (
 			hold <= 0;
 			vramcs <= 0;
 		end else begin
-			if (irq_condition) cfg_reg[5] <= 1;
+			if (irq_condition && (!cfg_reg[5])) begin
+				cfg_reg[5] <= 1;
+				char_line <= char_line + 1'b1;
+			end
 			if (DMA_counter == DMA_length_reg) begin
 				case (DMA_state)
 				3'b000:  hold <= 0;
@@ -123,11 +112,8 @@ module vpu (
 			end else begin
 				case (DMA_state)
 				3'b000: begin
-//						if (vrambusy) DMA_state <= 3'b000;
-//						else begin
-							hold <= 1'b1;
-							DMA_state <= 3'b001;
-//						end
+					hold <= 1'b1;
+					DMA_state <= 3'b001;
 					end
 				3'b001: begin
 					// empty

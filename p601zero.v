@@ -139,7 +139,6 @@ module p601zero (
 		.VDATA(EXT_DQ),
 		.vramcs(vpu_vramcs),
 		.hold(vpu_hold),
-		.vrambusy(sys_vma),
 		
 		.tvout(tvout)
 	);
