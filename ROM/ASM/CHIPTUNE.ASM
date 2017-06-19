@@ -82,13 +82,13 @@ exit	bsr	psg_reset
 
 psg_reset proc
 ;	reset ext devices
-	ldaa	SPI_SELECT
-	anda	#($FF^SPI_SELEXTRES)
-	staa	SPI_SELECT
+	ldaa	SPI_EXTREG
+	anda	#($FF^SPI_EXTRES)
+	staa	SPI_EXTREG
 
-	ldaa	SPI_SELECT
-	oraa	#SPI_SELEXTRES
-	staa	SPI_SELECT
+	ldaa	SPI_EXTREG
+	oraa	#SPI_EXTRES
+	staa	SPI_EXTREG
 	rts
 	endp
 
@@ -118,18 +118,18 @@ busy	ldab	SPI_STATUS
 
 bc1off	proc
 	psha
-	ldaa	SPI_SELECT
-	anda	#($FF^SPI_SELPSGBC1)
-	staa	SPI_SELECT
+	ldaa	SPI_EXTREG
+	anda	#($FF^SPI_EXTPSGBC1)
+	staa	SPI_EXTREG
 	pula
 	rts
 	endp
 
 bc1on	proc
 	psha
-	ldaa	SPI_SELECT
-	oraa	#SPI_SELPSGBC1
-	staa	SPI_SELECT
+	ldaa	SPI_EXTREG
+	oraa	#SPI_EXTPSGBC1
+	staa	SPI_EXTREG
 	pula
 	rts
 	endp

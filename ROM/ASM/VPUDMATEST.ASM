@@ -6,26 +6,6 @@
 
 	include ../BOOTROM.INC
 
-VPU_ADDR	equ	$E600
-VPU_CLINE	equ	$E602
-VPU_CFG 	equ	$E603
-VPU_STAT	equ	$E603
-VPU_HSCN	equ	$E604
-VPU_VSCN	equ	$E606
-VPU_VSTART	equ	$E608
-VPU_VEND	equ	$E60A
-VPU_VADDR	equ	$E60C
-VPU_VSTEP	equ	$E60E
-VPU_VSIZE	equ	$E60F
-
-VPU_HSN		equ	$01
-VPU_VBL		equ	$02
-VPU_SVL		equ	$04
-VPU_EVL		equ	$08
-VPU_GRF		equ	$20
-VPU_IEN		equ	$40
-VPU_IRQ		equ	$80
-
 	org $100
 
 	lds	#$afff
@@ -54,9 +34,10 @@ settext	ldx	#textscreen
 	bra	loop
 
 ; Set video mode
-; A = 0 - text, 1 - graphics
+; A = 0 - text, 1 - graphics, $FF - disable
 ; X = Video address
 setvideomode proc
+SCR_START	equ	VPU_UREG1
 	pshx
 	psha
 	pshb
@@ -66,6 +47,9 @@ setvideomode proc
 	ldaa	VPU_CFG
 	anda	#($FF^VPU_IEN) ; $BF
 	staa	VPU_CFG
+
+	cmpb	#$FF
+	beq	exit
 
 	stx	SCR_START
 
@@ -130,7 +114,7 @@ next	stx	VNMI
 	oraa	#VPU_IEN
 	staa	VPU_CFG
 
-	pulb
+exit	pulb
 	pula
 	pulx
 	rts
@@ -209,8 +193,6 @@ blank	bita	#VPU_EVL
 	endp
 
 blackline db 0
-
-SCR_START dw 0
 
 OLD_VIRQ dw	0
 

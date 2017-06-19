@@ -6,26 +6,6 @@
 
 	include ../BOOTROM.INC
 
-VPU_ADDR	equ	$E600
-VPU_CLINE	equ	$E602
-VPU_CFG 	equ	$E603
-VPU_STAT	equ	$E603
-VPU_HSCN	equ	$E604
-VPU_VSCN	equ	$E606
-VPU_VSTART	equ	$E608
-VPU_VEND	equ	$E60A
-VPU_VADDR	equ	$E60C
-VPU_VSTEP	equ	$E60E
-VPU_VSIZE	equ	$E60F
-
-VPU_HSN		equ	$01
-VPU_VBL		equ	$02
-VPU_SVL		equ	$04
-VPU_EVL		equ	$08
-VPU_GRF		equ	$20
-VPU_IEN		equ	$40
-VPU_IRQ		equ	$80
-
 GRSCR_START	equ	$A000
 
 	org $e000

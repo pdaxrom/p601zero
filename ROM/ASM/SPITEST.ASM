@@ -11,7 +11,7 @@
 	staa	SPI_PRESCALER
 
 	ldaa	#$FF
-	staa	SPI_SELECT
+	staa	SPI_EXTREG
 
 	ldaa	SPI_STATUS
 	staa	LED_HEX
