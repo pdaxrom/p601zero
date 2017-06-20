@@ -17,8 +17,6 @@
 	$10- RW Cursor position on line
 	$11- RW Cursor start line
 	$13- RW Cursor end line
-	$1C- RW User reg 0 (2bytes)
-	$1D- RW User reg 1 (2bytes)
 	
 	IRQ  R- Interrupt occurred
 	IEN  RW Enable interrupts
@@ -60,8 +58,6 @@ module vpu (
 	reg [7:0] cursor_pos;
 	reg [8:0] cursor_sline;
 	reg [8:0] cursor_eline;
-
-	reg [31:0] user_reg;
 
 	wire [8:0] cntHS;
 	wire [8:0] cntVS;
@@ -194,10 +190,6 @@ module vpu (
 					5'b10010: DO <= cursor_sline[7:0];
 					5'b10011: DO <= { 7'b0, cursor_eline[8]};
 					5'b10100: DO <= cursor_eline[7:0];
-					5'b11100: DO <= user_reg[7:0];
-					5'b11101: DO <= user_reg[15:8];
-					5'b11110: DO <= user_reg[23:16];
-					5'b11111: DO <= user_reg[31:24];
 					endcase
 				end else begin
 					case (AD)
@@ -216,10 +208,6 @@ module vpu (
 					5'b10010: cursor_sline[7:0] <= DI;
 					5'b10011: cursor_eline[8] <= DI[0];
 					5'b10100: cursor_eline[7:0] <= DI;
-					5'b11100: user_reg[7:0] <= DI;
-					5'b11101: user_reg[15:8] <= DI;
-					5'b11110: user_reg[23:16] <= DI;
-					5'b11111: user_reg[31:24] <= DI;
 					endcase
 				end
 			end

@@ -128,7 +128,6 @@ module p601zero (
 		.tvout(tvout)
 	);
 
-	wire [1:0] ints_mask;
 	wire en_simpleio = DS5 && (AD[4] == 1'b0); // $E6A0
 	wire cs_simpleio = en_simpleio && sys_vma;
 	wire [7:0] simpleiod;
@@ -148,8 +147,7 @@ module p601zero (
 		.rgb1(rgb1),
 		.rgb2(rgb2),
 		.switches(switches),
-		.keys(keys),
-		.ints_mask(ints_mask)
+		.keys(keys)
 	);
 
 	wire en_uartio = DS5 && (AD[4] == 1'b1); // $E6B0
@@ -266,7 +264,7 @@ module p601zero (
 	assign sys_clk = sys_clk_out;
 
 	wire cpu_hold = vpu_hold;
-	wire cpu_irq = (simpleio_irq | uartio_irq | vpu_irq) & ints_mask[0];
+	wire cpu_irq = simpleio_irq | uartio_irq | vpu_irq;
 	
 	cpu68 mc6801 (
 		.clk(sys_clk),

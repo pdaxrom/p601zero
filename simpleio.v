@@ -5,7 +5,6 @@
 	$02 RW - Low  7seg led
 	$03 RW - 0RGB0RGB 2 leds
 	$04 R- - SSSSKKKK switches and keys
-	$07 RW - External NMI and IRQ mask N|I|X|X|X|X|X|X
 	
 	Timer:
 	$08 RW - IRQ | IEN | XXX | XXX | XXX | XXX | XXX | RUN
@@ -37,8 +36,7 @@ module simpleio (
 	output reg [2:0] rgb1,
 	output reg [2:0] rgb2,
 	input wire  [3:0] switches,
-	input wire  [3:0] keys,
-	output reg [1:0] ints_mask
+	input wire  [3:0] keys
 );
 	reg [23:0] timer_cnt;
 	reg [23:0] timer_prescaler;
@@ -73,7 +71,6 @@ module simpleio (
 			led7lo <= 0;
 			timer_mode <= 0;
 			timer_prescaler <= 0;
-			ints_mask <= 2'b11;
 		end else begin
 			if (timer_eq_flag) timer_mode[7] <= 1;
 
@@ -88,7 +85,6 @@ module simpleio (
 						DO[2:0] <= ~rgb2;
 						end
 					4'b0100: DO <= {switches, ~keys};
-					4'b0111: DO <= {~ints_mask, 6'b000000};
 					4'b1000: begin
 						DO <= timer_mode;
 						timer_mode[7] <= 0;
@@ -106,7 +102,6 @@ module simpleio (
 						rgb1 <= ~DI[6:4];
 						rgb2 <= ~DI[2:0];
 						end
-					4'b0111: ints_mask <= ~DI[7:6];
 					4'b1000: timer_mode[6:0] <= DI[6:0];
 					4'b1001: timer_prescaler[23:16] <= DI;
 					4'b1010: timer_prescaler[15:8] <= DI;

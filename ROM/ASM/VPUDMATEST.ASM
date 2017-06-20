@@ -61,13 +61,13 @@ cury	db	0
 ; A = 0 - text, 1 - graphics, $FF - disable
 ; X = Video address
 setvideomode proc
-SCR_START	equ	VPU_UREG1
 	pshx
 	psha
 	pshb
 	tab
 
-	stx	SCR_START
+; Framebuffer address
+	stx	VPU_VADDR
 
 	cmpb	#0
 	bne	initgrf
@@ -91,10 +91,6 @@ next	ldx	#60
 ; Set end line
 	ldx	#260
 	stx	VPU_VEND
-
-; Framebuffer address
-	ldx	SCR_START
-	stx	VPU_VADDR
 
 ; Framebuffer position
 	ldx	#11
