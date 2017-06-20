@@ -82,10 +82,8 @@ module vpu (
 	
 	wire svl_flag = (cntVS >= SVL_reg) && (cntVS <  EVL_reg);
 	wire evl_flag = (cntVS >  SVL_reg) && (cntVS <= EVL_reg);
-	//wire is_graphics = cfg_reg[3];
 
-
-//	assign irq = cfg_reg[5] & cfg_reg[4];
+	assign irq = cfg_reg[5] & cfg_reg[4];
 
 	assign VADDR = DMA_ext_addr;
  
@@ -117,9 +115,12 @@ module vpu (
 				3'b000:  begin
 						hold <= 0;
 						if (hsync) begin
-							if (cntVS >= EVL_reg) begin
+							if (cntVS > EVL_reg) begin
 								char_line <= 7;
 								DMA_ext_addr <= DMA_ext_addr_reg;
+							end else if (cntVS == EVL_reg) begin
+								cfg_reg[5] <= 1;
+								DMA_state <= 3'b101;
 							end else if (cntVS >= SVL_reg) begin
 								char_line <= char_line + 1;
 								vcache_cnt <= vcache_cnt_reg;
@@ -134,35 +135,36 @@ module vpu (
 							DMA_state <= 0;
 						end else if (!hsync) DMA_state <= 3'b000;
 					end
+				3'b101: if (!hsync) DMA_state <= 3'b000;
 				default: begin
-					vramcs <= 0;
-					DMA_state <= 3'b001;
+						vramcs <= 0;
+						DMA_state <= 3'b001;
 					end
 				endcase
 			end else begin
 				case (DMA_state)
 				3'b000: begin
-					hold <= 1'b1;
-					DMA_state <= 3'b001;
+						hold <= 1'b1;
+						DMA_state <= 3'b001;
 					end
 				3'b001: begin
-					// empty
-					DMA_state <= 3'b010;
+						// empty
+						DMA_state <= 3'b010;
 					end
 				3'b010: begin
-					vramcs <= 1'b1;
-					DMA_state <= 3'b011;
+						vramcs <= 1'b1;
+						DMA_state <= 3'b011;
 					end
 				3'b011: begin
-					vcache_we <= 1;
-					DMA_state <= 3'b100;
+						vcache_we <= 1;
+						DMA_state <= 3'b100;
 					end
 				3'b100: begin
-					vcache_we <= 0;
-					vcache_cnt <= vcache_cnt + 1'b1;
-					DMA_ext_addr <= DMA_ext_addr + 1'b1;
-					DMA_counter <= DMA_counter + 1'b1;
-					DMA_state <= 3'b011;
+						vcache_we <= 0;
+						vcache_cnt <= vcache_cnt + 1'b1;
+						DMA_ext_addr <= DMA_ext_addr + 1'b1;
+						DMA_counter <= DMA_counter + 1'b1;
+						DMA_state <= 3'b011;
 					end
 				endcase
 			end

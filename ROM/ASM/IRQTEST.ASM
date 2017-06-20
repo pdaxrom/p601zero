@@ -13,9 +13,6 @@
 	ldx	#hello
 	int	F_UART_PUTS
 
-	ldaa	IO_INTS
-	int	F_UART_OUTHEX
-
 	ldaa	#01
 	staa	IO_LED_7HI
 	inca
@@ -84,10 +81,6 @@ irqhandler proc
 	inc	$10
 	ldaa	$10
 	staa	IO_LED_7HI
-; jsr	$f8e4
-
- int $c5
-
 ret	rts
 	endp
 

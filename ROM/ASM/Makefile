@@ -2,6 +2,7 @@ UNIASM = ../DEVEL/uniasm
 
 all: $(UNIASM)		\
     IRQTEST.CMD		\
+    VIRQTEST.CMD	\
     RAMCHK.CMD		\
     RAMTEST.CMD		\
     RAMPAGECHK.CMD	\
@@ -10,7 +11,6 @@ all: $(UNIASM)		\
     VIDEODRV.CMD	\
     MICROBASIC.CMD	\
     MICROBASICPLUS.CMD	\
-    NMITEST.CMD		\
     ymstreamer
 
 $(UNIASM):

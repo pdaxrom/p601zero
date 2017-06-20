@@ -72,9 +72,6 @@ copyswiv pula
 	cpx	#BROM_SWIVEC+$C0*2+(romvecend-romvecbeg)
 	bne	copyswiv
 
-	ldaa	#IO_NMI_MASK
-	staa	IO_INTS
-
 warmres	lds	#$efff
 
 ; reset spi/EXT devices
@@ -220,131 +217,48 @@ get_word proc
 ; X = Video address
 ;
 setvideomode proc
-SCR_START	equ	VPU_UREG1
 	pshx
 	psha
 	pshb
 	tab
 
-; Disable video interrupt
-	ldaa	VPU_CFG
-	anda	#($FF^VPU_IEN) ; $BF
-	staa	VPU_CFG
-
-	cmpb	#$FF
-	beq	exit
-
-	stx	SCR_START
+	stx	VPU_VADDR
 
 	cmpb	#0
 	bne	initgrf
-
-	ldx	#videotxthndl
 
 ; Set text mode
 	ldaa	VPU_CFG
 	anda	#($FF^VPU_GRF); $DF
 	staa	VPU_CFG
 
-; Set char line address
-	ldaa	#7
-	staa	VPU_CLINE
-
 	bra	next
 
-initgrf	ldx	#videohndl
-
 ; Set graphics mode
-	ldaa	VPU_CFG
+initgrf	ldaa	VPU_CFG
 	oraa	#VPU_GRF
 	staa	VPU_CFG
 
-; Set video interrupt handler
-next	stx	VNMI
-
 ; Set start line
-	ldx	#60
+next	ldx	#60
 	stx	VPU_VSTART
 
 ; Set end line
 	ldx	#260
 	stx	VPU_VEND
 
-; Set DMA step
-	ldaa	#0
-	staa	VPU_VSTEP
-	psha
-; Clear screen
-	ldx	#0
-	stx	VPU_ADDR
-	tsx
-	stx	VPU_VADDR
-	pula
-
-; let start DMA engine
-	ldaa	#64
-	staa	VPU_VSIZE
-
-; Set DMA step
-	ldaa	#1
-	staa	VPU_VSTEP
-
 ; Framebuffer position
 	ldx	#11
 	stx	VPU_ADDR
 
-; Enable video interrupts
-	ldaa	VPU_CFG
-	oraa	#VPU_IEN
-	staa	VPU_CFG
+; Start DMA engine
+	ldaa	#40
+	staa	VPU_VSIZE
 
-exit	pulb
+	pulb
 	pula
 	pulx
 	rts
-	endp
-
-videohndl proc
-	sei
-	ldaa	VPU_STAT
-	bita	#VPU_IRQ
-	beq	exit
-	bita	#VPU_SVL
-	beq	blank
-
-; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
-
-exit	rti
-
-blank	ldx	SCR_START
-	stx	VPU_VADDR
-	rti
-	endp
-
-videotxthndl proc
-	sei
-	ldaa	VPU_STAT
-	bita	#VPU_IRQ
-	beq	exit
-	bita	#VPU_SVL
-	beq	blank
-
-	ldaa	VPU_CLINE
-	bne	exit
-
-; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
-
-exit	rti
-
-blank	ldx	SCR_START
-	stx	VPU_VADDR
-	ldaa	#7
-	staa	VPU_CLINE
-	rti
 	endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

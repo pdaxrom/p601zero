@@ -266,10 +266,8 @@ module p601zero (
 	assign sys_clk = sys_clk_out;
 
 	wire cpu_hold = vpu_hold;
-	wire cpu_irq = (simpleio_irq | uartio_irq) & ints_mask[0];
+	wire cpu_irq = (simpleio_irq | uartio_irq | vpu_irq) & ints_mask[0];
 	
-//	wire cpu_nmi =(vpu_irq) & ints_mask[1];
-
 	cpu68 mc6801 (
 		.clk(sys_clk),
 		.rst(sys_res),
