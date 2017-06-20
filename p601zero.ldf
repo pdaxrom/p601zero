@@ -9,9 +9,6 @@
         <Source name="p601zero.v" type="Verilog" type_short="Verilog">
             <Options top_module="p601zero"/>
         </Source>
-        <Source name="segled.v" type="Verilog" type_short="Verilog">
-            <Options/>
-        </Source>
         <Source name="simpleio.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>

@@ -16,6 +16,8 @@
 	ldaa	#1
 	jsr	setvideomode
 
+	bra	update
+
 loop	int	F_UART_IN
 	cmpa	#'1'
 	beq	settext
@@ -65,155 +67,47 @@ SCR_START	equ	VPU_UREG1
 	pshb
 	tab
 
-; Disable NMI line
-	ldaa	IO_INTS
-	oraa	#IO_NMI_MASK
-	staa	IO_INTS
-
-; Disable video interrupt
-	ldaa	VPU_CFG
-	anda	#($FF^VPU_IEN) ; $BF
-	staa	VPU_CFG
-
-	cmpb	#$FF
-	beq	exit
-
 	stx	SCR_START
 
 	cmpb	#0
 	bne	initgrf
-
-	ldx	#videotxthndl
 
 ; Set text mode
 	ldaa	VPU_CFG
 	anda	#($FF^VPU_GRF); $DF
 	staa	VPU_CFG
 
-; Set char line address
-	ldaa	#7
-	staa	VPU_CLINE
-
 	bra	next
 
-initgrf	ldx	#videohndl
-
 ; Set graphics mode
-	ldaa	VPU_CFG
+initgrf	ldaa	VPU_CFG
 	oraa	#VPU_GRF
 	staa	VPU_CFG
 
-; Set video interrupt handler
-next	stx	VEC_NMI_ADDR
-
 ; Set start line
-	ldx	#60
+next	ldx	#60
 	stx	VPU_VSTART
 
 ; Set end line
 	ldx	#260
 	stx	VPU_VEND
 
-; Set DMA step
-	ldaa	#0
-	staa	VPU_VSTEP
-	psha
-; Clear screen
-	ldx	#0
-	stx	VPU_ADDR
-	tsx
+; Framebuffer address
+	ldx	SCR_START
 	stx	VPU_VADDR
-	pula
-
-; let start DMA engine
-	ldaa	#64
-	staa	VPU_VSIZE
-
-; Set DMA step
-	ldaa	#1
-	staa	VPU_VSTEP
 
 ; Framebuffer position
 	ldx	#11
 	stx	VPU_ADDR
 
-; Enable video interrupts
-	ldaa	VPU_CFG
-	oraa	#VPU_IEN
-	staa	VPU_CFG
-
-; Enable NMI line
-	ldaa	IO_INTS
-	anda	#($FF ^ IO_NMI_MASK)
-	staa	IO_INTS
+; let start DMA engine
+	ldaa	#40
+	staa	VPU_VSIZE
 
 exit	pulb
 	pula
 	pulx
 	rts
-	endp
-
-videohndl proc
-	sei
-	ldaa	IO_INTS
-	oraa	#IO_NMI_MASK
-	staa	IO_INTS
-
-	ldaa	VPU_STAT
-	bita	#VPU_IRQ
-	beq	exit
-	bita	#VPU_SVL
-	beq	blank
-
-; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
-
-exit	ldaa	IO_INTS
-	anda	#($FF ^ IO_NMI_MASK)
-	staa	IO_INTS
-	rti
-
-blank	bita	#VPU_EVL
-	beq	exit
-
-	ldx	SCR_START
-	stx	VPU_VADDR
-	bra	exit
-	endp
-
-videotxthndl proc
-	sei
-	ldaa	IO_INTS
-	oraa	#IO_NMI_MASK
-	staa	IO_INTS
-
-	ldaa	VPU_STAT
-	bita	#VPU_IRQ
-	beq	exit
-	bita	#VPU_SVL
-	beq	blank
-
-	ldaa	VPU_CLINE
-	bne	exit
-
-; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
-
-exit	ldaa	IO_INTS
-	anda	#($FF ^ IO_NMI_MASK)
-	staa	IO_INTS
-	rti
-
-blank	bita	#VPU_EVL
-	beq	exit
-
-	ldx	SCR_START
-	stx	VPU_VADDR
-	ldaa	#7
-	staa	VPU_CLINE
-	bra	exit
 	endp
 
 setcursor proc

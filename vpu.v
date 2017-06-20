@@ -70,22 +70,24 @@ module vpu (
 	wire out_sync;
 
 	//--- DMA
-	reg [15:0] DMA_ext_addr_reg;	reg [7:0] DMA_step_reg;
-	reg [7:0] DMA_length_reg;
-	reg [2:0] DMA_state;
+	reg [15:0] DMA_ext_addr_reg;	reg [15:0] DMA_ext_addr;
+	reg [7:0]  DMA_length_reg;
+	reg [7:0]  DMA_length;
+	reg [2:0]  DMA_state;
 	
 	reg [7:0] DMA_counter;
 	//---
 	
+	reg dma_trig;
+	
 	wire svl_flag = (cntVS >= SVL_reg) && (cntVS <  EVL_reg);
 	wire evl_flag = (cntVS >  SVL_reg) && (cntVS <= EVL_reg);
-	
-	wire irq_condition = (svl_flag || evl_flag) && hsync;
-	reg irq_trig;
+	//wire is_graphics = cfg_reg[3];
 
-	assign irq = cfg_reg[5] & cfg_reg[4];
 
-	assign VADDR = DMA_ext_addr_reg;
+//	assign irq = cfg_reg[5] & cfg_reg[4];
+
+	assign VADDR = DMA_ext_addr;
  
 	always @ (posedge clk) begin
 		if (rst) begin
@@ -94,33 +96,44 @@ module vpu (
 			cfg_reg <= 0;
 			SVL_reg <= 0;
 			EVL_reg <= 0;
-			char_line <= 0;
+			char_line <= 7;
 
 			cursor_pos <= 0;
 			cursor_sline <= 0;
 			cursor_eline <= 0;
 
-			irq_trig <= 0;
-
 			DMA_ext_addr_reg <= 0;
-			DMA_step_reg <= 1;
+			DMA_ext_addr <= 0;
 			DMA_length_reg <= 0;
+			DMA_length <= 0;
 			DMA_counter <= 0;
 			DMA_state <= 0;
+			dma_trig <= 0;
 			hold <= 0;
 			vramcs <= 0;
 		end else begin
-			if (irq_condition & (~irq_trig)) begin
-				cfg_reg[5] <= 1;
-				irq_trig <= 1;
-				char_line <= char_line + 1'b1;
-			end else if ((~irq_condition) & (irq_trig)) begin
-				irq_trig <= 0;
-			end
 			if (DMA_counter == DMA_length_reg) begin
 				case (DMA_state)
-				3'b000:  hold <= 0;
-				3'b001:  DMA_state <= 3'b000;
+				3'b000:  begin
+						hold <= 0;
+						if (hsync) begin
+							if (cntVS >= EVL_reg) begin
+								char_line <= 7;
+								DMA_ext_addr <= DMA_ext_addr_reg;
+							end else if (cntVS >= SVL_reg) begin
+								char_line <= char_line + 1;
+								vcache_cnt <= vcache_cnt_reg;
+								DMA_state <= 3'b010;
+							end
+						end
+					end
+				3'b001: DMA_state <= 3'b000;
+				3'b010:	begin
+						if (cfg_reg[3] || (char_line == 0)) begin
+							DMA_counter <= 0;
+							DMA_state <= 0;
+						end else if (!hsync) DMA_state <= 3'b000;
+					end
 				default: begin
 					vramcs <= 0;
 					DMA_state <= 3'b001;
@@ -141,14 +154,13 @@ module vpu (
 					DMA_state <= 3'b011;
 					end
 				3'b011: begin
-//					vcache[vcache_cnt] <= VDATA;
 					vcache_we <= 1;
 					DMA_state <= 3'b100;
 					end
 				3'b100: begin
 					vcache_we <= 0;
 					vcache_cnt <= vcache_cnt + 1'b1;
-					DMA_ext_addr_reg <= DMA_ext_addr_reg + DMA_step_reg;
+					DMA_ext_addr <= DMA_ext_addr + 1'b1;
 					DMA_counter <= DMA_counter + 1'b1;
 					DMA_state <= 3'b011;
 					end
@@ -160,7 +172,6 @@ module vpu (
 					case (AD)
 					5'b00000: DO <= vcache_cnt_reg[15:8];
 					5'b00001: DO <= vcache_cnt_reg[7:0];
-					5'b00010: DO <= { 5'b0, char_line };
 					5'b00011: begin
 						DO <= {cfg_reg[5:0], evl_flag, svl_flag};
 						cfg_reg[5] <= 0;
@@ -175,7 +186,6 @@ module vpu (
 					5'b01011: DO <= EVL_reg[7:0];
 					5'b01100: DO <= DMA_ext_addr_reg[15:8];
 					5'b01101: DO <= DMA_ext_addr_reg[7:0];
-					5'b01110: DO <= DMA_step_reg;
 					5'b01111: DO <= DMA_length_reg;
 					5'b10000: DO <= cursor_pos[7:0];
 					5'b10001: DO <= { 7'b0, cursor_sline[8]};
@@ -191,7 +201,6 @@ module vpu (
 					case (AD)
 					5'b00000: vcache_cnt_reg[15:8] <= DI;
 					5'b00001: vcache_cnt_reg[7:0] <= DI;
-					5'b00010: char_line <= DI[2:0];
 					5'b00011: cfg_reg[4:0] <= DI[6:2];
 					5'b01000: SVL_reg[8] <= DI[0];
 					5'b01001: SVL_reg[7:0] <= DI;
@@ -199,12 +208,7 @@ module vpu (
 					5'b01011: EVL_reg[7:0] <= DI;
 					5'b01100: DMA_ext_addr_reg[15:8] <= DI;
 					5'b01101: DMA_ext_addr_reg[7:0] <= DI;
-					5'b01110: DMA_step_reg <= DI;
-					5'b01111: begin
-						DMA_length_reg <= DI;
-						DMA_counter <= 0;
-						vcache_cnt <= vcache_cnt_reg;
-						end
+					5'b01111: DMA_length_reg <= DI;
 					5'b10000: cursor_pos[7:0] <= DI;
 					5'b10001: cursor_sline[8] <= DI[0];
 					5'b10010: cursor_sline[7:0] <= DI;
@@ -243,7 +247,7 @@ module vpu (
 
 	wire cursor_dis = ~(cfg_reg[1] && (cntVS >= cursor_sline) && (cntVS <= cursor_eline) && (cursor_pos == vcache_out_cnt));
 
-	assign tvout[1] = (vbl || ~svl_flag) ? 1'b0:
+	assign tvout[1] = (vbl || ~svl_flag || (vcache_out_cnt <= vcache_cnt_reg) || (vcache_out_cnt > (vcache_cnt_reg + DMA_length_reg))) ? 1'b0:
 					  (cursor_dis) ? shift_reg[7]:
 					  (cfg_reg[0]) ? ~shift_reg[7]:
 					  1'b1;

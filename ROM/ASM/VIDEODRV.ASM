@@ -13,17 +13,8 @@ GRSCR_START	equ	$A000
 	ldx	#hello
 	int	F_UART_PUTS
 
-	ldaa	IO_INTS
-	oraa	#IO_NMI_MASK
-	staa	IO_INTS
-
 	ldx	#GRSCR_START
 	stx	SCR_START
-
-	sei
-
-	ldx	#videohndl
-	stx	VEC_NMI_ADDR
 
 ; Set graphics mode
 	ldaa	VPU_CFG
@@ -38,77 +29,22 @@ GRSCR_START	equ	$A000
 	ldx	#260
 	stx	VPU_VEND
 
-; Set DMA step
-	ldaa	#0
-	staa	VPU_VSTEP
-
-; Clear screen
-	ldx	#0
-	stx	VPU_ADDR
-	ldx	#blackline
-	stx	VPU_VADDR
-
-; let start DMA engine
-	ldaa	#64
-	staa	VPU_VSIZE
-
-; Set DMA step
-	ldaa	#1
-	staa	VPU_VSTEP
-
 ; Framebuffer position
 	ldx	#11
 	stx	VPU_ADDR
 
-; Enable IRQ
-	ldaa	VPU_CFG
-	oraa	#VPU_IEN
-	staa	VPU_CFG
+; Set DMA address
+	ldx	SCR_START
+	stx	VPU_VADDR
 
-	ldaa	IO_INTS
-	anda	#($FF ^ IO_NMI_MASK)
-	staa	IO_INTS
-
-	cli
+; let start DMA engine
+	ldaa	#40
+	staa	VPU_VSIZE
 
 	ldx	#byebye
 	int	F_UART_PUTS
 
 	int	F_WARMRES
-
-videohndl proc
-	sei
-	ldaa	IO_INTS
-	oraa	#IO_NMI_MASK
-	staa	IO_INTS
-
-	ldaa	VPU_STAT
-	bita	#VPU_IRQ
-	beq	exit
-next	bita	#VPU_SVL
-	beq	blank
-
-; let start DMA engine
-;	ldaa	#40
-;	staa	VPU_VSIZE
-	ldaa	#20
-xlo	deca
-	bne	xlo
-
-exit	ldaa	IO_INTS
-	anda	#($FF ^ IO_NMI_MASK)
-	staa	IO_INTS
-	rti
-
-blank	bita	#VPU_EVL
-	beq	exit
-
-	ldx	SCR_START
-	stx	VPU_VADDR
-	bra	exit
-	endp
-
-blackline db 0
 
 SCR_START dw 0
 SCR_COUNT dw 0
