@@ -7,7 +7,7 @@
 
 	include ../DEVMAP.INC
 
-	include ../BOOTROM.INC
+	include old.inc
 
 	org $e800
 
@@ -52,7 +52,7 @@ loop	ldaa	0,x
 	cpx	#testseqend
 	bne	loop
 
-	jmp	F_RESET
+	jmp	F_WARMRES
 
 seq2bytes proc
 	staa	fbyte

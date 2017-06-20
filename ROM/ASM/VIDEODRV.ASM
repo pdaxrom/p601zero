@@ -11,7 +11,7 @@ GRSCR_START	equ	$A000
 	org $e000
 
 	ldx	#hello
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 
 	ldx	#GRSCR_START
 	stx	SCR_START
@@ -19,7 +19,7 @@ GRSCR_START	equ	$A000
 	sei
 
 	ldx	#videohndl
-	stx	VNMI
+	stx	VEC_NMI_ADDR
 
 ; Set graphics mode
 	ldaa	VPU_CFG
@@ -64,16 +64,15 @@ GRSCR_START	equ	$A000
 	cli
 
 	ldx	#byebye
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 
-	jmp	F_RESET
+	int	F_WARMRES
 
 videohndl proc
 	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
-	bne	next
-exit	rti
+	beq	exit
 next	bita	#VPU_SVL
 	beq	blank
 
@@ -81,21 +80,11 @@ next	bita	#VPU_SVL
 	ldaa	#40
 	staa	VPU_VSIZE
 
-	rti
+exit	rti
 
 blank	bita	#VPU_EVL
 	beq	exit
 
-	ldaa	#0
-	staa	VPU_VSTEP
-	ldx	#blackline
-	stx	VPU_VADDR
-; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
-
-	ldaa	#1
-	staa	VPU_VSTEP
 	ldx	SCR_START
 	stx	VPU_VADDR
 	rti

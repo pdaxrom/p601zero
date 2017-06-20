@@ -5,6 +5,9 @@ all: $(UNIASM) bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v
 $(UNIASM):
 	make -C $(shell dirname $(UNIASM)) $(shell basename $(UNIASM))
 
+BOOTROM.INC: ROM.ASM
+	awk '{ if ($$1 == "romvecbeg") show=1; else if ($$1 == 'romvecend') show=0; else if (show == 1 && $$2 != "") printf "F_%s\tEQU\t$$%02X\n",toupper($$2),0xc0+cnt++; }' $^ > $@
+
 rom.mem: ROM.ASM BOOTROM.INC DEVMAP.INC
 	$(UNIASM) ROM.ASM ROM.LST ROM.CMD
 	hexdump -v -e '"%04_ax: " 16/1 "%02x " "\n"' ROM.CMD > rom.mem
@@ -42,4 +45,4 @@ bootloader: bootloader.c
 	$(CC) $^ -o $@ -Wall -O2 -g
 
 clean:
-	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v
+	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v BOOTROM.INC

@@ -9,7 +9,7 @@
 	org $100
 
 	ldx	#hello
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 
 	ldaa	#$00
 	staa	$e6f1
@@ -27,7 +27,7 @@ loop	staa	$e6f0
 	bsr	readpages
 
 	ldx	#hello1
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 
 	ldaa	#$01
 	staa	$e6f1
@@ -51,17 +51,17 @@ readpages proc
 	clrb
 loop	stab	$e6f0
 	ldx	#page
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 	tba
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	ldaa	#32
-	jsr	F_UART_OUT
+	int	F_UART_OUT
 	ldaa	$c000
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	ldaa	#32
-	jsr	F_UART_OUT
+	int	F_UART_OUT
 	ldaa	$d000
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	incb
 	cmpb	#16
 	bne	loop

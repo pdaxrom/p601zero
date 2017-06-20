@@ -2,7 +2,7 @@
 	$0 - RW High address byte
 	$1 - RW Low address byte
 	$2 - RW 00000NNN - Charset vertical address
-	$3 - RW IRQ|IEN|GRF|XXX|EVL|SVL|VBL|HSN 
+	$3 - RW IRQ|IEN|GRF|XXX|CEN|CIN|EVL|SVL 
 	$4 - R- HS counter high byte
 	$5 - R- HS counter low byte
 	$6 - R- VS counter hight byte
@@ -14,16 +14,19 @@
 	$D - RW Low external memory address byte
 	$E - RW Step
 	$F - RW Counter/Length
+	$10- RW Cursor position on line
+	$11- RW Cursor start line
+	$13- RW Cursor end line
 	$1C- RW User reg 0 (2bytes)
 	$1D- RW User reg 1 (2bytes)
 	
 	IRQ  R- Interrupt occurred
 	IEN  RW Enable interrupts
 	GRF  RW Graphics/Charset(Text) mode
+	CEN  RW Enable cursor
+	CIN  RW Inverting
 	EVL  R- End visible lines
 	SVL  R- Start vibible lines
-	VBL  R- Vertical blanking
-	HSN  R- HSync
  */
 module vpu (
 	input wire clk,
@@ -53,6 +56,10 @@ module vpu (
 
 	reg [8:0] SVL_reg;
 	reg [8:0] EVL_reg;
+
+	reg [7:0] cursor_pos;
+	reg [8:0] cursor_sline;
+	reg [8:0] cursor_eline;
 
 	reg [31:0] user_reg;
 
@@ -87,6 +94,10 @@ module vpu (
 			SVL_reg <= 0;
 			EVL_reg <= 0;
 			char_line <= 0;
+
+			cursor_pos <= 0;
+			cursor_sline <= 0;
+			cursor_eline <= 0;
 
 			DMA_ext_addr_reg <= 0;
 			DMA_step_reg <= 1;
@@ -145,7 +156,7 @@ module vpu (
 					5'b00001: DO <= vcache_cnt_reg[7:0];
 					5'b00010: DO <= { 5'b0, char_line };
 					5'b00011: begin
-						DO <= {cfg_reg[5:2], evl_flag, svl_flag, vbl, hsync};
+						DO <= {cfg_reg[5:0], evl_flag, svl_flag};
 						cfg_reg[5] <= 0;
 						end
 					5'b00100: DO <= { 7'b0, cntHS[8]};
@@ -160,6 +171,11 @@ module vpu (
 					5'b01101: DO <= DMA_ext_addr_reg[7:0];
 					5'b01110: DO <= DMA_step_reg;
 					5'b01111: DO <= DMA_length_reg;
+					5'b10000: DO <= cursor_pos[7:0];
+					5'b10001: DO <= { 7'b0, cursor_sline[8]};
+					5'b10010: DO <= cursor_sline[7:0];
+					5'b10011: DO <= { 7'b0, cursor_eline[8]};
+					5'b10100: DO <= cursor_eline[7:0];
 					5'b11100: DO <= user_reg[7:0];
 					5'b11101: DO <= user_reg[15:8];
 					5'b11110: DO <= user_reg[23:16];
@@ -170,7 +186,7 @@ module vpu (
 					5'b00000: vcache_cnt_reg[15:8] <= DI;
 					5'b00001: vcache_cnt_reg[7:0] <= DI;
 					5'b00010: char_line <= DI[2:0];
-					5'b00011: cfg_reg[4:2] <= DI[6:4];
+					5'b00011: cfg_reg[4:0] <= DI[6:2];
 					5'b01000: SVL_reg[8] <= DI[0];
 					5'b01001: SVL_reg[7:0] <= DI;
 					5'b01010: EVL_reg[8] <= DI[0];
@@ -183,6 +199,11 @@ module vpu (
 						DMA_counter <= 0;
 						vcache_cnt <= vcache_cnt_reg;
 						end
+					5'b10000: cursor_pos[7:0] <= DI;
+					5'b10001: cursor_sline[8] <= DI[0];
+					5'b10010: cursor_sline[7:0] <= DI;
+					5'b10011: cursor_eline[8] <= DI[0];
+					5'b10100: cursor_eline[7:0] <= DI;
 					5'b11100: user_reg[7:0] <= DI;
 					5'b11101: user_reg[15:8] <= DI;
 					5'b11110: user_reg[23:16] <= DI;
@@ -214,7 +235,12 @@ module vpu (
 		end
 	end
 
-	assign tvout[1] = (vbl || ~svl_flag)?1'b0:shift_reg[7];
+	wire cursor_dis = ~(cfg_reg[1] && (cntVS >= cursor_sline) && (cntVS <= cursor_eline) && (cursor_pos == vcache_out_cnt));
+
+	assign tvout[1] = (vbl || ~svl_flag) ? 1'b0:
+					  (cursor_dis) ? shift_reg[7]:
+					  (cfg_reg[0]) ? ~shift_reg[7]:
+					  1'b1;
 	assign tvout[0] = out_sync;
 
 	tvout tvout_impl (

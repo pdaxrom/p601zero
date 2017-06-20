@@ -10,6 +10,9 @@
 
 	sei
 
+	ldx	#hello
+	int	F_UART_PUTS
+
 	clr	$10
 	clr	$11
 	clr	$12
@@ -30,7 +33,10 @@
 	staa	TIMER_CONFIG
 
 	ldx	#irqhandler
-	stx	VIRQ
+	stx	VEC_IRQ_ADDR
+
+	ldx	#text1
+	int	F_UART_PUTS
 
 	cli
 
@@ -47,7 +53,7 @@ next	bita	#2
 next2	bita	#4
 	beq	loop
 	ldx	#but3txt
-print	jsr	F_UART_PUTS
+print	int	F_UART_PUTS
 	bra	loop
 
 but1txt	db	'Button 1 pressed!', 10, 13, 0
@@ -70,5 +76,8 @@ irqhandler proc
 	clr	$11
 	clr	$12
 	inc	$10
-ret	rti
+ret	rts
 	endp
+
+hello	db	'IRQ test', 10, 13, 0
+text1	db	'Started', 10, 13, 0

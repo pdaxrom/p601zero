@@ -5,43 +5,43 @@
 
 	include DEVMAP.INC
 
+;
+; BootROM variables and functions
+;
+
+VIRQ	equ	VEC_IRQ_ADDR
+VIRQP	equ	VEC_IRQ_PAGE
+VSWI	equ	VEC_SWI_ADDR
+VSWIP	equ	VEC_SWI_PAGE
+VNMI	equ	VEC_NMI_ADDR
+VNMIP	equ	VEC_NMI_PAGE
+
+END_ADDR	equ	$F0
+
+BOOTROM_BASE	equ	$F800
+
+BROM_SWIPAG	equ	$F580
+BROM_SWIVEC	equ	$F600
+
 	include BOOTROM.INC
 
-	include BIOS/MEMORY.INC
-
-;---------------
-; RAM work area locations:
-swihndl_x equ	2
-
 	org	BOOTROM_BASE
-
-	jmp	warmres
-	jmp	uart_in
-	jmp	uart_out
-	jmp	uart_puts
-	jmp	uart_outhex
-	jmp	setvideomode
-	jmp	spi_reset
-	jmp	spi_getstat
-	jmp	spi_select
-	jmp	spi_write
-	jmp	spi_read
-	jmp	sd_init
-	jmp	sd_read
-	jmp	sd_write
-	jmp	sd_flush
-	jmp	psg_write
 
 reset
 	sei
 
 ; setup stubs
+	ldx	#0
+	stx	VSWIP
+	stx	VNMIP
+	clr	VIRQP
+
 	ldx	#vstub_irq
 	stx	VIRQ
-	ldx	#vstub_swi
-	stx	VSWI
 	ldx	#vstub_nmi
 	stx	VNMI
+	ldx	#swihndl
+	stx	VSWI
 
 	ldaa	RAMPAGE_CTL
 	oraa	#BRAM_DISABLE
@@ -51,13 +51,28 @@ reset
 	stx	$f0
 	ldx	$f0
 	cpx	#$A55A
-	beq	warmres
+	beq	initvecs
 
 	ldaa	RAMPAGE_CTL
 	anda	#($FF^BRAM_DISABLE)
 	staa	RAMPAGE_CTL
 
-warmres	lds	#$ef
+initvecs ldx	#BROM_SWIPAG
+clrswipag clr	0,x
+	inx
+	cpx	#BROM_SWIPAG+$280
+	bne	clrswipag
+
+	lds	#romvecbeg
+	des
+	ldx	#BROM_SWIVEC+$C0*2
+copyswiv pula
+	staa	0,x
+	inx
+	cpx	#BROM_SWIVEC+$C0*2+(romvecend-romvecbeg)
+	bne	copyswiv
+
+warmres	lds	#$efff
 
 ; reset spi/EXT devices
 	jsr	spi_reset
@@ -203,6 +218,7 @@ get_word proc
 ;
 setvideomode proc
 SCR_START	equ	VPU_UREG1
+	sei
 	pshx
 	psha
 	pshb
@@ -287,7 +303,6 @@ exit	pulb
 	endp
 
 videohndl proc
-	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
 	beq	exit
@@ -306,7 +321,6 @@ blank	ldx	SCR_START
 	endp
 
 videotxthndl proc
-	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
 	beq	exit
@@ -327,6 +341,46 @@ blank	ldx	SCR_START
 	ldaa	#7
 	staa	VPU_CLINE
 	rti
+	endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Set cursor
+; A - column
+; B - row
+;
+
+setcursor proc
+	pshx
+	pshb
+	psha
+	adda	#11
+	inca
+	staa	VPU_CPOS
+	clra
+	lsld
+	lsld
+	lsld
+	ldx	#60
+	pshx
+	tsx
+	addd	0,x
+	pulx
+	std	VPU_CSTART
+	addd	#7
+	std	VPU_CEND
+
+	ldaa	VPU_CFG
+	oraa	#VPU_CEN
+	oraa	#VPU_CIN
+;	anda	#($FF ^ VPU_CIN)
+	staa	VPU_CFG
+
+	pula
+	pulb
+	pulx
+	rts
 	endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -734,8 +788,8 @@ wait	ldaa	#SPI_EXTPSG
 	ldab	#0
 	ldaa	#SPI_EXTREG
 	jsr	spi_select
-	pulb
 
+	pulb
 	pula
 	rts
 
@@ -766,97 +820,87 @@ bc1on	psha
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-swihndl	proc			; драйвер за обработка на SWI
-	sei			; осигурява псевдо-инструкцията INT
-	inc	indos		; ниво на вложеност
+swihndl proc
 	tsx
-	lds	5,x		; компенсиране на PC за номера на
-	des			; интеръпта
-	pula			; номер на интеръпта
-	ins
-	sts	5,x
-	txs
+	ldd	5,x
+	addd	#1
+	std	5,x
+	xgdx
+	dex
+	ldaa	0,x
+
+	ldab	RAMPAGE_SEL
+	pshb
+	tab
+	ldx	#BROM_SWIPAG
+	lsrb
+	abx
+	ldab	0,x
+	bcc	swih1
+	lsrb
+	lsrb
+	lsrb
+	lsrb
+swih1	andb	#$0F
+	stab	RAMPAGE_SEL
+
+	tab
+	ldx	#BROM_SWIVEC
+	abx
+	abx
+	ldx	0,x
+	cpx	#0
+	beq	exit
+	xgdx
+	ldx	#swiret
+	pshx
+	pshb
 	psha
-	bsr	exchregs	; размяна на SWI променливите и стека
-	pula			; номер на интеръпта
-	ldab	rompage 	; текуща ROM страница
-	pshb			; спасява се в стека
 
-	tab			; извличане на страницата на интеръпта
-	lsrb
-	stab	swihndl_x+1
-	ldab	#/swipag
-	stab	swihndl_x
-	ldx	swihndl_x
-	ldab	swipag,x
-	bcs	swihndl1	;odd-low
-	lsrb
-	lsrb
-	lsrb
-	lsrb
-swihndl1 andb	#$0f
-	beq	swihndl4
-	stab	rompage
-swihndl4 ldab	#$77		;$ee/2
-	asla			; извличане на адреса на интеръпта
-	rolb
-	staa	swihndl_x+1
-	stab	swihndl_x
-	ldx	swihndl_x
-	ldaa	swivec+1,x
-	ldab	swivec,x
-	beq	swihndl2
-	bsr	swihndl3	; изпълнение на интеръпта
-swihndl2 sei			; въстановяване след интеръпта
-	pulb
-	stab	rompage 	; предишната страница
 	tsx
-	bsr	exchregs	; размяна на регистрите и стека
-	dec	indos		; ниво на вложеност
-	rti
-
-exchregs ldaa	1,x
-	ldab	swib		; регистър B
-	staa	swib
-	stab	1,x
-
-	ldaa	2,x
-	ldab	swia		; регистър A
-	staa	swia
-	stab	2,x
-
-	ldaa	3,x
-	ldab	swix		; регистър X
-	staa	swix
-	stab	3,x
-
-	ldaa	4,x
-	ldab	swix+1
-	staa	swix+1
-	stab	4,x
-
-	ldaa	0,x		; регистър P
-	ldab	swic
-	staa	swic
-	stab	0,x
-	rts
-
-swihndl3
-	psha			; зареждане на регистрите и
-	pshb			; изпълнение
-	ldaa	swic
+	ldaa	5,x
 	tap
-	ldx	swix
-	ldab	swib
-	ldaa	swia
+	ldab	6,x
+	ldaa	7,x
+	ldx	8,x
 	cli
 	rts
+
+swiret	sei
+	pshx
+	tsx
+	stab	4,x
+	staa	5,x
+	pula
+	staa	6,x
+	pula
+	staa	7,x
+exit	pulb
+	stab	RAMPAGE_SEL
+	rti
 	endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
+showregs proc
+	pshx
+	jsr	uart_outhex
+	tba
+	jsr	uart_outhex
+	pula
+	jsr	uart_outhex
+	pula
+	jsr	uart_outhex
+
+	ldaa	#$81
+	ldab	#$82
+	ldx	#$BABE
+
+	rts
+	endp
+
 dump_regs proc
 	ldx	#regstxt
 	jsr	uart_puts
@@ -868,6 +912,7 @@ loop	ldaa	0,x		; CC
 	jsr	uart_outhex
 	ldaa	#' '
 	jsr	uart_out
+	inx
 	decb
 	bne	loop
 
@@ -880,10 +925,9 @@ loop	ldaa	0,x		; CC
 	pula			; SPL
 	jsr	uart_outhex
 
-	rti
+	rts
 	endp
 
-;
 ;
 ;----
 inthandlers proc
@@ -911,18 +955,46 @@ regstxt		db	10, 13, 'C- B- A- X--- PC-- SP--', 10, 13, 0
 ;----
 intvectors proc
 	global vec_irq, vec_swi, vec_nmi
-vec_irq
+vec_irq	ldab	VIRQP
 	ldx	VIRQ
+callvec	ldaa	RAMPAGE_SEL
+	psha
+	stab	RAMPAGE_SEL
+	cpx	#0
+	beq	exit
+	jsr	0,x
+exit	pula
+	staa	RAMPAGE_SEL
+	rti
+
+vec_swi	ldx	VSWI
 	jmp	0,x
 
-vec_swi
-	ldx	VSWI
-	jmp	0,x
-
-vec_nmi
-	ldx	VNMI
+vec_nmi	ldx	VNMI
 	jmp	0,x
 	endp
+
+romvecbeg
+	dw	reset
+	dw	warmres
+	dw	uart_in
+	dw	uart_out
+	dw	uart_puts
+	dw	uart_outhex
+	dw	setvideomode
+	dw	setcursor
+	dw	spi_reset
+	dw	spi_getstat
+	dw	spi_select
+	dw	spi_write
+	dw	spi_read
+	dw	sd_init
+	dw	sd_read
+	dw	sd_write
+	dw	sd_flush
+	dw	psg_write
+	dw	showregs
+romvecend
 
 pylogo		db	10, 13, 'ZERO/pdaXrom BOOTROM'
 		db	10, 13, '(c) sashz <sash@pdaXrom>, 1997-2017', 10, 13, 0

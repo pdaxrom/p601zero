@@ -10,28 +10,50 @@
 
 	lds	#$afff
 	ldx	#hello
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 
 	ldx	#kimscreen
 	ldaa	#1
 	jsr	setvideomode
 
-loop	jsr	F_UART_IN
+loop	int	F_UART_IN
 	cmpa	#'1'
 	beq	settext
 	cmpa	#'2'
 	beq	setgraf
+	cmpa	#'9'
+	beq	cinc
+	cmpa	#'0'
+	beq	cdec
 	cmpa	#'3'
 	bne	loop
-	jmp	F_RESET
+	int	F_WARMRES
 setgraf	ldx	#kimscreen
 	ldaa	#1
 	jsr	setvideomode
+
+	ldaa	curx
+	ldab	cury
+	jsr	setcursor
+
 	bra	loop
 settext	ldx	#textscreen
 	ldaa	#0
 	jsr	setvideomode
+
+update	ldaa	curx
+	ldab	cury
+	jsr	setcursor
+
 	bra	loop
+
+cinc	inc	curx
+	bra	update
+cdec	inc	cury
+	bra	update
+
+curx	db	0
+cury	db	0
 
 ; Set video mode
 ; A = 0 - text, 1 - graphics, $FF - disable
@@ -77,7 +99,7 @@ initgrf	ldx	#videohndl
 	staa	VPU_CFG
 
 ; Set video interrupt handler
-next	stx	VNMI
+next	stx	VEC_NMI_ADDR
 
 ; Set start line
 	ldx	#60
@@ -168,6 +190,36 @@ blank	bita	#VPU_EVL
 	ldaa	#7
 	staa	VPU_CLINE
 	rti
+	endp
+
+setcursor proc
+	pshx
+	psha
+	adda	#11
+	inca
+	staa	VPU_CPOS
+	clra
+	lsld
+	lsld
+	lsld
+	ldx	#60
+	pshx
+	tsx
+	addd	0,x
+	pulx
+	std	VPU_CSTART
+	addd	#7
+	std	VPU_CEND
+
+	ldaa	VPU_CFG
+	oraa	#VPU_CEN
+	oraa	#VPU_CIN
+;	anda	#($FF ^ VPU_CIN)
+	staa	VPU_CFG
+
+	pula
+	pulx
+	rts
 	endp
 
 hello	db	$0a, $0d, 'VPU TEST', $0a, $0d, 0
