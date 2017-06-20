@@ -1,15 +1,18 @@
 /*
 	Onboard devices:
 	$00 RW - 8 leds
-	$01 RW - 0RGB0RGB 2 leds
-	$02 RW - Byte hex display  (HHHHLLLL)
-	$03 R- - SSSSKKKK switches and keys
+	$01 RW - High 7seg led
+	$02 RW - Low  7seg led
+	$03 RW - 0RGB0RGB 2 leds
+	$04 R- - SSSSKKKK switches and keys
+	$07 RW - External NMI and IRQ mask N|I|X|X|X|X|X|X
 	
 	Timer:
-	$04 RW - IRQ | IEN | XXX | XXX | XXX | XXX | XXX | RUN
-	$05 RW - Prescaler 24-16 bits
-	$06 RW - Prescaler 15-8 bits
-	$07 RW - Prescaler 7-0 bits
+	$08 RW - IRQ | IEN | XXX | XXX | XXX | XXX | XXX | RUN
+	$09 RW - Prescaler 24-16 bits
+	$0A RW - Prescaler 15-8 bits
+	$0B RW - Prescaler 7-0 bits
+	
 	IRQ - R- interrupt line status
 	IEN - RW enable interrupt
 	RUN - RW start/stop timer
@@ -18,7 +21,7 @@
 module simpleio (
 	input wire clk,
 	input wire rst,
-	input wire [2:0] AD,
+	input wire [3:0] AD,
 	input wire [7:0] DI,
 	output reg [7:0] DO,
 	input wire rw,
@@ -29,11 +32,13 @@ module simpleio (
 	
 	// physical connections
 	output reg [7:0] leds,
-	output reg [7:0] hex_disp,
+	output reg [7:0] led7hi,
+	output reg [7:0] led7lo,
 	output reg [2:0] rgb1,
 	output reg [2:0] rgb2,
 	input wire  [3:0] switches,
-	input wire  [3:0] keys
+	input wire  [3:0] keys,
+	output reg [1:0] ints_mask
 );
 	reg [23:0] timer_cnt;
 	reg [23:0] timer_prescaler;
@@ -64,42 +69,48 @@ module simpleio (
 			leds <= 8'b11111111;
 			rgb1 <= 8'b111;
 			rgb2 <= 8'b111;
-			hex_disp <= 0;
+			led7hi <= 0;
+			led7lo <= 0;
 			timer_mode <= 0;
 			timer_prescaler <= 0;
+			ints_mask <= 2'b11;
 		end else begin
 			if (timer_eq_flag) timer_mode[7] <= 1;
 
 			if (cs) begin
 				if (rw) begin
-					case (AD[2:0])
-					3'b000: DO <= ~leds;
-					3'b001: begin
+					case (AD[3:0])
+					4'b0000: DO <= ~leds;
+					4'b0001: DO <= led7hi;
+					4'b0010: DO <= led7lo;
+					4'b0011: begin
 						DO[6:4] <= ~rgb1;
 						DO[2:0] <= ~rgb2;
 						end
-					3'b010: DO <= hex_disp;
-					3'b011: DO <= {switches, ~keys};
-					3'b100: begin
+					4'b0100: DO <= {switches, ~keys};
+					4'b0111: DO <= {~ints_mask, 6'b000000};
+					4'b1000: begin
 						DO <= timer_mode;
 						timer_mode[7] <= 0;
 						end
-					3'b101: DO <= timer_mode[0]?timer_cnt[23:16]:timer_prescaler[23:16];
-					3'b110: DO <= timer_mode[0]?timer_cnt[15:8]:timer_prescaler[15:8];
-					3'b111: DO <= timer_mode[0]?timer_cnt[7:0]:timer_prescaler[7:0];
+					4'b1001: DO <= timer_mode[0]?timer_cnt[23:16]:timer_prescaler[23:16];
+					4'b1010: DO <= timer_mode[0]?timer_cnt[15:8]:timer_prescaler[15:8];
+					4'b1011: DO <= timer_mode[0]?timer_cnt[7:0]:timer_prescaler[7:0];
 					endcase
 				end else begin
-					case (AD[2:0])
-					3'b000: leds <= ~DI;
-					3'b001: begin
+					case (AD[3:0])
+					4'b0000: leds <= ~DI;
+					4'b0001: led7hi <= DI;
+					4'b0010: led7lo <= DI;
+					4'b0011: begin
 						rgb1 <= ~DI[6:4];
 						rgb2 <= ~DI[2:0];
 						end
-					3'b010: hex_disp <= DI;
-					3'b100: timer_mode[6:0] <= DI[6:0];
-					3'b101: timer_prescaler[23:16] <= DI;
-					3'b110: timer_prescaler[15:8] <= DI;
-					3'b111: timer_prescaler[7:0] <= DI;
+					4'b0111: ints_mask <= ~DI[7:6];
+					4'b1000: timer_mode[6:0] <= DI[6:0];
+					4'b1001: timer_prescaler[23:16] <= DI;
+					4'b1010: timer_prescaler[15:8] <= DI;
+					4'b1011: timer_prescaler[7:0] <= DI;
 					endcase
 				end
 			end

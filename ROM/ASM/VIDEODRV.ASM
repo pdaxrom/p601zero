@@ -13,6 +13,10 @@ GRSCR_START	equ	$A000
 	ldx	#hello
 	int	F_UART_PUTS
 
+	ldaa	IO_INTS
+	oraa	#IO_NMI_MASK
+	staa	IO_INTS
+
 	ldx	#GRSCR_START
 	stx	SCR_START
 
@@ -61,6 +65,10 @@ GRSCR_START	equ	$A000
 	oraa	#VPU_IEN
 	staa	VPU_CFG
 
+	ldaa	IO_INTS
+	anda	#($FF ^ IO_NMI_MASK)
+	staa	IO_INTS
+
 	cli
 
 	ldx	#byebye
@@ -70,6 +78,10 @@ GRSCR_START	equ	$A000
 
 videohndl proc
 	sei
+	ldaa	IO_INTS
+	oraa	#IO_NMI_MASK
+	staa	IO_INTS
+
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
 	beq	exit
@@ -77,17 +89,23 @@ next	bita	#VPU_SVL
 	beq	blank
 
 ; let start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
+;	ldaa	#40
+;	staa	VPU_VSIZE
+	ldaa	#20
+xlo	deca
+	bne	xlo
 
-exit	rti
+exit	ldaa	IO_INTS
+	anda	#($FF ^ IO_NMI_MASK)
+	staa	IO_INTS
+	rti
 
 blank	bita	#VPU_EVL
 	beq	exit
 
 	ldx	SCR_START
 	stx	VPU_VADDR
-	rti
+	bra	exit
 	endp
 
 blackline db 0

@@ -10,7 +10,7 @@ all: $(UNIASM)		\
     VIDEODRV.CMD	\
     MICROBASIC.CMD	\
     MICROBASICPLUS.CMD	\
-    RAMTESTINT.CMD		\
+    NMITEST.CMD		\
     ymstreamer
 
 $(UNIASM):

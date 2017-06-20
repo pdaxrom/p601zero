@@ -72,6 +72,9 @@ copyswiv pula
 	cpx	#BROM_SWIVEC+$C0*2+(romvecend-romvecbeg)
 	bne	copyswiv
 
+	ldaa	#IO_NMI_MASK
+	staa	IO_INTS
+
 warmres	lds	#$efff
 
 ; reset spi/EXT devices
@@ -218,7 +221,6 @@ get_word proc
 ;
 setvideomode proc
 SCR_START	equ	VPU_UREG1
-	sei
 	pshx
 	psha
 	pshb
@@ -303,6 +305,7 @@ exit	pulb
 	endp
 
 videohndl proc
+	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
 	beq	exit
@@ -321,6 +324,7 @@ blank	ldx	SCR_START
 	endp
 
 videotxthndl proc
+	sei
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
 	beq	exit
@@ -821,6 +825,7 @@ bc1on	psha
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 swihndl proc
+	sei
 	tsx
 	ldd	5,x
 	addd	#1
@@ -863,7 +868,6 @@ swih1	andb	#$0F
 	ldab	6,x
 	ldaa	7,x
 	ldx	8,x
-	cli
 	rts
 
 swiret	sei

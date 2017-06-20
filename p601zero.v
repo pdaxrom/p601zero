@@ -57,8 +57,6 @@ module p601zero (
 	wire vpu_irq;
 	wire simpleio_irq;
 	wire uartio_irq;
-	wire sys_irq = (simpleio_irq | uartio_irq) && (!sys_res);
-	wire sys_nmi = (vpu_irq) && (!sys_res);
 
 	reg [3:0] sys_res_delay = 4'b1000;
 
@@ -93,19 +91,6 @@ module p601zero (
 
 	assign seg_led_h[8] = led_anode[1];
 	assign seg_led_l[8] = led_anode[0];
-
-	assign seg_led_h[7] = 0;
-	assign seg_led_l[7] = 0;
- 
-	segled segled_h(
-		.nibble (seg_byte[7:4]),
-		.segs (seg_led_h[6:0])
-		);
-
-	segled segled_l(
-		.nibble (seg_byte[3:0]),
-		.segs (seg_led_l[6:0])
-		);
 
 	wire DS0 = (AD[15:5] == 11'b11100110000); // $E600
 	wire DS1 = (AD[15:5] == 11'b11100110001); // $E620
@@ -143,28 +128,31 @@ module p601zero (
 		.tvout(tvout)
 	);
 
-	wire en_simpleio = DS5 && (AD[4:3] == 2'b00); // $E6A0
+	wire [1:0] ints_mask;
+	wire en_simpleio = DS5 && (AD[4] == 1'b0); // $E6A0
 	wire cs_simpleio = en_simpleio && sys_vma;
 	wire [7:0] simpleiod;
 	simpleio simpleio1 (
 		.clk(sys_clk),
 		.rst(sys_res),
 		.irq(simpleio_irq),
-		.AD(AD[2:0]),
+		.AD(AD[3:0]),
 		.DI(DO),
 		.DO(simpleiod),
 		.rw(sys_rw),
 		.cs(cs_simpleio),
 		.clk_in(clk_in),
 		.leds(leds),
-		.hex_disp(seg_byte),
+		.led7hi(seg_led_h[7:0]),
+		.led7lo(seg_led_l[7:0]),
 		.rgb1(rgb1),
 		.rgb2(rgb2),
 		.switches(switches),
-		.keys(keys)
+		.keys(keys),
+		.ints_mask(ints_mask)
 	);
 
-	wire en_uartio = DS5 && (AD[4:3] == 2'b01); // $E6A8
+	wire en_uartio = DS5 && (AD[4] == 1'b1); // $E6B0
 	wire cs_uartio = en_uartio && sys_vma;
 	wire [7:0] uartiod;
 	uartio uartio1 (
@@ -277,14 +265,17 @@ module p601zero (
 //	assign sys_clk = dyn_clk;
 	assign sys_clk = sys_clk_out;
 
-	wire hold = vpu_hold;
+	wire cpu_hold = vpu_hold;
+	wire cpu_irq = (simpleio_irq | uartio_irq) & ints_mask[0];
+	
+	wire cpu_nmi =(vpu_irq) & ints_mask[1];
 
 	cpu68 mc6801 (
 		.clk(sys_clk),
 		.rst(sys_res),
-		.irq(sys_irq),
-		.nmi(sys_nmi),
-		.hold(hold),
+		.irq(cpu_irq),
+		.nmi(cpu_nmi),
+		.hold(cpu_hold),
 		.halt(1'b0),
 		.rw(sys_rw),
 		.vma(sys_vma),

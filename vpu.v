@@ -80,7 +80,8 @@ module vpu (
 	wire svl_flag = (cntVS >= SVL_reg) && (cntVS <  EVL_reg);
 	wire evl_flag = (cntVS >  SVL_reg) && (cntVS <= EVL_reg);
 	
-	wire irq_condition = (svl_flag || evl_flag) && (cntHS < 2);
+	wire irq_condition = (svl_flag || evl_flag) && hsync;
+	reg irq_trig;
 
 	assign irq = cfg_reg[5] & cfg_reg[4];
 
@@ -99,6 +100,8 @@ module vpu (
 			cursor_sline <= 0;
 			cursor_eline <= 0;
 
+			irq_trig <= 0;
+
 			DMA_ext_addr_reg <= 0;
 			DMA_step_reg <= 1;
 			DMA_length_reg <= 0;
@@ -107,9 +110,12 @@ module vpu (
 			hold <= 0;
 			vramcs <= 0;
 		end else begin
-			if (irq_condition && (!cfg_reg[5])) begin
+			if (irq_condition & (~irq_trig)) begin
 				cfg_reg[5] <= 1;
+				irq_trig <= 1;
 				char_line <= char_line + 1'b1;
+			end else if ((~irq_condition) & (irq_trig)) begin
+				irq_trig <= 0;
 			end
 			if (DMA_counter == DMA_length_reg) begin
 				case (DMA_state)

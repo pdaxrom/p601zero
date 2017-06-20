@@ -65,6 +65,11 @@ SCR_START	equ	VPU_UREG1
 	pshb
 	tab
 
+; Disable NMI line
+	ldaa	IO_INTS
+	oraa	#IO_NMI_MASK
+	staa	IO_INTS
+
 ; Disable video interrupt
 	ldaa	VPU_CFG
 	anda	#($FF^VPU_IEN) ; $BF
@@ -137,6 +142,11 @@ next	stx	VEC_NMI_ADDR
 	oraa	#VPU_IEN
 	staa	VPU_CFG
 
+; Enable NMI line
+	ldaa	IO_INTS
+	anda	#($FF ^ IO_NMI_MASK)
+	staa	IO_INTS
+
 exit	pulb
 	pula
 	pulx
@@ -145,6 +155,10 @@ exit	pulb
 
 videohndl proc
 	sei
+	ldaa	IO_INTS
+	oraa	#IO_NMI_MASK
+	staa	IO_INTS
+
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
 	beq	exit
@@ -155,18 +169,25 @@ videohndl proc
 	ldaa	#40
 	staa	VPU_VSIZE
 
-exit	rti
+exit	ldaa	IO_INTS
+	anda	#($FF ^ IO_NMI_MASK)
+	staa	IO_INTS
+	rti
 
 blank	bita	#VPU_EVL
 	beq	exit
 
 	ldx	SCR_START
 	stx	VPU_VADDR
-	rti
+	bra	exit
 	endp
 
 videotxthndl proc
 	sei
+	ldaa	IO_INTS
+	oraa	#IO_NMI_MASK
+	staa	IO_INTS
+
 	ldaa	VPU_STAT
 	bita	#VPU_IRQ
 	beq	exit
@@ -180,7 +201,10 @@ videotxthndl proc
 	ldaa	#40
 	staa	VPU_VSIZE
 
-exit	rti
+exit	ldaa	IO_INTS
+	anda	#($FF ^ IO_NMI_MASK)
+	staa	IO_INTS
+	rti
 
 blank	bita	#VPU_EVL
 	beq	exit
@@ -189,7 +213,7 @@ blank	bita	#VPU_EVL
 	stx	VPU_VADDR
 	ldaa	#7
 	staa	VPU_CLINE
-	rti
+	bra	exit
 	endp
 
 setcursor proc

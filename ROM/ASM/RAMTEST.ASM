@@ -7,7 +7,7 @@
 
 	include ../DEVMAP.INC
 
-	include old.inc
+	include ../BOOTROM.INC
 
 	org $e800
 
@@ -21,7 +21,7 @@
 	staa	RAMPAGE_CTL
 
 	ldx	#hello
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 
 	ldx	#$0000
 	stx	RAM_START
@@ -52,20 +52,20 @@ loop	ldaa	0,x
 	cpx	#testseqend
 	bne	loop
 
-	jmp	F_WARMRES
+	int	F_WARMRES
 
 seq2bytes proc
 	staa	fbyte
 	stab	sbyte
 	ldx	#testn1
-	jsr	F_UART_PUTS
-	jsr	F_UART_OUTHEX
+	int	F_UART_PUTS
+	int	F_UART_OUTHEX
 	ldx	#testn2
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 	tba
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	ldx	#testn3
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 	ldx	RAM_START
 write	ldaa	fbyte
 	staa	0,x
@@ -88,7 +88,7 @@ read	ldaa	0,x
 	cpx	RAM_END
 	bne	read
 	ldx	#okay
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 	rts
 errorf	psha
 	ldaa	fbyte
@@ -97,18 +97,18 @@ errors	psha
 	ldaa	sbyte
 error	pshx
 	ldx	#expect
-	jsr	F_UART_PUTS
-	jsr	F_UART_OUTHEX
+	int	F_UART_PUTS
+	int	F_UART_OUTHEX
 	ldx	#ataddr
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 	pula
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	pula
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	ldx	#butread
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 	pula
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	rts
 testn1	db	10, 13, 'Test RAM with $',0
 testn2	db	' $', 0
