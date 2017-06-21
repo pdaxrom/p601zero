@@ -2,35 +2,40 @@
 	include	../BOOTROM.INC
 
 QZEXIT	proc
-	jmp	F_RESET
+	int	F_WARMRES
 	endp
 
 QZGETC	proc
-	jmp	F_UART_IN
+	int	F_UART_IN
+	rts
 	endp
 
 QZPUTC	proc
 	tsx
 	ldaa	3,x
-	jmp	F_UART_OUT
+	int	F_UART_OUT
+	rts
 	endp
 
 QZPUTHEX proc
 	tsx
 	ldaa	3,x
-	jmp	F_UART_OUTHEX
+	int	F_UART_OUTHEX
+	rts
 	endp
 
 QZPUTHEX16 proc
 	tsx
 	ldaa	2,x
-	jsr	F_UART_OUTHEX
+	int	F_UART_OUTHEX
 	ldaa	3,x
-	jmp	F_UART_OUTHEX
+	int	F_UART_OUTHEX
+	rts
 	endp
 
 QZPUTS	proc
 	tsx
 	ldx	2,x
-	jmp	F_UART_PUTS
+	int	F_UART_PUTS
+	rts
 	endp
