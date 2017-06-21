@@ -5,38 +5,22 @@
 	org $100
 
 	ldx	#hello
-	jsr	F_UART_PUTS
-	ldx	#hello1
-	jsr	F_UART_PUTS
+	int	F_UART_PUTS
 
-	ldx	#$ABCD
-	ldaa	#$12
-	ldab	#$34
-
-	xgdx
-
-	stx	$80
-	std	$82
+	int	$13
+	int	F_BPT
 
 
-	ldaa	$80
-	jsr	F_UART_OUTHEX
-	ldaa	$81
-	jsr	F_UART_OUTHEX
+	ldx	#title
+	int	$23
 
-	ldx	#crlf
-	jsr	F_UART_PUTS
+	int	F_UART_IN
 
-	ldaa	$82
-	jsr	F_UART_OUTHEX
-	ldaa	$83
-	jsr	F_UART_OUTHEX
+	ldx	#bye
+	int	F_UART_PUTS
 
-	ldx	#crlf
-	jsr	F_UART_PUTS
+	int	F_WARMRES
 
-	jmp	F_RESET
-
-hello	db	$0a, $0d, 'Hello World!!!', $0a, $0d, 0
-hello1	db	'Noting!', $0a, $0d, 0
-crlf	db	$0a, $0d, 0
+hello	db	10, 13, 'Hello World!!!', 10, 13, 0
+bye	db	10, 13, 'Bye!!!', 10, 13, 0
+title	db	'Hello world!', 10, 13, 'HAHA', $1e, $25, $25, '+', 0

@@ -93,12 +93,12 @@ next	ldx	#60
 	stx	VPU_VEND
 
 ; Framebuffer position
-	ldx	#11
-	stx	VPU_ADDR
+	ldaa	#11
+	staa	VPU_HSTART
 
 ; let start DMA engine
 	ldaa	#40
-	staa	VPU_VSIZE
+	staa	VPU_HSIZE
 
 exit	pulb
 	pula

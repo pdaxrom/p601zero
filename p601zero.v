@@ -113,7 +113,7 @@ module p601zero (
 		.clk(sys_clk),
 		.rst(sys_res),
 		.irq(vpu_irq),
-		.AD(AD[4:0]),
+		.AD(AD[3:0]),
 		.DI(DO),
 		.DO(vpud),
 		.rw(sys_rw),
@@ -198,7 +198,7 @@ module p601zero (
 	pagesel pagesel_imp (
 		.clk(sys_clk),
 		.rst(sys_res),
-		.AD(AD[4:0]),
+		.AD(AD[0]),
 		.DI(DO),
 		.DO(pageseld),
 		.rw(sys_rw),
@@ -254,7 +254,7 @@ module p601zero (
 //	reg [2:0] extbus_clkdiv_cnt;
 //	reg dyn_clk;
 //	always @ (posedge sys_clk_out) begin
-//		if (extbus_clkdiv_cnt >= (((en_ext && sys_vma))?3'b001:3'b000)) begin
+//		if (extbus_clkdiv_cnt >= (((en_ext && sys_vma) || vpu_hold)?3'b001:3'b000)) begin
 //			dyn_clk <= !dyn_clk;
 //			extbus_clkdiv_cnt <= 0;
 //		end else extbus_clkdiv_cnt <= extbus_clkdiv_cnt + 1'b1;

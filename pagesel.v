@@ -1,10 +1,6 @@
 /*
 	$10 - RW 0000RPPP
 	$11 - RW 0 | 0 | 0 | 0 | 0 | 0 |RDS|LCK
-	$12 - RW IRQ address (24 bits)
-	$15 - RW SWI address (32 bits)
-	$19 - RW NMI address (32 bits)
-	$1D - RW RESET address (24 bits)
 	
 	R   - RW Map ROM/RAM page
 	PPP - RW Page number
@@ -15,7 +11,7 @@
 module pagesel (
 	input wire clk,
 	input wire rst,
-	input wire [4:0] AD,
+	input wire AD,
 	input wire [7:0] DI,
 	output reg [7:0] DO,
 	input wire rw,
@@ -24,11 +20,6 @@ module pagesel (
 	output reg [4:0] page,
 	output reg bram_disable
 );
-	reg [23:0] res_addr;
-	reg [31:0] nmi_addr;
-	reg [31:0] swi_addr;
-	reg [23:0] irq_addr;
-
 	always @ (posedge clk) begin
 		if (rst) begin
 			page <= 5'b00000;
@@ -36,46 +27,13 @@ module pagesel (
 		end else begin
 			if (cs) begin
 				if (rw) begin
-					case (AD)
-					5'b10000: DO <= {4'b0000, page[3:0]};
-					5'b10001: DO <= { 6'b000000, bram_disable, page[4]};
-					5'b10010: DO <= irq_addr[23:16];
-					5'b10011: DO <= irq_addr[15:8];
-					5'b10100: DO <= irq_addr[7:0];
-					5'b10101: DO <= swi_addr[31:24];
-					5'b10110: DO <= swi_addr[23:16];
-					5'b10111: DO <= swi_addr[15:8];
-					5'b11000: DO <= swi_addr[7:0];
-					5'b11001: DO <= nmi_addr[31:24];
-					5'b11010: DO <= nmi_addr[23:16];
-					5'b11011: DO <= nmi_addr[15:8];
-					5'b11100: DO <= nmi_addr[7:0];
-					5'b11101: DO <= res_addr[23:16];
-					5'b11110: DO <= res_addr[15:8];
-					5'b11111: DO <= res_addr[7:0];
-					endcase
+					if (AD) DO <= { 6'b000000, bram_disable, page[4]};
+					else DO <= {4'b0000, page[3:0]};
 				end else begin
-					case (AD)
-					5'b10000: page[3:0] <= DI[3:0];
-					5'b10001: begin
+					if (AD) begin
 						page[4] <= DI[0];
 						bram_disable <= DI[1];
-						end
-					5'b10010: irq_addr[23:16] <= DI;
-					5'b10011: irq_addr[15:8]  <= DI;
-					5'b10100: irq_addr[7:0]   <= DI;
-					5'b10101: swi_addr[31:24] <= DI;
-					5'b10110: swi_addr[23:16] <= DI;
-					5'b10111: swi_addr[15:8]  <= DI;
-					5'b11000: swi_addr[7:0]   <= DI;
-					5'b11001: nmi_addr[31:24] <= DI;
-					5'b11010: nmi_addr[23:16] <= DI;
-					5'b11011: nmi_addr[15:8]  <= DI;
-					5'b11100: nmi_addr[7:0]   <= DI;
-					5'b11101: res_addr[23:16] <= DI;
-					5'b11110: res_addr[15:8]  <= DI;
-					5'b11111: res_addr[7:0]   <= DI;
-					endcase
+					end else page[3:0] <= DI[3:0];
 				end
 			end
 		end

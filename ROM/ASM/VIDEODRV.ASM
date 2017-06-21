@@ -31,7 +31,7 @@ GRSCR_START	equ	$A000
 
 ; Framebuffer position
 	ldx	#11
-	stx	VPU_ADDR
+	stx	VPU_HSTART
 
 ; Set DMA address
 	ldx	SCR_START
@@ -39,7 +39,7 @@ GRSCR_START	equ	$A000
 
 ; let start DMA engine
 	ldaa	#40
-	staa	VPU_VSIZE
+	staa	VPU_HSIZE
 
 	ldx	#byebye
 	int	F_UART_PUTS

@@ -9,39 +9,67 @@
 ; BootROM variables and functions
 ;
 
-VIRQ	equ	VEC_IRQ_ADDR
-VIRQP	equ	VEC_IRQ_PAGE
-VSWI	equ	VEC_SWI_ADDR
-VSWIP	equ	VEC_SWI_PAGE
-VNMI	equ	VEC_NMI_ADDR
-VNMIP	equ	VEC_NMI_PAGE
+	include BOOTROM.INC
 
 END_ADDR	equ	$F0
 
 BOOTROM_BASE	equ	$F800
 
-BROM_SWIPAG	equ	$F580
-BROM_SWIVEC	equ	$F600
+BROM_STACK	equ	FBTEXT-1
 
-	include BOOTROM.INC
+FBTEXT		equ	$F558-40*27
+
+		section $F558
+QUEUEPTR	ds	2
+QUEUELEN	ds	1
+QUEUEBUF	ds	3
+		ds	2
+
+SCRADDR		ds	2
+SCRSZX		ds	1
+SCRSZY		ds	1
+SCRXADJ		ds	1
+SCRYADJ		ds	1
+SCRMASK		ds	1
+SCRBITS		ds	1
+SCRMODE		ds	1
+SCRATTR		ds	1
+CURX		ds	1
+CURY		ds	1
+CURPTR		ds	2
+CURMODE 	ds	1
+		ds	1	; align
+
+		ds	4	; align
+VECIRQP		ds	1
+VECSWIP		ds	1
+VECNMIP		ds	1
+VECRESP		ds	1
+VECIRQ		ds	2
+VECSWI		ds	2
+VECNMI		ds	2
+VECRES		ds	2
+
+BROM_SWIPAG	ds	$80
+BROM_SWIVEC	ds	$200
+		ends
 
 	org	BOOTROM_BASE
 
-reset
-	sei
+reset	sei
 
 ; setup stubs
 	ldx	#0
-	stx	VSWIP
-	stx	VNMIP
-	clr	VIRQP
+	stx	VECSWIP
+	stx	VECNMIP
+	clr	VECIRQP
 
 	ldx	#vstub_irq
-	stx	VIRQ
+	stx	VECIRQ
 	ldx	#vstub_nmi
-	stx	VNMI
+	stx	VECNMI
 	ldx	#swihndl
-	stx	VSWI
+	stx	VECSWI
 
 	ldaa	RAMPAGE_CTL
 	oraa	#BRAM_DISABLE
@@ -72,10 +100,35 @@ copyswiv pula
 	cpx	#BROM_SWIVEC+$C0*2+(romvecend-romvecbeg)
 	bne	copyswiv
 
-warmres	lds	#$efff
+	lds	#pylvecbeg
+	des
+copyswip pulb
+	tstb
+	beq	warmres
+	ldx	#BROM_SWIVEC
+	abx
+	abx
+	pula
+	pulb
+	std	0,x
+	bra	copyswip
+
+warmres	lds	#BROM_STACK
 
 ; reset spi/EXT devices
 	jsr	spi_reset
+
+; init putchar queue for control sequences
+	clr	QUEUELEN
+	ldx	#QUEUEBUF
+	stx	QUEUEPTR
+
+	ldaa	#$80
+	ldx	#FBTEXT
+	jsr	setvideomode
+
+	ldx	#pylogo
+	jsr	putstr
 
 ; setup prescaler: 24MHz / (Baud * 8)
 	ldx	#26
@@ -95,6 +148,7 @@ warmres	lds	#$efff
 	bra	ramtxt
 bramen	ldx	#txt_bram
 ramtxt	bsr	uart_puts
+	jsr	putstr
 
 loop
 	bsr	uart_in
@@ -213,63 +267,140 @@ get_word proc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Set video mode
-; A = 0 - text, 1 - graphics, $FF - disable video
+; A = $00 - text, $03 - graphics,
 ; X = Video address
 ;
+
 setvideomode proc
 	pshx
-	psha
 	pshb
+	psha
+	stx	SCRADDR
+	stab	SCRATTR
 	tab
+	anda	#$7F
+	staa	SCRMODE
+	ldx	txtmode
+	stx	SCRSZX
+	ldx	txtmode+2
+	stx	SCRXADJ
+	ldx	txtmode+4
+	stx	SCRMASK
+	cmpa	#0
+	bne	mode3
+	inc	SCRSZY		; 27 text rows
+	inc	SCRSZY		;
+	bitb	#$80
+	beq	next
+	ldaa	SCRSZY
+	bra	clrscr
+mode3	cmpa	#3
+	bne	exit
+	ldaa	#VPU_GRF
+	staa	SCRBITS
+	bitb	#$80
+	beq	next
+	ldaa	SCRSZY
+	lsla
+	lsla
+	lsla
+clrscr	ldab	SCRSZX
+	mul
+	ldx	SCRADDR
+clrs1	clr	0,x
+	inx
+	subd	#1
+	bne	clrs1
+	clr	CURX
+	clr	CURY
+next	ldx	#SCRADDR
+	bsr	vpuconfig
+	ldaa	CURX
+	ldaa	CURY
+	bsr	setcursor
+exit	pula
+	pulb
+	pulx
+	rts
 
-	stx	VPU_VADDR
+txtmode	db	40, 25, 11, 60, $FF^VPU_GRF, 0
+	endp
 
-	cmpb	#0
-	bne	initgrf
+; Configure VPU
+; X = ptr
+;
+; ptr dw vaddr  ; 0
+;     db width  ; 2
+;     db height ; 3
+;     db hadj   ; 4
+;     db vadj   ; 5
+;     db mask   ; 6
+;     db bits   ; 7
+;
 
-; Set text mode
-	ldaa	VPU_CFG
-	anda	#($FF^VPU_GRF); $DF
-	staa	VPU_CFG
+vpuconfig proc
+	pshb
+	psha
 
-	bra	next
-
-; Set graphics mode
-initgrf	ldaa	VPU_CFG
-	oraa	#VPU_GRF
-	staa	VPU_CFG
+; Set framebuffer address
+	ldd	0,x
+	std	VPU_VADDR
 
 ; Set start line
-next	ldx	#60
-	stx	VPU_VSTART
+	clra
+	ldab	5,x
+	std	VPU_VSTART
 
 ; Set end line
-	ldx	#260
-	stx	VPU_VEND
+	clra
+	ldab	3,x
+	lsld
+	lsld
+	lsld
+	addd	VPU_VSTART
+	std	VPU_VEND
 
-; Framebuffer position
-	ldx	#11
-	stx	VPU_ADDR
+; Framebuffer horisontal position
+	ldaa	4,x
+	staa	VPU_HSTART
 
-; Start DMA engine
-	ldaa	#40
-	staa	VPU_VSIZE
+; Start dma engine
+	ldaa	2,x
+	staa	VPU_HSIZE
 
-	pulb
+; Set bits
+	ldaa	#VPU_GRF
+	anda	6,x
+	oraa	7,x
+	staa	VPU_CFG
+
 	pula
-	pulx
+	pulb
+	rts
+	endp
+
+; Get video mode
+; Return
+; X - address
+; A - mode
+; B - attributes
+
+getvideomode proc
+	ldaa	SCRMODE
+	ldab	SCRATTR
+	ldx	SCRADDR
 	rts
 	endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Set cursor
+; Set VPU cursor
 ; A - column
 ; B - row
 ;
 
-setcursor proc
+vpucursor proc
 	pshx
 	pshb
 	psha
@@ -301,23 +432,131 @@ setcursor proc
 	rts
 	endp
 
+setcursor proc
+	cmpa	SCRSZX
+	bcc	exit
+	cmpb	SCRSZY
+	bcc	exit
+	pshb
+	psha
+	staa	CURX
+	stab	CURY
+	bsr	vpucursor
+	ldaa	SCRSZX
+	mul
+	std	CURPTR
+	clra
+	ldab	CURX
+	addd	CURPTR
+	addd	SCRADDR
+	std	CURPTR
+	pula
+	pulb
+exit	rts
+	endp
+
+getcursor proc
+	ldaa	CURX
+	ldab	CURY
+	ldx	CURPTR
+	rts
+	endp
+
+putchar	proc
+	ldab	SCRMODE
+	andb	#$03
+	bne	exit		; graf mode not supported
+	pshx
+	pshb
+	psha
+
+	tst	QUEUELEN
+	beq	putch0
+queue1	ldx	QUEUEPTR
+	staa	0,x
+	inx
+	stx	QUEUEPTR
+	dec	QUEUELEN
+	bne	return1
+	ldx	#QUEUEBUF
+	ldaa	0,x
+	cmpa	#$1e
+	bne	clrqueue
+	ldaa	1,x
+	suba	#$20
+	ldab	2,x
+	subb	#$20
+	bsr	setcursor
+	bra	clrqueue
+clrqueue clr	QUEUELEN
+	ldx	#QUEUEBUF
+	stx	QUEUEPTR
+	bra	return1
+
+putch0	cmpa	#$1e
+	bne	putc0a
+	ldab	#3
+	stab	QUEUELEN
+	bra	queue1
+putc0a	cmpa	#$0a
+	bne	putch0c
+	ldaa	CURX
+	ldab	CURY
+	incb
+	bra	setcur
+putch0c	cmpa	#$0c
+	bne	putch0d
+	clra
+	clrb
+	bra	setcur
+putch0d	cmpa	#$0d
+	bne	putnorm
+	clra
+	ldab	CURY
+	bra	setcur
+putnorm	ldx	CURPTR
+	staa	0,x
+	ldaa	CURX
+	ldab	CURY
+	inca
+setcur	jsr	setcursor
+
+return1	pula
+	pulb
+	pulx
+exit	rts
+	endp
+
+putstr	proc
+	pshx
+	psha
+loop	ldaa	0,x
+	beq	ret
+	int	$22
+	inx
+	bra	loop
+ret	pula
+	pulx
+	rts
+	endp
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Reset SPI/EXT devices
 spi_reset proc
 	psha
-	ldaa	#SPI_EXTINI
-	oraa	SPI_EXTREG
-	staa	SPI_EXTREG
+	ldaa	#SPI_INI
+	oraa	SPI_REG
+	staa	SPI_REG
 
-	ldaa	SPI_EXTREG
-	anda	#($FF^SPI_EXTRES)
-	staa	SPI_EXTREG
+	ldaa	SPI_REG
+	anda	#($FF^SPI_RES)
+	staa	SPI_REG
 
-	ldaa	SPI_EXTREG
-	oraa	#SPI_EXTRES
-	staa	SPI_EXTREG
+	ldaa	SPI_REG
+	oraa	#SPI_RES
+	staa	SPI_REG
 	pula
 	rts
 	endp
@@ -328,9 +567,9 @@ spi_reset proc
 ;
 spi_getstat proc
 	pshx
-	eora	#SPI_EXTALL
+	eora	#SPI_ALL
 	psha
-	anda	SPI_EXTREG
+	anda	SPI_REG
 	tsx
 	cmpa	0,x
 	pula
@@ -359,11 +598,11 @@ spi_select proc
 select	tstb
 	beq	disable
 	eora	#$FF
-	anda	SPI_EXTREG
-	staa	SPI_EXTREG
+	anda	SPI_REG
+	staa	SPI_REG
 	bra	okay
-disable	oraa	SPI_EXTREG
-	staa	SPI_EXTREG
+disable	oraa	SPI_REG
+	staa	SPI_REG
 okay	clra
 	rts
 	endp
@@ -473,7 +712,7 @@ exit	pulb
 sd_enable proc
 	pshx
 	ldab	#1
-wait	ldaa	#SPI_EXTSD
+wait	ldaa	#SPI_SD
 	jsr	spi_select
 	tsta
 	bne	wait
@@ -494,7 +733,7 @@ exit	inca
 
 sd_disable proc
 	psha
-	ldaa	#SPI_EXTSD
+	ldaa	#SPI_SD
 	ldab	#0
 	jsr	spi_select
 	jsr	spi_read
@@ -691,7 +930,7 @@ psg_write proc
 
 	psha
 	ldab	#1
-wait	ldaa	#SPI_EXTPSG
+wait	ldaa	#SPI_PSG
 	jsr	spi_select
 	tsta
 	bne	wait
@@ -704,7 +943,7 @@ wait	ldaa	#SPI_EXTPSG
 	bsr	bc1on
 
 	ldab	#0
-	ldaa	#SPI_EXTREG
+	ldaa	#SPI_REG
 	jsr	spi_select
 
 	pulb
@@ -720,16 +959,16 @@ busy	ldab	SPI_STATUS
 	rts
 
 bc1off	psha
-	ldaa	SPI_EXTREG
-	anda	#($FF^SPI_EXTPSGBC1)
-	staa	SPI_EXTREG
+	ldaa	SPI_REG
+	anda	#($FF^SPI_PSGBC1)
+	staa	SPI_REG
 	pula
 	rts
 
 bc1on	psha
-	ldaa	SPI_EXTREG
-	oraa	#SPI_EXTPSGBC1
-	staa	SPI_EXTREG
+	ldaa	SPI_REG
+	oraa	#SPI_PSGBC1
+	staa	SPI_REG
 	pula
 	rts
 	endp
@@ -777,11 +1016,13 @@ swih1	andb	#$0F
 	psha
 
 	tsx
-	ldaa	5,x
-	tap
 	ldab	6,x
 	ldaa	7,x
+	psha
+	ldaa	5,x
 	ldx	8,x
+	tap
+	pula
 	rts
 
 swiret	sei
@@ -802,48 +1043,53 @@ exit	pulb
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-showregs proc
+bpt	proc
+	pshb
+	psha
 	pshx
-	jsr	uart_outhex
-	tba
-	jsr	uart_outhex
-	pula
-	jsr	uart_outhex
-	pula
-	jsr	uart_outhex
-
-	ldaa	#$81
-	ldab	#$82
-	ldx	#$BABE
-
-	rts
-	endp
-
-dump_regs proc
+	tpa
+	psha
 	ldx	#regstxt
 	jsr	uart_puts
-
 	tsx
-	ldab	#7
-
-loop	ldaa	0,x		; CC
-	jsr	uart_outhex
-	ldaa	#' '
-	jsr	uart_out
-	inx
-	decb
-	bne	loop
-
+	ldaa	0,x
+	bsr	regshex
+	ldaa	3,x
+	bsr	regshex
+	ldaa	4,x
+	bsr	regshex
+	ldaa	1,x
+	bsr	regshex
+	ldaa	2,x
+	bsr	regshex
 	tsx
+	xgdx
+	addd	#$0E
+	xgdx
+	dex
+	ldd	0,x
 	inx
+	xgdx
 	pshx
-
-	pula			; SPH
-	jsr	uart_outhex
-	pula			; SPL
-	jsr	uart_outhex
-
+	bsr	regshex
+	tba
+	bsr	regshex
+	pula
+	bsr	regshex
+	pula
+	bsr	regshex
+	ldx	#regsnl
+	jsr	uart_puts
+	pula
+	tap
+	pulx
+	pula
+	pulb
 	rts
+regshex	jmp	uart_outhex
+
+regstxt	db	10, 13, 'P_A_B_X___SP__PC__', 10, 13, 0
+regsnl	db	10, 13, 0
 	endp
 
 ;
@@ -861,20 +1107,18 @@ vstub_swi
 vstub_nmi
 	ldx	#vectextNMI
 ret	jsr	uart_puts
-	bra	dump_regs
+	rti
 	endp
 
 vectextIRQ	db	'IRQ',0
 vectextSWI	db	'SWI',0
 vectextNMI	db	'NMI',0
 
-regstxt		db	10, 13, 'C- B- A- X--- PC-- SP--', 10, 13, 0
-
 ;----
 intvectors proc
 	global vec_irq, vec_swi, vec_nmi
-vec_irq	ldab	VIRQP
-	ldx	VIRQ
+vec_irq	ldab	VECIRQP
+	ldx	VECIRQ
 callvec	ldaa	RAMPAGE_SEL
 	psha
 	stab	RAMPAGE_SEL
@@ -885,12 +1129,29 @@ exit	pula
 	staa	RAMPAGE_SEL
 	rti
 
-vec_swi	ldx	VSWI
+vec_swi	ldx	VECSWI
 	jmp	0,x
 
-vec_nmi	ldx	VNMI
-	jmp	0,x
+vec_nmi	ldab	VECNMIP
+	ldx	VECNMI
+	bra	callvec
 	endp
+
+pylvecbeg
+	db	$12
+	dw	setvideomode
+	db	$13
+	dw	getvideomode
+	db	$14
+	dw	getcursor
+	db	$15
+	dw	setcursor
+	db	$22
+	dw	putchar
+	db	$23
+	dw	putstr
+pylvecend
+	db	0
 
 romvecbeg
 	dw	reset
@@ -899,8 +1160,8 @@ romvecbeg
 	dw	uart_out
 	dw	uart_puts
 	dw	uart_outhex
-	dw	setvideomode
-	dw	setcursor
+	dw	vpuconfig
+	dw	vpucursor
 	dw	spi_reset
 	dw	spi_getstat
 	dw	spi_select
@@ -911,11 +1172,11 @@ romvecbeg
 	dw	sd_write
 	dw	sd_flush
 	dw	psg_write
-	dw	showregs
+	dw	bpt
 romvecend
 
-pylogo		db	10, 13, 'ZERO/pdaXrom BOOTROM'
-		db	10, 13, '(c) sashz <sash@pdaXrom>, 1997-2017', 10, 13, 0
+pylogo		db	'ZERO/pdaXrom BOOTROM', 10, 13
+		db	'(c) sashz <sash@pdaXrom.org>, 1997-2017', 10, 13, 0
 txt_bram	db	'Internal RAM enabled.', 10, 13, 0
 txt_extram	db	'External RAM enabled.', 10, 13, 0
 

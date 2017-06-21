@@ -10,6 +10,7 @@ BOOTROM.INC: ROM.ASM
 
 rom.mem: ROM.ASM BOOTROM.INC DEVMAP.INC
 	$(UNIASM) ROM.ASM ROM.LST ROM.CMD
+	awk '/\yVEC.+ds/ { print $$3"\t\tEQU\t$$"$$2; }' ROM.LST >> BOOTROM.INC
 	hexdump -v -e '"%04_ax: " 16/1 "%02x " "\n"' ROM.CMD > rom.mem
 	cp -f ROM.CMD rom.bin
 

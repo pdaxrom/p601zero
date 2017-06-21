@@ -1,22 +1,19 @@
 /*
-	$0 - RW High address byte
-	$1 - RW Low address byte
-	$2 - RW 00000NNN - Charset vertical address
-	$3 - RW IRQ|IEN|GRF|XXX|CEN|CIN|EVL|SVL 
-	$4 - R- HS counter high byte
-	$5 - R- HS counter low byte
-	$6 - R- VS counter hight byte
-	$7 - R- VS counter low byte
-	$8 - RW Start visible lines
-	$A - RW End visible lines
+	$0 - RW HS start byte
+	$1 - RW IRQ|IEN|GRF|XXX|CEN|CIN|EVL|SVL 
+	$2 - R- HS counter high byte
+	$3 - R- HS counter low byte
+	$4 - R- VS counter hight byte
+	$5 - R- VS counter low byte
+	$6 - RW Start visible lines
+	$7 - RW End visible lines
 	--- DMA Engine ---
-	$C - RW High external memory address byte
-	$D - RW Low external memory address byte
-	$E - RW Step
-	$F - RW Counter/Length
-	$10- RW Cursor position on line
-	$11- RW Cursor start line
-	$13- RW Cursor end line
+	$8 - RW High external memory address byte
+	$9 - RW Low external memory address byte
+	$A - RW Counter/Length
+	$B - RW Cursor position on line
+	$C - RW Cursor start line
+	$D - RW Cursor end line
 	
 	IRQ  R- Interrupt occurred
 	IEN  RW Enable interrupts
@@ -29,7 +26,7 @@
 module vpu (
 	input wire clk,
 	input wire rst,
-	input wire [4:0] AD,
+	input wire [3:0] AD,
 	input wire [7:0] DI,
 	output reg [7:0] DO,
 	input wire rw,
@@ -44,8 +41,8 @@ module vpu (
 	
 	output wire [1:0] tvout
 );
-	reg [15:0] vcache_cnt_reg;
-	reg [15:0] vcache_cnt;
+	reg [7:0] vcache_cnt_reg;
+	reg [7:0] vcache_cnt;
 	reg vcache_we;
 
 	reg [5:0] cfg_reg;
@@ -168,46 +165,40 @@ module vpu (
 			if (cs) begin
 				if (rw) begin
 					case (AD)
-					5'b00000: DO <= vcache_cnt_reg[15:8];
-					5'b00001: DO <= vcache_cnt_reg[7:0];
-					5'b00011: begin
+					4'b0000: DO <= vcache_cnt_reg[7:0];
+					4'b0001: begin
 						DO <= {cfg_reg[5:0], evl_flag, svl_flag};
 						cfg_reg[5] <= 0;
 						end
-					5'b00100: DO <= { 7'b0, cntHS[8]};
-					5'b00101: DO <= cntHS[7:0];
-					5'b00110: DO <= { 7'b0, cntVS[8]};
-					5'b00111: DO <= cntVS[7:0];
-					5'b01000: DO <= { 7'b0, SVL_reg[8]};
-					5'b01001: DO <= SVL_reg[7:0];
-					5'b01010: DO <= { 7'b0, EVL_reg[8]};
-					5'b01011: DO <= EVL_reg[7:0];
-					5'b01100: DO <= DMA_ext_addr_reg[15:8];
-					5'b01101: DO <= DMA_ext_addr_reg[7:0];
-					5'b01111: DO <= DMA_length_reg;
-					5'b10000: DO <= cursor_pos[7:0];
-					5'b10001: DO <= { 7'b0, cursor_sline[8]};
-					5'b10010: DO <= cursor_sline[7:0];
-					5'b10011: DO <= { 7'b0, cursor_eline[8]};
-					5'b10100: DO <= cursor_eline[7:0];
+					4'b0010: DO <= { 7'b0, SVL_reg[8]};
+					4'b0011: DO <= SVL_reg[7:0];
+					4'b0100: DO <= { 7'b0, EVL_reg[8]};
+					4'b0101: DO <= EVL_reg[7:0];
+					4'b0110: DO <= DMA_ext_addr_reg[15:8];
+					4'b0111: DO <= DMA_ext_addr_reg[7:0];
+					4'b1000: DO <= DMA_length_reg;
+					4'b1001: DO <= cursor_pos[7:0];
+					4'b1010: DO <= { 7'b0, cursor_sline[8]};
+					4'b1011: DO <= cursor_sline[7:0];
+					4'b1100: DO <= { 7'b0, cursor_eline[8]};
+					4'b1101: DO <= cursor_eline[7:0];
 					endcase
 				end else begin
 					case (AD)
-					5'b00000: vcache_cnt_reg[15:8] <= DI;
-					5'b00001: vcache_cnt_reg[7:0] <= DI;
-					5'b00011: cfg_reg[4:0] <= DI[6:2];
-					5'b01000: SVL_reg[8] <= DI[0];
-					5'b01001: SVL_reg[7:0] <= DI;
-					5'b01010: EVL_reg[8] <= DI[0];
-					5'b01011: EVL_reg[7:0] <= DI;
-					5'b01100: DMA_ext_addr_reg[15:8] <= DI;
-					5'b01101: DMA_ext_addr_reg[7:0] <= DI;
-					5'b01111: DMA_length_reg <= DI;
-					5'b10000: cursor_pos[7:0] <= DI;
-					5'b10001: cursor_sline[8] <= DI[0];
-					5'b10010: cursor_sline[7:0] <= DI;
-					5'b10011: cursor_eline[8] <= DI[0];
-					5'b10100: cursor_eline[7:0] <= DI;
+					4'b0000: vcache_cnt_reg[7:0] <= DI;
+					4'b0001: cfg_reg[4:0] <= DI[6:2];
+					4'b0010: SVL_reg[8] <= DI[0];
+					4'b0011: SVL_reg[7:0] <= DI;
+					4'b0100: EVL_reg[8] <= DI[0];
+					4'b0101: EVL_reg[7:0] <= DI;
+					4'b0110: DMA_ext_addr_reg[15:8] <= DI;
+					4'b0111: DMA_ext_addr_reg[7:0] <= DI;
+					4'b1000: DMA_length_reg <= DI;
+					4'b1001: cursor_pos[7:0] <= DI;
+					4'b1010: cursor_sline[8] <= DI[0];
+					4'b1011: cursor_sline[7:0] <= DI;
+					4'b1100: cursor_eline[8] <= DI[0];
+					4'b1101: cursor_eline[7:0] <= DI;
 					endcase
 				end
 			end

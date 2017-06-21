@@ -14,8 +14,8 @@ char inp;
 
 main()
 {
-    ptr_inp = INPUT_SWKEYS;
-    ptr_hex = LED_HEX;
+    ptr_inp = IO_SWKEYS;
+    ptr_hex = IO_L7LO;
 
     while (1) {
 	inp = *ptr_inp;
