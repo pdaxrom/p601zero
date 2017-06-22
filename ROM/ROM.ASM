@@ -293,7 +293,7 @@ setvideomode proc
 	bitb	#$80
 	beq	next
 	ldaa	SCRSZY
-	bra	clrscr
+	bra	clrs
 mode3	cmpa	#3
 	bne	exit
 	ldaa	#VPU_GRF
@@ -304,13 +304,7 @@ mode3	cmpa	#3
 	lsla
 	lsla
 	lsla
-clrscr	ldab	SCRSZX
-	mul
-	ldx	SCRADDR
-clrs1	clr	0,x
-	inx
-	subd	#1
-	bne	clrs1
+clrs	jsr	clrscry
 	clr	CURX
 	clr	CURY
 next	ldx	#SCRADDR
@@ -466,6 +460,7 @@ putchar	proc
 	ldab	SCRMODE
 	andb	#$03
 	bne	exit		; graf mode not supported
+
 	pshx
 	pshb
 	psha
@@ -479,39 +474,77 @@ queue1	ldx	QUEUEPTR
 	dec	QUEUELEN
 	bne	return1
 	ldx	#QUEUEBUF
+	stx	QUEUEPTR
 	ldaa	0,x
-	cmpa	#$1e
-	bne	clrqueue
+	cmpa	#$1E
+	bne	queue1b
 	ldaa	1,x
 	suba	#$20
 	ldab	2,x
 	subb	#$20
 	bsr	setcursor
-	bra	clrqueue
-clrqueue clr	QUEUELEN
-	ldx	#QUEUEBUF
-	stx	QUEUEPTR
 	bra	return1
+queue1b	cmpa	#$1B
+	bne	return1
+	ldaa	1,x
+	bra	putnorm
 
-putch0	cmpa	#$1e
-	bne	putc0a
-	ldab	#3
-	stab	QUEUELEN
+return1	pula
+	pulb
+	pulx
+exit	rts
+
+putch0	cmpa	#$1B
+	bne	putc1e
+	ldab	#2
+queueup	stab	QUEUELEN
 	bra	queue1
-putc0a	cmpa	#$0a
+putc1e	cmpa	#$1E
+	bne	putc08
+	ldab	#3
+	bra	queueup
+putc08	cmpa	#$08
+	bne	putc09
+	ldaa	CURX
+	deca
+	ldab	CURY
+	bra	setcur
+putc09	cmpa	#$09
+	bne	putc0a
+	ldaa	CURX
+	adda	#8
+	anda	#%11111000
+	ldab	CURY
+	bra	setcur
+putc0a	cmpa	#$0A
 	bne	putch0c
 	ldaa	CURX
 	ldab	CURY
 	incb
 	bra	setcur
-putch0c	cmpa	#$0c
+putch0c	cmpa	#$0C
 	bne	putch0d
+	bsr	clrscr
 	clra
 	clrb
 	bra	setcur
-putch0d	cmpa	#$0d
-	bne	putnorm
+putch0d	cmpa	#$0D
+	bne	putch18
 	clra
+	ldab	CURY
+	bra	setcur
+putch18	cmpa	#$18
+	bne	putch7f
+	bsr	clr2eol
+	bra	return1
+putch7f	cmpa	#$7F
+	bne	putnorm
+	ldaa	CURX
+	beq	return1
+	deca
+	ldx	CURPTR
+	dex
+	clr	0,x
 	ldab	CURY
 	bra	setcur
 putnorm	ldx	CURPTR
@@ -520,11 +553,29 @@ putnorm	ldx	CURPTR
 	ldab	CURY
 	inca
 setcur	jsr	setcursor
+	jmp	return1
+	endp
 
-return1	pula
-	pulb
-	pulx
-exit	rts
+clrscr	proc
+	global	clrscry, clr2eol
+	ldaa	SCRSZY
+clrscry	ldab	SCRSZX
+	mul
+	ldx	SCRADDR
+clrs1	clr	0,x
+	inx
+	subd	#1
+	bne	clrs1
+	rts
+
+clr2eol	ldx	CURPTR
+	ldaa	SCRSZY
+	suba	CURX
+eoloop	clr	0,x
+	inx
+	deca
+	bne	eoloop
+	rts
 	endp
 
 putstr	proc
