@@ -14,6 +14,7 @@ all: $(UNIASM)		\
     VIDEODRV.CMD	\
     MICROBASIC.CMD	\
     MICROBASICPLUS.CMD	\
+    CHIPTUNE.CMD	\
     ymstreamer
 
 $(UNIASM):

@@ -583,7 +583,7 @@ putstr	proc
 	psha
 loop	ldaa	0,x
 	beq	ret
-	int	$22
+	jsr	putchar
 	inx
 	bra	loop
 ret	pula
@@ -975,30 +975,37 @@ exit	rts
 ; A - Address reg
 ; B - Data
 ;
-psg_write proc
+psg_send proc
+	global psg_write
 	psha
-	pshb
-
-	psha
-	ldab	#1
-wait	ldaa	#SPI_PSG
-	jsr	spi_select
-	tsta
-	bne	wait
-	pula
-
 	bsr	spi_send
 	bsr	bc1off
 	tba
 	bsr	spi_send
 	bsr	bc1on
-
-	ldab	#0
-	ldaa	#SPI_REG
-	jsr	spi_select
-
-	pulb
+	tab
 	pula
+	rts
+
+psg_write pshx
+	pshb
+	psha
+	tab
+	clra
+loop	bsr	spi_send
+	bsr	bc1off
+	psha
+	ldaa	0,x
+	bsr	spi_send
+	bsr	bc1on
+	pula
+	inx
+	inca
+	decb
+	bne	loop
+	pula
+	pulb
+	pulx
 	rts
 
 spi_send pshb
@@ -1222,6 +1229,7 @@ romvecbeg
 	dw	sd_read
 	dw	sd_write
 	dw	sd_flush
+	dw	psg_send
 	dw	psg_write
 	dw	bpt
 romvecend
