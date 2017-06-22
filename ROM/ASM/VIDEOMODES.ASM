@@ -1,0 +1,111 @@
+;
+; VPU test
+;
+
+;
+; pyldin ints:
+; int $12
+; int $13
+; int $14
+; int $15
+;
+
+	include ../DEVMAP.INC
+
+	include ../BOOTROM.INC
+
+	org $100
+
+	lds	#$afff
+	ldx	#hello
+	int	F_UART_PUTS
+
+	ldx	#kimscreen
+	ldaa	#$3
+	int	$12
+
+	ldx	#instr
+	int	F_UART_PUTS
+
+	jmp	updcur
+
+loop	int	F_UART_IN
+	cmpa	#'1'
+	beq	settext
+	cmpa	#'2'
+	beq	setgraf
+	cmpa	#'3'
+	beq	getvmode
+	cmpa	#'9'
+	beq	curincx
+	cmpa	#'0'
+	beq	curincy
+	cmpa	#'4'
+	bne	loop
+	int	F_WARMRES
+setgraf	ldx	#kimscreen
+	ldaa	#3
+	int	$12
+	bra	updcur
+settext	ldx	#textscreen
+	ldaa	#$0
+	int	$12
+	bra	updcur
+
+getvmode int $13
+	ldx	#int13txt
+	int	F_UART_PUTS
+	int	$13
+	pshx
+	int	F_UART_OUTHEX
+	ldaa	#' '
+	int	F_UART_OUT
+	pula
+	int	F_UART_OUTHEX
+	pula
+	int	F_UART_OUTHEX
+	bra	loop
+
+curincx	inc	curx
+	bra	updcur
+curincy	inc	cury
+
+updcur	ldaa	curx
+	ldab	cury
+	int	$15
+
+	ldx	#int14txt
+	int	F_UART_PUTS
+
+	int	$14
+	pshx
+	int	F_UART_OUTHEX
+
+	ldaa	#' '
+	int	F_UART_OUT
+
+	tba
+	int	F_UART_OUTHEX
+
+	ldaa	#' '
+	int	F_UART_OUT
+
+	pula
+	int	F_UART_OUTHEX
+	pula
+	int	F_UART_OUTHEX
+	bra	loop
+
+curx	db	0
+cury	db	0
+
+hello	db	$0a, $0d, 'VIDEOMODES TEST', $0a, $0d, 0
+instr	db	'1 - text mode, 2 - graphics mode, 3- get video mode, 9 - inc cursor x, 0 - inc cursor y, 4 - exit', 0
+int13txt db	10, 13, 'Video mode and address ', 0
+int14txt db	10, 13, 'X, Y and address ', 0
+byebye	db	10,13,'Bye!',10,13,0
+
+kimscreen
+	include	KIM.INC
+textscreen
+	db	'VPU TEXT MODE! vpu text mode! Hello! HELLO!'
