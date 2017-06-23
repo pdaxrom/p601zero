@@ -60,9 +60,8 @@ reset	sei
 
 ; setup stubs
 	ldx	#0
-	stx	VECSWIP
+	stx	VECIRQP
 	stx	VECNMIP
-	clr	VECIRQP
 
 	ldx	#vstub_irq
 	stx	VECIRQ
@@ -75,17 +74,22 @@ reset	sei
 	oraa	#BRAM_DISABLE
 	staa	RAMPAGE_CTL
 
-	ldx	#$A55A
-	stx	$f0
-	ldx	$f0
+; SRAM chip initialization
+	ldaa	#0
+sramini	ldx	#$A55A
+	stx	$0
+	ldx	$0
 	cpx	#$A55A
-	beq	initvecs
+	beq	sramok
+	deca
+	bne	sramini
 
-	ldaa	RAMPAGE_CTL
-	anda	#($FF^BRAM_DISABLE)
-	staa	RAMPAGE_CTL
+	ldab	RAMPAGE_CTL
+	andb	#($FF^BRAM_DISABLE)
+	stab	RAMPAGE_CTL
+sramok	staa	$2
 
-initvecs ldx	#BROM_SWIPAG
+	ldx	#BROM_SWIPAG
 clrswipag clr	0,x
 	inx
 	cpx	#BROM_SWIPAG+$280
