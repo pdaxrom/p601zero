@@ -9,7 +9,9 @@ module mcu_ram (
 	reg [7:0] ram [4095:0];
 
 	always @ (posedge clk) begin
-		if ((rw == 0) && cs) ram[AD[11:0]] <= DI;
-		else DO <= ram[AD[11:0]];
+		if (cs) begin
+			if (rw) DO <= ram[AD[11:0]];
+			else ram[AD[11:0]] <= DI;
+		end
 	end
 endmodule
