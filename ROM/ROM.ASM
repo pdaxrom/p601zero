@@ -678,10 +678,6 @@ spi_read ldaa	#$FF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-sd_show_cmd proc
-	rts
-	endp
-
 sd_delay proc
 	pshx
 	ldx	#4000
@@ -708,7 +704,7 @@ loop	jsr	spi_read
 
 	ldx	#sd_init_cmd0
 	ldab	#10
-loop1	jsr	sd_show_cmd
+loop1	jsr	sd_command
 	cmpa	#$01
 	beq	init2
 	bsr	sd_delay
@@ -719,7 +715,7 @@ loop1	jsr	sd_show_cmd
 
 init2	ldx	#sd_init_cmd1
 	ldab	#255
-loop2	jsr	sd_show_cmd
+loop2	jsr	sd_command
 	tsta
 	beq	init3
 	bsr	sd_delay
@@ -729,7 +725,7 @@ loop2	jsr	sd_show_cmd
 	bra	exit
 
 init3	ldx	#sd_init_cmd16
-	jsr	sd_show_cmd
+	jsr	sd_command
 	clra
 exit	pulx
 	pulb
@@ -766,6 +762,7 @@ exit	pulb
 
 sd_enable proc
 	pshx
+	pshb
 	ldab	#1
 wait	ldaa	#SPI_SD
 	jsr	spi_select
@@ -782,17 +779,20 @@ loop	jsr	spi_read
 	bsr	sd_disable
 	ldaa	#0
 exit	inca
+	pulb
 	pulx
 	rts
 	endp
 
 sd_disable proc
+	pshb
 	psha
 	ldaa	#SPI_SD
 	ldab	#0
 	jsr	spi_select
 	jsr	spi_read
 	pula
+	pulb
 	rts
 	endp
 
@@ -832,7 +832,7 @@ sd_read proc
 	tsx
 	inx
 	inx			; X to saved data for sd_command
-	jsr	sd_show_cmd
+	jsr	sd_command
 	pulx
 
 	tsta
@@ -914,7 +914,7 @@ sd_write proc
 	tsx
 	inx
 	inx			; X to saved data for sd_command
-	jsr	sd_show_cmd
+	jsr	sd_command
 	pulx
 
 	tsta

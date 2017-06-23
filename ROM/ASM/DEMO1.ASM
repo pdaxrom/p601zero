@@ -7,6 +7,9 @@
 	ldx	#hello
 	int	F_UART_PUTS
 
+	ldd	#$02
+	asld
+
 	int	F_BPT
 
 	ldx	#bye

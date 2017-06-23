@@ -14,6 +14,8 @@ all: $(UNIASM)		\
     VIDEODRV.CMD	\
     MICROBASIC.CMD	\
     MICROBASICPLUS.CMD	\
+    SDTEST.CMD		\
+    SDSECRW.CMD		\
     CHIPTUNE.CMD	\
     ymstreamer
 

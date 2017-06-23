@@ -14,6 +14,9 @@
 ;	int F_BPT
 
 	jsr	sd_init
+
+	int F_BPT
+
 	tsta
 	bne	exit
 
@@ -60,22 +63,6 @@ read_buf  equ $400
 read_buf2 equ $600
 
 
-show_cmd proc
-	pshx
-	ldx	#txtcmd
-	int	F_UART_PUTS
-	pulx
-	ldaa	0,x
-	int	F_UART_OUTHEX
-	ldaa	#' '
-	int	F_UART_OUT
-	jsr	sd_command
-	int	F_UART_OUTHEX
-	rts
-	endp
-
-txtcmd	db	10, 13, 'CMD ', 0
-
 sd_delay proc
 	pshx
 	ldx	#4000
@@ -102,7 +89,7 @@ loop	jsr	spi_read
 
 	ldx	#sd_init_cmd0
 	ldab	#10
-loop1	jsr	show_cmd
+loop1	jsr	sd_command
 	cmpa	#$01
 	beq	init2
 	bsr	sd_delay
@@ -113,7 +100,7 @@ loop1	jsr	show_cmd
 
 init2	ldx	#sd_init_cmd1
 	ldab	#255
-loop2	jsr	show_cmd
+loop2	jsr	sd_command
 	tsta
 	beq	init3
 	bsr	sd_delay
@@ -123,7 +110,7 @@ loop2	jsr	show_cmd
 	bra	exit
 
 init3	ldx	#sd_init_cmd16
-	jsr	show_cmd
+	jsr	sd_command
 	clra
 exit	pulx
 	pulb
@@ -158,7 +145,7 @@ exit	pulb
 	rts
 	endp
 
-sd_enable proc
+xsd_enable proc
 	pshx
 	ldaa	SPI_REG
 	anda	#($FF^SPI_SD)
@@ -178,12 +165,38 @@ exit	inca
 	rts
 	endp
 
+sd_enable proc
+	pshx
+	pshb
+	ldab	#1
+wait	ldaa	#SPI_SD
+	jsr	spi_select
+	tsta
+	bne	wait
+	jsr	spi_read
+	ldx	#5000
+loop	jsr	spi_read
+	cmpa	#$FF
+	beq	exit
+	jsr	sd_delay
+	dex
+	bne	loop
+	bsr	sd_disable
+	ldaa	#0
+exit	inca
+	pulb
+	pulx
+	rts
+	endp
+
 sd_disable proc
 	psha
-	ldaa	SPI_REG
-	oraa	#SPI_SD
-	staa	SPI_REG
-	bsr	spi_read
+	pshb
+	ldaa	#SPI_SD
+	ldab	#0
+	jsr	spi_select
+	jsr	spi_read
+	pulb
 	pula
 	rts
 	endp
@@ -224,7 +237,7 @@ sd_read proc
 	tsx
 	inx
 	inx			; X to saved data for sd_command
-	jsr	show_cmd
+	jsr	sd_command
 	pulx
 
 	tsta
@@ -233,7 +246,7 @@ sd_read proc
 	bra	exit
 
 next	ldab	#255
-next1	bsr	spi_read
+next1	jsr	spi_read
 	cmpa	#$FF
 	bne	next2
 	jsr	sd_delay
@@ -247,8 +260,8 @@ next2	cmpa	#$FE
 	bra	exit
 next3	bsr	rcvr
 	bsr	rcvr
-	bsr	spi_read
-	bsr	spi_read
+	jsr	spi_read
+	jsr	spi_read
 	ldaa	#0
 
 exit	tsx
@@ -262,24 +275,12 @@ exit	tsx
 	rts
 
 rcvr	ldab	#0
-rcvr1	bsr	spi_read
+rcvr1	jsr	spi_read
 	staa	0,x
 	inx
 	decb
 	bne	rcvr1
 	rts
-	endp
-
-spi_write proc
-	global	spi_read
-	staa	SPI_DATA
-loop	ldaa	SPI_STATUS
-	bita	#SPI_READY
-	beq	loop
-	ldaa	SPI_DATA
-	rts
-spi_read ldaa	#$FF
-	bra	spi_write
 	endp
 
 ;
@@ -318,7 +319,7 @@ sd_write proc
 	tsx
 	inx
 	inx			; X to saved data for sd_command
-	jsr	show_cmd
+	jsr	sd_command
 	pulx
 
 	tsta
@@ -327,7 +328,7 @@ sd_write proc
 	bra	exit
 
 next	ldab	#255
-next1	bsr	spi_read
+next1	jsr	spi_read
 	cmpa	#$FF
 	beq	next2
 	jsr	sd_delay
@@ -336,12 +337,12 @@ next1	bsr	spi_read
 	ldaa	#2
 	bra	exit
 next2	ldaa	#$FE
-	bsr	spi_write
+	jsr	spi_write
 	bsr	xmit
 	bsr	xmit
-	bsr	spi_read
-	bsr	spi_read
-	bsr	spi_read
+	jsr	spi_read
+	jsr	spi_read
+	jsr	spi_read
 	anda	#$1F
 	cmpa	#$05
 	bne	next3
@@ -361,7 +362,7 @@ exit	tsx
 
 xmit	ldab	#0
 xmit1	ldaa	0,x
-	bsr	spi_write
+	jsr	spi_write
 	inx
 	decb
 	bne	xmit1
@@ -374,6 +375,64 @@ sd_flush proc
 	bne	exit
 	jsr	sd_disable
 exit	rts
+	endp
+
+; Check if spi in use
+; Return:
+; A 0 - not used, 1 - busy
+;
+spi_getstat proc
+	pshx
+	eora	#SPI_ALL
+	psha
+	anda	SPI_REG
+	tsx
+	cmpa	0,x
+	pula
+	beq	okay
+	ldaa	#1
+	bra	exit
+okay	clra
+exit	pulx
+	rts
+	endp
+
+; Select spi device
+; A Device
+; B 1 Enable / 0 Disable
+; Return:
+; A status (0 - okay, 1 - busy)
+
+spi_select proc
+	psha
+	bsr	spi_getstat
+	tsta
+	pula
+	beq	select
+	ldaa	#1
+	rts
+select	tstb
+	beq	disable
+	eora	#$FF
+	anda	SPI_REG
+	staa	SPI_REG
+	bra	okay
+disable	oraa	SPI_REG
+	staa	SPI_REG
+okay	clra
+	rts
+	endp
+
+spi_write proc
+	global	spi_read
+	staa	SPI_DATA
+loop	ldaa	SPI_STATUS
+	bita	#SPI_READY
+	beq	loop
+	ldaa	SPI_DATA
+	rts
+spi_read ldaa	#$FF
+	bra	spi_write
 	endp
 
 hello	db	$0a, $0d, 'SD Card test!', $0a, $0d, 0
