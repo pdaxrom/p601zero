@@ -81,7 +81,7 @@ sramini	ldx	#$A55A
 	ldx	$0
 	cpx	#$A55A
 	beq	sramok
-	deca
+	inca
 	bne	sramini
 
 	ldab	RAMPAGE_CTL
