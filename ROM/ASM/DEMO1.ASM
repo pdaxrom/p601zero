@@ -7,9 +7,8 @@
 	ldx	#hello
 	int	F_UART_PUTS
 
-	ldd	#file
-	ldx	#bootfile
-	bsr	strcmp
+	ldd	RAMPAGE_SEL
+	ldx	$dffe
 
 	int	F_BPT
 

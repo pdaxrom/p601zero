@@ -1,6 +1,6 @@
 UNIASM = DEVEL/uniasm
 
-all: $(UNIASM) bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v
+all: $(UNIASM) bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v KERNEL.SYS
 
 $(UNIASM):
 	make -C $(shell dirname $(UNIASM)) $(shell basename $(UNIASM))
@@ -45,5 +45,9 @@ vrom.mem:
 bootloader: bootloader.c
 	$(CC) $^ -o $@ -Wall -O2 -g
 
+KERNEL.SYS: KERNEL.ASM BOOTROM.INC DEVMAP.INC FAT16.INC
+	$(UNIASM) KERNEL.ASM KERNEL KERNEL.CMD
+	mv -f KERNEL.CMD KERNEL.SYS
+
 clean:
-	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v BOOTROM.INC
+	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v BOOTROM.INC *.SYS

@@ -1016,6 +1016,7 @@ callfunction(ptr)
 		cargs = cargs + 1;
 	}
 	needbrack(")");
+	setargsize(nargs);
 	if(ptr)zcall(ptr);
 	else callstk();
 	Zsp=modstk(Zsp+nargs);	/* clean up arguments */
@@ -2421,6 +2422,14 @@ immed()
 {
 	debug_ol("; immed");
 	ot("ldd	#");
+}
+setargsize(size)
+int size;
+{
+	debug_ol("; setargsize");
+	ot("ldab	#");
+	outdec(size);
+	nl();
 }
 /* Push the primary register onto the stack */
 zpush()

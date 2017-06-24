@@ -1163,9 +1163,10 @@ swihndl proc
 	lsrb
 	lsrb
 swih1	andb	#$0F
+	beq	swih2
 	stab	RAMPAGE_SEL
 
-	tab
+swih2	tab
 	ldx	#BROM_SWIVEC
 	abx
 	abx

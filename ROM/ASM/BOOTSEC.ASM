@@ -2,9 +2,27 @@
 
 	include ../BOOTROM.INC
 
-	include FAT16.INC
+	include ../FAT16.INC
 
-	org $100
+boot_buf	equ	$400
+dir_buf		equ	$600
+kernel_addr	equ	$c000
+kernel_page	equ	$f
+kernel_initvec	equ	$dffe
+
+		section $80
+root_entries	ds	2
+ptr_entry	ds	2
+
+counter		ds	1
+
+read_sec	ds	6
+
+lba		ds	2
+size		ds	2
+		ends
+
+	org $13E
 
 	ldx	#hello
 	int	F_UART_PUTS
@@ -30,27 +48,17 @@ next	ldd	#0
 next1	ldx	#boot_buf
 	ldaa	_reserved_sectors+1,x
 	ldab	_reserved_sectors,x
-;	int	F_BPT
 	std	read_sec+2
 	ldaa	_sectors_per_fat+1,x
 	ldab	_sectors_per_fat,x
-;	int	F_BPT
 	pshb
 	psha
 	clra
 	ldab	_fats,x
 	pulx
-;	int	F_BPT
 	int	F_UMULT
-;	int	F_BPT
-
-;	ldx	read_sec+2
-;	int	F_BPT
-
 	addd	read_sec+2
 	std	read_sec+2
-
-;	int	F_BPT
 
 	ldx	#boot_buf
 	ldaa	_root_entries+1,x
@@ -68,26 +76,20 @@ next1	ldx	#boot_buf
 	int	F_UDIV
 	std	size
 
-	int	F_BPT
-
-	ldd	read_sec+2
-	ldx	read_sec
-
-;	int	F_BPT
-
 	ldx	#dir_buf
 	stx	read_sec+4
 	ldx	#read_sec
 	int	F_SD_READ
 	tsta
-	bne	readerr
+	beq	next2
+	jmp	readerr
 
-	ldx	#dir_buf
+next2	ldx	#dir_buf
 	stx	ptr_entry
 
 readdir	ldd	ptr_entry
 	ldx	#bootfile
-	bsr	strcmp
+	jsr	strcmp
 	beq	loadfile
 	ldd	ptr_entry
 	addd	#32
@@ -97,10 +99,7 @@ readdir	ldd	ptr_entry
 	bne	readdir
 	bra	readerr
 
-loadfile
-;	int	F_BPT
-
-	ldx	ptr_entry
+loadfile ldx	ptr_entry
 	ldaa	_cluster+1,x
 	ldab	_cluster,x
 	subd	#2
@@ -114,28 +113,25 @@ loadfile
 
 	int	F_UMULT
 	addd	size
-
 	addd	read_sec+2
-
-	int	F_BPT
-
 	std	read_sec+2
 
-	ldx	read_sec
-	ldd	read_sec+2
+	ldaa	RAMPAGE_CTL
+	anda	#($FF ^ RAMPAGE_LOCK)
+	staa	RAMPAGE_CTL
+	ldaa	#kernel_page
+	staa	RAMPAGE_SEL
 
-	int	F_BPT
-
-	ldx	#file_buf
+	ldx	#kernel_addr
 	stx	read_sec+4
-
 	ldaa	#16
 	staa	counter
-
 load1	ldx	#read_sec
 	int	F_SD_READ
 	tsta
 	bne	readerr
+	ldaa	#'.'
+	int	F_UART_OUT
 	ldd	read_sec+2
 	addd	#1
 	std	read_sec+2
@@ -145,7 +141,11 @@ load1	ldx	#read_sec
 	dec	counter
 	bne	load1
 
-;	int	F_BPT
+	ldx	#done
+	int	F_UART_PUTS
+
+	ldx	kernel_initvec
+	jsr	0,x
 
 exit	ldx	#bye
 exit1	int	F_UART_PUTS
@@ -197,24 +197,14 @@ exit	pulx
 	rts
 	endp
 
-bootfile db	'IO      SYS',0
+;bootfile	db	'IO      SYS',0
+bootfile	db	'KERNEL  SYS',0
 
-root_entries dw	0
-ptr_entry dw 0
+hello		db	'Booting KERNEL.SYS ', 0
+err1txt		db	' failed.', 10, 13, 'Storage init error!', 10, 13, 0
+err2txt		db	' failed.', 10, 13, 'Loading error!', 10, 13, 0
+done		db	' done.', $0a, $0d, 0
+bye		db	'Something went wrong, return to BOOTROM :(', 0
 
-counter	db	0
-
-read_sec db	$00,$00,$00,$00
-	dw	0
-
-lba	dw	0
-size	dw	0
-
-boot_buf equ	$400
-dir_buf	equ	$600
-file_buf equ	$800
-
-hello	db	'Booting IO.SYS', $0a, $0d, 0
-err1txt	db	'Can not initialize boot storage!', 10, 13, 0
-err2txt	db	'Read error!', 10, 13, 0
-bye	db	'Starting IO.SYS', $0a, $0d, 0
+		ds	$2fe-*,$ff
+		db	$55, $aa

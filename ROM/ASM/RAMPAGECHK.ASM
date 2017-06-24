@@ -11,11 +11,12 @@
 	ldx	#hello
 	int	F_UART_PUTS
 
-	ldaa	#$00
-	staa	$e6f1
+	ldaa	RAMPAGE_CTL
+	anda	#($FF ^ RAMPAGE_LOCK)
+	staa	RAMPAGE_CTL
 
 	clra
-loop	staa	$e6f0
+loop	staa	RAMPAGE_SEL
 	staa	$c000
 	tab
 	addb	#$10
@@ -29,11 +30,12 @@ loop	staa	$e6f0
 	ldx	#hello1
 	int	F_UART_PUTS
 
-	ldaa	#$01
-	staa	$e6f1
+	ldaa	RAMPAGE_CTL
+	oraa	#RAMPAGE_LOCK
+	staa	RAMPAGE_CTL
 
 	clra
-loop2	staa	$e6f0
+loop2	staa	RAMPAGE_SEL
 	tab
 	negb
 	stab	$c000
@@ -45,11 +47,11 @@ loop2	staa	$e6f0
 
 	bsr	readpages
 
-	jmp	F_RESET
+	int	F_WARMRES
 
 readpages proc
 	clrb
-loop	stab	$e6f0
+loop	stab	RAMPAGE_SEL
 	ldx	#page
 	int	F_UART_PUTS
 	tba

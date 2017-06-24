@@ -6,7 +6,7 @@ UNIC = ../DEVEL/unic
 
 CC = $(UNIC)
 
-all: $(UNIC) hello1.cmd hello2.cmd optest.cmd gpio.cmd
+all: $(UNIC) hello1.cmd hello2.cmd optest.cmd gpio.cmd hello3.cmd
 # hello3.cmd hello4.cmd hello5.cmd hello6.cmd hello7.cmd hello8.cmd hello9.cmd hello10.cmd
 
 $(UNIC):
