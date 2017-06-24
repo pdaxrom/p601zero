@@ -16,6 +16,7 @@ all: $(UNIASM)		\
     MICROBASICPLUS.CMD	\
     SDTEST.CMD		\
     SDSECRW.CMD		\
+    BOOTSEC.CMD		\
     CHIPTUNE.CMD	\
     ymstreamer
 
