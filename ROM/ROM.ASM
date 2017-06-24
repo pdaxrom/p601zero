@@ -1039,6 +1039,107 @@ bc1on	psha
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
+umult	proc
+P	equ	0
+Q	equ	2
+R	equ	4
+	pshx		; R
+	pshx		; R
+	pshx		; Q
+	pshb		; P
+	psha		; P
+	tsx
+
+	clrb
+	clra
+	std	R,x
+	ldaa	P+1,x
+	ldab	Q+1,x
+	mul
+	std	R+2,x
+	ldaa	P,x
+	ldab	Q+1,x
+	mul
+	addd	R+1,x
+	std	R+1,x
+	bcc	MUL002
+	inc	R,x
+MUL002	ldaa	P+1,x
+	ldab	Q,x
+	mul
+	addd	R+1,x
+	std	R+1,x
+	bcc	MUL004
+	inc	R,x
+MUL004	ldaa	P,x
+	ldab	Q,x
+	mul
+	addd	R,x
+;	std	R,x
+;	ldx	R+2,x
+	pulx
+	pulx
+	pulx
+	pulx
+	xgdx
+	rts
+	endp
+
+udiv	proc
+DIV	equ	3
+QUO	equ	1
+KT	equ	0
+
+	pshb		; divisor
+	psha		;
+	pshx		; dividend
+	ldab	#1
+	pshb		; counter
+	tsx
+
+	ldd	DIV,x
+	beq	error
+	bmi	DIV002
+DIV001	inc	KT,x
+	asld
+	bpl	DIV001
+	std	DIV,x
+DIV002	ldd	QUO,x
+	clr	QUO,x
+	clr	QUO+1,x
+DIV003	subd	DIV,x
+	bcc	DIV004
+	addd	DIV,x
+	clc
+	bra	DIV005
+DIV004	sec
+DIV005	rol	QUO+1,x
+	rol	QUO,x
+	lsr	DIV,x
+	ror	DIV+1,x
+	dec	KT,x
+	bne	DIV003
+
+	pshb
+	psha
+	ldd	QUO,x
+	pulx
+
+	clc
+	bra	okay
+error	sec
+okay	ins
+	ins
+	ins
+	ins
+	ins
+	rts
+	endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
 swihndl proc
 	sei
 	tsx
@@ -1235,6 +1336,8 @@ romvecbeg
 	dw	sd_flush
 	dw	psg_send
 	dw	psg_write
+	dw	umult
+	dw	udiv
 	dw	bpt
 romvecend
 
