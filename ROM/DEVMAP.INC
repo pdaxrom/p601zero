@@ -43,10 +43,10 @@ SPI_REG		equ	$E6C3
 
 SPI_READY	equ	$80
 
-SPI_SD		equ	$01
-SPI_PSG		equ	$02
-SPI_RES		equ	$08
-SPI_PSGBC1	equ	$80
+SPI_RES		equ	$01
+SPI_PSGBC1	equ	$10
+SPI_PSG		equ	$20
+SPI_SD		equ	$80
 
 ; add other SPI devices to check if SPI in use
 SPI_ALL		equ	(SPI_SD | SPI_PSG)

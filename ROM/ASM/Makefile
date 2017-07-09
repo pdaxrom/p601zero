@@ -4,6 +4,7 @@ all: $(UNIASM)		\
     DEMO1.CMD		\
     IRQTEST.CMD		\
     VIRQTEST.CMD	\
+    SPITEST.CMD		\
     RAMCHK.CMD		\
     RAMTEST.CMD		\
     RAMPAGECHK.CMD	\
