@@ -92,6 +92,25 @@ module p601zero (
 	assign seg_led_h[8] = led_anode[1];
 	assign seg_led_l[8] = led_anode[0];
 
+	wire [15:0] VADDR;
+	wire vpu_vramcs;
+	wire bram_disable;
+	wire [7:0] bramd;
+	
+	/*
+		Mapping BRAM to $0000 - $0FFF
+		mirroring    to $E800 - $F7FF
+		to enable system start without
+		external RAM.
+	 */
+	 
+	wire [15:0] bram_ad = vpu_vramcs ? VADDR : AD;
+	wire bram_0p  = bram_ad[15:12] == 4'b0000;
+	wire bram_13p = bram_ad[15:11] == 5'b11101;
+	wire bram_14p = bram_ad[15:11] == 5'b11110;
+	
+	wire en_bram = (bram_0p || bram_13p || bram_14p) && (!bram_disable);
+
 	wire DS0 = (AD[15:5] == 11'b11100110000); // $E600
 	wire DS1 = (AD[15:5] == 11'b11100110001); // $E620
 	wire DS2 = (AD[15:5] == 11'b11100110010); // $E640
@@ -105,8 +124,6 @@ module p601zero (
 	wire cs_vpu = en_vpu && sys_vma;
 	wire [7:0] vpud;
 	
-	wire [15:0] VADDR;
-	wire vpu_vramcs;
 	wire vpu_hold;
 
 	vpu vpu_impl(
@@ -121,7 +138,7 @@ module p601zero (
 		.pixel_clk(pixel_clk),
 		
 		.VADDR(VADDR),
-		.VDATA(EXT_DQ),
+		.VDATA(en_bram? bramd : EXT_DQ),
 		.vramcs(vpu_vramcs),
 		.hold(vpu_hold),
 		
@@ -194,7 +211,6 @@ module p601zero (
 	wire cs_pagesel = en_pagesel && sys_vma;
 	wire [7:0] pageseld;
 	wire [4:0] mempage;
-	wire bram_disable;
 	pagesel pagesel_imp (
 		.clk(sys_clk),
 		.rst(sys_res),
@@ -218,26 +234,27 @@ module p601zero (
 		.Q(bromd)
 	);
 
-	wire en_bram = (AD[15:12] == 4'b0000) && (!bram_disable);
-	wire cs_bram = en_bram && sys_vma;
-	wire [7:0] bramd;
+	wire int_vramcs = vpu_vramcs && en_bram;
+	wire cs_bram = (en_bram && sys_vma) || int_vramcs;
 	mcu_ram bram (
-		.clk(sys_clk),
-		.AD(AD),
-		.DI(DO),
-		.DO(bramd),
-		.rw(sys_rw),
-		.cs(cs_bram)
+		.Clock(sys_clk),
+		.ClockEn(cs_bram),
+		.Reset(sys_res),
+		.WE(int_vramcs ? 1'b0 : ((~sys_clk) & (~sys_rw))),
+		.Address( {(bram_13p || bram_14p) ? ~bram_ad[11] : bram_ad[11], bram_ad[10:0]}),
+		.Data(DO),
+		.Q(bramd)
 	);
 
+	wire ext_vramcs = vpu_vramcs && (~en_bram);
 	wire en_ext = !(en_brom | en_bram | en_vpu | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
 	wire pageen = mempage[3] && (AD[15:13] == 3'b110) && (!(mempage[4] && (!sys_rw)));
-	assign EXT_AD[16:0] = vpu_vramcs ? {1'b0, VADDR} :
+	assign EXT_AD[16:0] = ext_vramcs ? {1'b0, VADDR} :
 						  pageen   ? {1'b1, mempage[2:0], AD[12:0]} : {1'b0, AD};
 
-	assign EXT_OE_n = vpu_vramcs ? 1'b0 : ~((~sys_clk) &  (sys_rw));
-	assign EXT_WE_n = vpu_vramcs ? 1'b1 : ~((~sys_clk) & (~sys_rw));
-	assign EXT_DQ   = vpu_vramcs ? 8'bZ : (sys_rw) ? 8'bZ : DO;
+	assign EXT_OE_n = ext_vramcs ? 1'b0 : ~((~sys_clk) &  (sys_rw));
+	assign EXT_WE_n = ext_vramcs ? 1'b1 : ~((~sys_clk) & (~sys_rw));
+	assign EXT_DQ   = ext_vramcs ? 8'bZ : (sys_rw) ? 8'bZ : DO;
  
 	assign DI = en_ext      ? EXT_DQ:
 				en_bram		? bramd:
@@ -249,7 +266,7 @@ module p601zero (
 				en_pagesel  ? pageseld:
 				8'b11111111;
 
-	assign SRAM_CS2 = (en_ext && sys_vma) | vpu_vramcs;
+	assign SRAM_CS2 = (en_ext && sys_vma) | ext_vramcs;
 
 //	reg [2:0] extbus_clkdiv_cnt;
 //	reg dyn_clk;

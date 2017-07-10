@@ -14,7 +14,6 @@
 	lds	#$efef
 
 ; disable ram pages
-	clr	RAMPAGE_CTL
 	clr	RAMPAGE_SEL
 	ldaa	RAMPAGE_CTL
 	oraa	#BRAM_DISABLE

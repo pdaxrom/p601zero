@@ -1,6 +1,6 @@
 UNIASM = DEVEL/uniasm
 
-all: $(UNIASM) bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v KERNEL.SYS
+all: $(UNIASM) bootloader ../mcu_rom.v ../mcu_ram.v ../vrom.v ../mcu_pll.v ../vpu_cache.v KERNEL.SYS
 
 $(UNIASM):
 	make -C $(shell dirname $(UNIASM)) $(shell basename $(UNIASM))
@@ -22,6 +22,12 @@ vrom.mem:
 	export FOUNDRY="/opt/diamond/3.9_x64/ispfpga"; \
 	cd .. && \
 	/opt/diamond/3.9_x64/ispfpga/bin/lin64/scuba -w -n mcu_rom -lang verilog -synth lse -bus_exp 7 -bb -arch xo2c00 -type rom -addr_width 8 -num_rows 2048 -data_width 8 -outdata REGISTERED -cascade -1 -resetmode SYNC -sync_reset  -memfile ROM/rom.mem -memformat orca
+
+../mcu_ram.v:
+	export LD_LIBRARY_PATH="/opt/diamond/3.9_x64/tcltk/lib:/opt/diamond/3.9_x64/ispfpga/bin/lin64:/opt/diamond/3.9_x64/bin/lin64:/opt/diamond/3.9_x64/ispfpga/bin/lin64"; \
+	export FOUNDRY="/opt/diamond/3.9_x64/ispfpga"; \
+	cd .. && \
+	/opt/diamond/3.9_x64/ispfpga/bin/lin64/scuba -w -n mcu_ram -lang verilog -synth lse -bus_exp 7 -bb -arch xo2c00 -type bram -wp 10 -rp 1000 -addr_width 12 -data_width 8 -num_rows 4096 -cascade -1 -mem_init0 -writemode NORMAL
 
 ../vrom.v: vrom.mem
 	export LD_LIBRARY_PATH="/opt/diamond/3.9_x64/tcltk/lib:/opt/diamond/3.9_x64/ispfpga/bin/lin64:/opt/diamond/3.9_x64/bin/lin64:/opt/diamond/3.9_x64/ispfpga/bin/lin64"; \
@@ -50,4 +56,4 @@ KERNEL.SYS: KERNEL.ASM BOOTROM.INC DEVMAP.INC FAT16.INC
 	mv -f KERNEL.CMD KERNEL.SYS
 
 clean:
-	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader ../mcu_rom.v ../vrom.v ../mcu_pll.v ../vpu_cache.v BOOTROM.INC *.SYS
+	rm -f rom.bin *.LST *.CMD *.o *.mem bootloader ../mcu_rom.v ../mcu_ram.v ../vrom.v ../mcu_pll.v ../vpu_cache.v BOOTROM.INC *.SYS

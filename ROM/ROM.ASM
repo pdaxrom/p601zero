@@ -58,18 +58,6 @@ BROM_SWIVEC	ds	$200
 
 reset	sei
 
-; setup stubs
-	ldx	#0
-	stx	VECIRQP
-	stx	VECNMIP
-
-	ldx	#vstub_irq
-	stx	VECIRQ
-	ldx	#vstub_nmi
-	stx	VECNMI
-	ldx	#swihndl
-	stx	VECSWI
-
 	ldaa	RAMPAGE_CTL
 	oraa	#BRAM_DISABLE
 	staa	RAMPAGE_CTL
@@ -87,7 +75,24 @@ sramini	ldx	#$A55A
 	ldab	RAMPAGE_CTL
 	andb	#($FF^BRAM_DISABLE)
 	stab	RAMPAGE_CTL
+	ldab	#$1C
+	stab	IO_L7HI
 sramok	staa	$2
+	staa	IO_L8BIT
+
+; setup stubs
+	ldx	#0
+	stx	VECIRQP
+	stx	VECNMIP
+
+	ldx	#vstub_irq
+	stx	VECIRQ
+	ldx	#vstub_nmi
+	stx	VECNMI
+	ldx	#swihndl
+	stx	VECSWI
+
+; setup syscalls
 
 	ldx	#BROM_SWIPAG
 clrswipag clr	0,x
