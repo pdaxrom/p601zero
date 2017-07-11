@@ -204,6 +204,7 @@ IEXIT   LDAA #$1E
 OUTCH	INT	F_UART_OUT		; /sashz
 	RTS
 INCH	INT	F_UART_IN		; /sashz
+	RTS
 
 OUTPUT  EQU *
         BSR OUTNCR

@@ -281,8 +281,7 @@ module p601zero (
 	assign sys_clk = sys_clk_out;
 
 	wire cpu_clk = vpu_hold ? 1'b1 : sys_clk;
-	wire cpu_irq = simpleio_irq | uartio_irq | vpu_irq;
-	
+/*	
 	cpu68 mc6801 (
 		.clk(cpu_clk),
 		.rst(sys_res),
@@ -295,6 +294,20 @@ module p601zero (
 		.address(AD),
 		.data_in(DI),
 		.data_out(DO)
+	);
+ */
+ 
+	wire cpu_irq = simpleio_irq | uartio_irq | vpu_irq;
+	cpu11 cpu11impl(
+		.clk(cpu_clk),
+		.rst(sys_res),
+		.rw(sys_rw),
+		.vma(sys_vma),
+		.address(AD),
+		.data_in(DI),
+		.data_out(DO),
+		.irq(cpu_irq),
+		.xirq(1'b0)
 	);
 
 endmodule

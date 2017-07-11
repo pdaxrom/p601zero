@@ -1,5 +1,5 @@
 ;
-; UART BOOTROM for BLACK EYES 601 Zero
+; BOOTROM for Z/pdaXrom
 ; (c) sashz <sashz@pdaXrom.org>, 2017
 ;
 
@@ -68,11 +68,15 @@ sramini	ldx	#$A55A
 	stx	$0
 	ldx	$0
 	cpx	#$A55A
+	bne	sramin1
+	ldab	IO_SWKEYS
+	bitb	#1
 	beq	sramok
-	inca
+	bra	onbrom
+sramin1	inca
 	bne	sramini
 
-	ldab	RAMPAGE_CTL
+onbrom	ldab	RAMPAGE_CTL
 	andb	#($FF^BRAM_DISABLE)
 	stab	RAMPAGE_CTL
 	ldab	#$1C
@@ -1148,9 +1152,9 @@ okay	ins
 swihndl proc
 	sei
 	tsx
-	ldd	5,x
+	ldd	7,x
 	addd	#1
-	std	5,x
+	std	7,x
 	xgdx
 	dex
 	ldaa	0,x
@@ -1189,6 +1193,8 @@ swih2	tab
 	ldaa	7,x
 	psha
 	ldaa	5,x
+;	db	$1a		; ldy prefix
+;	ldx	10,x		; ldy 10,x
 	ldx	8,x
 	tap
 	pula
@@ -1203,6 +1209,8 @@ swiret	sei
 	staa	6,x
 	pula
 	staa	7,x
+	db	$1a		; sty prefix
+	stx	8,x		; sty 8,x
 exit	pulb
 	stab	RAMPAGE_SEL
 	rti
@@ -1213,6 +1221,8 @@ exit	pulb
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 bpt	proc
+	db	$18		; pshy prefix
+	pshx			; pshy
 	pshb
 	psha
 	pshx
@@ -1231,9 +1241,13 @@ bpt	proc
 	bsr	regshex
 	ldaa	2,x
 	bsr	regshex
+	ldaa	5,x
+	bsr	regshex
+	ldaa	6,x
+	bsr	regshex
 	tsx
 	xgdx
-	addd	#$0E
+	addd	#$12
 	xgdx
 	dex
 	ldd	0,x
@@ -1254,10 +1268,12 @@ bpt	proc
 	pulx
 	pula
 	pulb
+	db	$18		; puly prefix
+	pulx			; puly
 	rts
 regshex	jmp	uart_outhex
 
-regstxt	db	10, 13, 'P_A_B_X___SP__PC__', 10, 13, 0
+regstxt	db	10, 13, 'P_A_B_X___Y___SP__PC__', 10, 13, 0
 regsnl	db	10, 13, 0
 	endp
 
@@ -1347,7 +1363,7 @@ romvecbeg
 	dw	bpt
 romvecend
 
-pylogo		db	'ZERO/pdaXrom BOOTROM', 10, 13
+pylogo		db	'Z/pdaXrom', 10, 13
 		db	'(c) sashz <sash@pdaXrom.org>, 1997-2017', 10, 13, 0
 txt_bram	db	'Internal RAM enabled.', 10, 13, 0
 txt_extram	db	'External RAM enabled.', 10, 13, 0

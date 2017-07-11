@@ -50,7 +50,7 @@ program asm6800;
     ILL_CSUM = 36;		   (* CSUM inside dummy or duplicated *)
     ILL_EXPR = 37;		   (* Illegal expression *)
 
-  const NInstructions = 138; { MC6800 + alias + MC6801 + HD6303 }
+  const NInstructions = 137; { MC6800 + alias + MC6801 + MC6811(xgdx) }
 	n_directives= 19;
 	MaxPublix = 255;
 	MaxExternals = 255;
@@ -120,18 +120,18 @@ program asm6800;
     instr_def:	instr_array =
      (* 	mnem	     large	   impl #    zp   abs  indXrel *)
 (    (mnemonic:'ABA'  ;large:false  ;code:( $1B, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ABX'  ;large:false  ;code:( $3A, 0  , 0  , 0  , 0  , 0  ) ) , { 6803 }
+     (mnemonic:'ABX'  ;large:false  ;code:( $3A, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
      (mnemonic:'ADCA' ;large:false  ;code:( 0  , $89, $99, $B9, $A9, 0  ) ) ,
      (mnemonic:'ADCB' ;large:false  ;code:( 0  , $C9, $D9, $F9, $E9, 0  ) ) ,
      (mnemonic:'ADDA' ;large:false  ;code:( 0  , $8B, $9B, $BB, $AB, 0  ) ) ,
      (mnemonic:'ADDB' ;large:false  ;code:( 0  , $CB, $DB, $FB, $EB, 0  ) ) ,
-     (mnemonic:'ADDD' ;large:true   ;code:( 0  , $C3, $D3, $F3, $E3, 0  ) ) , { 6803 }
+     (mnemonic:'ADDD' ;large:true   ;code:( 0  , $C3, $D3, $F3, $E3, 0  ) ) , { 6801 }
      (mnemonic:'ANDA' ;large:false  ;code:( 0  , $84, $94, $B4, $A4, 0  ) ) ,
      (mnemonic:'ANDB' ;large:false  ;code:( 0  , $C4, $D4, $F4, $E4, 0  ) ) ,
      (mnemonic:'ASL'  ;large:false  ;code:( 0  , 0  , 0  , $78, $68, 0  ) ) ,
      (mnemonic:'ASLA' ;large:false  ;code:( $48, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'ASLB' ;large:false  ;code:( $58, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ASLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ) ) , { 6803 }
+     (mnemonic:'ASLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
      (mnemonic:'ASR'  ;large:false  ;code:( 0  , 0  , 0  , $77, $67, 0  ) ) ,
      (mnemonic:'ASRA' ;large:false  ;code:( $47, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'ASRB' ;large:false  ;code:( $57, 0  , 0  , 0  , 0  , 0  ) ) ,
@@ -141,18 +141,18 @@ program asm6800;
      (mnemonic:'BGE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2C) ) ,
      (mnemonic:'BGT'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2E) ) ,
      (mnemonic:'BHI'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $22) ) ,
-     (mnemonic:'BHS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $24) ) , { 6803 }
+     (mnemonic:'BHS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $24) ) , { 6801 }
      (mnemonic:'BITA' ;large:false  ;code:( 0  , $85, $95, $B5, $A5, 0  ) ) ,
      (mnemonic:'BITB' ;large:false  ;code:( 0  , $C5, $D5, $F5, $E5, 0  ) ) ,
      (mnemonic:'BLE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2F) ) ,
-     (mnemonic:'BLO'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $25) ) , { 6803 }
+     (mnemonic:'BLO'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $25) ) , { 6801 }
      (mnemonic:'BLS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $23) ) ,
      (mnemonic:'BLT'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2D) ) ,
      (mnemonic:'BMI'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2B) ) ,
      (mnemonic:'BNE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $26) ) ,
      (mnemonic:'BPL'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2A) ) ,
      (mnemonic:'BRA'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $20) ) ,
-     (mnemonic:'BRN'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $21) ) , { 6803 }
+     (mnemonic:'BRN'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $21) ) , { 6801 }
      (mnemonic:'BSR'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $8D) ) ,
      (mnemonic:'BVC'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $28) ) ,
      (mnemonic:'BVS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $29) ) ,
@@ -184,23 +184,23 @@ program asm6800;
      (mnemonic:'INT'  ;large:false  ;code:( 0  , 0  , $3F, 0  , 0  , 0  ) ) ,
      (mnemonic:'INX'  ;large:false  ;code:( $08, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'JMP'  ;large:false  ;code:( 0  , 0  , 0  , $7E, $6E, 0  ) ) ,
-     (mnemonic:'JSR'  ;large:false  ;code:( 0  , 0  , $9D, $BD, $AD, 0  ) ) , { 6803 - +direct }
+     (mnemonic:'JSR'  ;large:false  ;code:( 0  , 0  , $9D, $BD, $AD, 0  ) ) , { 6801 - +direct }
 (**) (mnemonic:'LDA'  ;large:false  ;code:( 0  , $86, $96, $B6, $A6, 0  ) ) ,
      (mnemonic:'LDAA' ;large:false  ;code:( 0  , $86, $96, $B6, $A6, 0  ) ) ,
      (mnemonic:'LDAB' ;large:false  ;code:( 0  , $C6, $D6, $F6, $E6, 0  ) ) ,
 (**) (mnemonic:'LDB'  ;large:false  ;code:( 0  , $C6, $D6, $F6, $E6, 0  ) ) ,
-     (mnemonic:'LDD'  ;large:true   ;code:( 0  , $CC, $DC, $FC, $EC, 0  ) ) , { 6803 }
+     (mnemonic:'LDD'  ;large:true   ;code:( 0  , $CC, $DC, $FC, $EC, 0  ) ) , { 6801 }
      (mnemonic:'LDS'  ;large:true   ;code:( 0  , $8E, $9E, $BE, $AE, 0  ) ) ,
      (mnemonic:'LDX'  ;large:true   ;code:( 0  , $CE, $DE, $FE, $EE, 0  ) ) ,
      (mnemonic:'LSL'  ;large:false  ;code:( 0  , 0  , 0  , $78, $68, 0  ) ) ,
      (mnemonic:'LSLA' ;large:false  ;code:( $48, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'LSLB' ;large:false  ;code:( $58, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'LSLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ) ) , { 6803 }
+     (mnemonic:'LSLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
      (mnemonic:'LSR'  ;large:false  ;code:( 0  , 0  , 0  , $74, $64, 0  ) ) ,
      (mnemonic:'LSRA' ;large:false  ;code:( $44, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'LSRB' ;large:false  ;code:( $54, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'LSRD' ;large:false  ;code:( $04, 0  , 0  , 0  , 0  , 0  ) ) , { 6803 }
-     (mnemonic:'MUL'  ;large:false  ;code:( $3D, 0  , 0  , 0  , 0  , 0  ) ) , { 6803 }
+     (mnemonic:'LSRD' ;large:false  ;code:( $04, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
+     (mnemonic:'MUL'  ;large:false  ;code:( $3D, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
 { (**) (mnemonic:'NBA'  ;large:false  ;code:( $14, 0  , 0  , 0  , 0  , 0  ) ) , }
      (mnemonic:'NEG'  ;large:false  ;code:( 0  , 0  , 0  , $70, $60, 0  ) ) ,
      (mnemonic:'NEGA' ;large:false  ;code:( $40, 0  , 0  , 0  , 0  , 0  ) ) ,
@@ -217,10 +217,10 @@ program asm6800;
 (**) (mnemonic:'PLB'  ;large:false  ;code:( $33, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'PSHA' ;large:false  ;code:( $36, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'PSHB' ;large:false  ;code:( $37, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'PSHX' ;large:false  ;code:( $3C, 0  , 0  , 0  , 0  , 0  ) ) , { 6803 }
+     (mnemonic:'PSHX' ;large:false  ;code:( $3C, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
      (mnemonic:'PULA' ;large:false  ;code:( $32, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'PULB' ;large:false  ;code:( $33, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'PULX' ;large:false  ;code:( $38, 0  , 0  , 0  , 0  , 0  ) ) , { 6803 }
+     (mnemonic:'PULX' ;large:false  ;code:( $38, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
      (mnemonic:'ROL'  ;large:false  ;code:( 0  , 0  , 0  , $79, $69, 0  ) ) ,
      (mnemonic:'ROLA' ;large:false  ;code:( $49, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'ROLB' ;large:false  ;code:( $59, 0  , 0  , 0  , 0  , 0  ) ) ,
@@ -235,17 +235,16 @@ program asm6800;
      (mnemonic:'SEC'  ;large:false  ;code:( $D , 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'SEI'  ;large:false  ;code:( $F , 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'SEV'  ;large:false  ;code:( $B , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'SLP'  ;large:false  ;code:( $1A, 0  , 0  , 0  , 0  , 0  ) ) , { 6303 }
 (**) (mnemonic:'STA'  ;large:false  ;code:( 0  , 0  , $97, $B7, $A7, 0  ) ) ,
      (mnemonic:'STAA' ;large:false  ;code:( 0  , 0  , $97, $B7, $A7, 0  ) ) ,
      (mnemonic:'STAB' ;large:false  ;code:( 0  , 0  , $D7, $F7, $E7, 0  ) ) ,
 (**) (mnemonic:'STB'  ;large:false  ;code:( 0  , 0  , $D7, $F7, $E7, 0  ) ) ,
-     (mnemonic:'STD'  ;large:false  ;code:( 0  , 0  , $DD, $FD, $ED, 0  ) ) , { 6803 }
+     (mnemonic:'STD'  ;large:false  ;code:( 0  , 0  , $DD, $FD, $ED, 0  ) ) , { 6801 }
      (mnemonic:'STS'  ;large:false  ;code:( 0  , 0  , $9F, $BF, $AF, 0  ) ) ,
      (mnemonic:'STX'  ;large:false  ;code:( 0  , 0  , $DF, $FF, $EF, 0  ) ) ,
      (mnemonic:'SUBA' ;large:false  ;code:( 0  , $80, $90, $B0, $A0, 0  ) ) ,
      (mnemonic:'SUBB' ;large:false  ;code:( 0  , $C0, $D0, $F0, $E0, 0  ) ) ,
-     (mnemonic:'SUBD' ;large:true   ;code:( 0  , $83, $93, $B3, $A3, 0  ) ) , { 6803 }
+     (mnemonic:'SUBD' ;large:true   ;code:( 0  , $83, $93, $B3, $A3, 0  ) ) , { 6801 }
      (mnemonic:'SWI'  ;large:false  ;code:( $3F, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'TAB'  ;large:false  ;code:( $16, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'TAP'  ;large:false  ;code:( $6 , 0  , 0  , 0  , 0  , 0  ) ) ,
@@ -257,7 +256,7 @@ program asm6800;
      (mnemonic:'TSX'  ;large:false  ;code:( $30, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'TXS'  ;large:false  ;code:( $35, 0  , 0  , 0  , 0  , 0  ) ) ,
      (mnemonic:'WAI'  ;large:false  ;code:( $3E, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'XGDX' ;large:false  ;code:( $18, 0  , 0  , 0  , 0  , 0  ) ) , { 6303 }
+     (mnemonic:'XGDX' ;large:false  ;code:( $8F, 0  , 0  , 0  , 0  , 0  ) ) , { 6811 }
 (**) (mnemonic:'XORA' ;large:false  ;code:( 0  , $88, $98, $B8, $A8, 0  ) ) ,
 (**) (mnemonic:'XORB' ;large:false  ;code:( 0  , $C8, $D8, $F8, $E8, 0  ) ) );
 
@@ -453,7 +452,7 @@ program asm6800;
 
   begin
   writeln;
-  writeln('6800 Cross Assembler.             Version 3.10');
+  writeln('6801 Cross Assembler.             Version 3.10');
   writeln('Software Research and Development Lab.,  Sofia');
   writeln('Copyright (C) Ivo Nenov 1988-89');
   writeln('          (C) O.Shopov  1988-89 Eagle software');

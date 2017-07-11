@@ -2,27 +2,17 @@
 
 	include ../BOOTROM.INC
 
+SCRADDR		equ	$F560
+SCRSZX		equ	$F562
+SCRSZY		equ	$F563
+
 	org $100
 
-;	ldx	#$FDFC
-;	ldx	#swihndl
-;	stx	$F57A
-
-	ldx	#hello
-	int	F_UART_PUTS
-
-	ldaa	#$34
-	staa	IO_L7HI
+	ldd	#100
+	subd	#60
 
 	int	F_BPT
 
-	ldx	#title
-	int	$23
-
-	int	F_UART_IN
-
-	ldx	#bye
-	int	F_UART_PUTS
 
 	int	F_WARMRES
 
