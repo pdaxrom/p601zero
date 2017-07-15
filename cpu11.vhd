@@ -40,7 +40,7 @@
 --
 -- Version 1.1 - 4 April 2004
 -- Removed Test_alu and Test_cc signals
---	Moved Dual operand execution into fetch state
+-- Moved Dual operand execution into fetch state
 -- Fixed Indexed bit operators
 --
 -- Added by sashz (11 Jul 2017):
@@ -50,6 +50,9 @@
 -- rather than "alu_clr". I've also moved the "alu_clr" to the "alu_clc"
 -- decode which clears the carry. It should not be necessary, but is a
 -- more obvious way of doing things.
+--
+-- Added by sashz (15 Jul 2017):
+-- Fixed mistyped prefix for page4 indexed state
 --
 
 library ieee;
@@ -2730,7 +2733,7 @@ state_logic: process( state, op_code, pre_byte, cc, ea, md, irq, xirq, ea_bit, c
              addr_ctrl  <= idle_ad;
              dout_ctrl  <= md_lo_dout;
 				 -- add 8 bit ea to ix or iy
-				 if(( pre_byte = "00011000") or (pre_byte = "00011010")) then
+				 if(( pre_byte = "00011000") or (pre_byte = "11001101")) then
 				   ea_ctrl    <= add_iy_ea;
 				 else
 				   ea_ctrl    <= add_ix_ea;
