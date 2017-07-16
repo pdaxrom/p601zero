@@ -1,0 +1,11 @@
+#include <stdio.h>
+#include "as.h"
+#include "table11.h"
+#include "util.c"
+#include "as.c"
+#include "do11.c"
+#include "pseudo.c"
+#include "eval.c"
+#include "symtab.c"
+#include "ffwd.c"
+#include "output.c"
