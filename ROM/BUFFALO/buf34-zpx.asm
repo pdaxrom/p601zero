@@ -187,6 +187,14 @@ JCLM    RMB   3
 
         ORG  ROMBS
 
+	fdb	$A55A
+	fcc	'BUFFALO '
+	jmp	p601_init
+	jmp	p601_monitor
+	fcb	0		; No Pyldin 601 swi calls here
+p601_init	rts
+p601_monitor	rts
+
 *****************
 **  BUFFALO - This is where Buffalo starts
 ** out of reset.  All initialization is done

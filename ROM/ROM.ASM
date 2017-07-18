@@ -152,7 +152,7 @@ warmres	lds	#BROM_STACK
 	staa	UART_CONFIG
 
 	ldx	#pylogo
-	bsr	uart_puts
+	jsr	uart_puts
 
 	ldaa	RAMPAGE_CTL
 	bita	#BRAM_DISABLE
@@ -162,6 +162,24 @@ warmres	lds	#BROM_STACK
 bramen	ldx	#txt_bram
 ramtxt	bsr	uart_puts
 	jsr	putstr
+
+;
+; Trying to boot from SD
+;
+	jsr	sd_init
+	tsta
+	bne	no_sd_boot
+
+	ldx	#boot_sec
+	jsr	sd_read
+	tsta
+	bne	no_sd_boot
+	ldx	$2FE
+	cpx	#$55AA
+	bne	no_sd_boot
+	jsr	$13E
+
+no_sd_boot
 
 loop
 	bsr	uart_in
@@ -198,7 +216,7 @@ cmd_sa1	ldaa	0,x
 cmd_go
 	bsr	get_word
 	jsr	0,x
-	bra	warmres
+	jmp	warmres
 
 get_block_addr proc
 	bsr	get_word
@@ -1362,6 +1380,9 @@ romvecbeg
 	dw	udiv
 	dw	bpt
 romvecend
+
+boot_sec db	$00,$00,$00,$00
+	dw	$100
 
 pylogo		db	'Z/pdaXrom', 10, 13
 		db	'(c) sashz <sash@pdaXrom.org>, 1997-2017', 10, 13, 0
