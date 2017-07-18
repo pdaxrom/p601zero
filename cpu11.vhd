@@ -69,7 +69,11 @@ entity cpu11 is
 	   data_in:	 in  std_logic_vector(7 downto 0);
 	   data_out: out std_logic_vector(7 downto 0);
 		irq:      in  std_logic;
-		xirq:     in  std_logic
+		xirq:     in  std_logic;
+		irq_ext3:  in  std_logic;
+		irq_ext2:  in  std_logic;
+		irq_ext1:  in  std_logic;
+		irq_ext0:  in  std_logic
 		);
 end;
 
@@ -123,7 +127,7 @@ architecture CPU_ARCH of cpu11 is
 	type pc_type is (reset_pc, latch_pc, load_pc, pull_lo_pc, pull_hi_pc, incr_pc );
    type md_type is (reset_md, latch_md, load_md, fetch_first_md, fetch_next_md, shiftl_md );
    type ea_type is (reset_ea, latch_ea, load_ea, fetch_first_ea, fetch_next_ea, add_ix_ea, add_iy_ea );
-	type iv_type is (reset_iv, latch_iv, swi_iv, xirq_iv, irq_iv );
+	type iv_type is (reset_iv, latch_iv, swi_iv, xirq_iv, irq_iv, ext3_iv, ext2_iv, ext1_iv, ext0_iv );
 	type count_type is (reset_count, latch_count, inc_count );
 	type left_type is (acca_left, accb_left, accd_left, md_left, ix_left, iy_left, pc_left, sp_left, ea_left );
 	type right_type is (md_right, zero_right, one_right, accb_right, pre_right, ea_right, sexea_right );
@@ -154,7 +158,7 @@ architecture CPU_ARCH of cpu11 is
    signal left:        std_logic_vector(15 downto 0);
    signal right:       std_logic_vector(15 downto 0);
 	signal out_alu:     std_logic_vector(15 downto 0);
-	signal iv:          std_logic_vector(1 downto 0);
+	signal iv:          std_logic_vector(2 downto 0);
 	signal ea_bit:      std_logic;
 	signal count:       std_logic_vector(4 downto 0);
 
@@ -417,16 +421,24 @@ iv_reg: process( clk, iv_ctrl )
 begin
   if clk'event and clk = '0' then
     case iv_ctrl is
-	 when reset_iv =>
-	   iv <= "11";
-	 when xirq_iv =>
-      iv <= "10";
-  	 when swi_iv =>
-      iv <= "01";
-	 when irq_iv =>
-      iv <= "00";
-	 when others =>
-	   iv <= iv;
+	when reset_iv =>
+	    iv <= "111";
+	when xirq_iv =>
+	    iv <= "110";
+	when swi_iv =>
+	    iv <= "101";
+	when irq_iv =>
+	    iv <= "100";
+	when ext3_iv =>
+	    iv <= "011";
+	when ext2_iv =>
+	    iv <= "010";
+	when ext1_iv =>
+	    iv <= "001";
+	when ext0_iv =>
+	    iv <= "000";
+	when others =>
+	    iv <= iv;
     end case;
   end if;
 end process;
@@ -504,39 +516,39 @@ addr_mux: process( clk, addr_ctrl, pc, ea, sp, iv )
 begin
   case addr_ctrl is
     when idle_ad =>
-	   address <= "1111111111111111";
+	    address <= "1111111111111111";
 		vma     <= '0';
 		rw      <= '1';
     when fetch_ad =>
-	   address <= pc;
+	    address <= pc;
 		vma     <= '1';
 		rw      <= '1';
-	 when read_ad =>
-	   address <= ea;
+    when read_ad =>
+	    address <= ea;
 		vma     <= '1';
 		rw      <= '1';
     when write_ad =>
-	   address <= ea;
+	    address <= ea;
 		vma     <= '1';
 		rw      <= '0';
-	 when push_ad =>
-	   address <= sp;
+    when push_ad =>
+	    address <= sp;
 		vma     <= '1';
 		rw      <= '0';
     when pull_ad =>
-	   address <= sp;
+	    address <= sp;
 		vma     <= '1';
 		rw      <= '1';
-	 when int_hi_ad =>
-	   address <= "1111111111111" & iv & "0";
+    when int_hi_ad =>
+	    address <= "111111111111" & iv & "0";
 		vma     <= '1';
 		rw      <= '1';
     when int_lo_ad =>
-	   address <= "1111111111111" & iv & "1";
+	    address <= "111111111111" & iv & "1";
 		vma     <= '1';
 		rw      <= '1';
-	 when others =>
-	   address <= "1111111111111111";
+    when others =>
+	    address <= "1111111111111111";
 		vma     <= '0';
 		rw      <= '1';
   end case;
@@ -978,7 +990,8 @@ end process;
 -- state sequencer
 --
 ------------------------------------
-state_logic: process( state, op_code, pre_byte, cc, ea, md, irq, xirq, ea_bit, count )
+state_logic: process( state, op_code, pre_byte, cc, ea, md, irq, xirq,
+						irq_ext3, irq_ext2, irq_ext1, irq_ext0, ea_bit, count )
   	begin
 		  case state is
           when reset_state =>        --  released from reset
@@ -4654,23 +4667,35 @@ state_logic: process( state, op_code, pre_byte, cc, ea, md, irq, xirq, ea_bit, c
 					--
 					-- IRQ is level sensitive
 					--
-				   if (irq = '1') and (cc(IBIT) = '0') then
-		  			  iv_ctrl    <= irq_iv;
-			        next_state <= int_maski_state;
-               else
-					  case op_code is
-					  when "00111110" => -- WAI (wait for interrupt)
-                   iv_ctrl    <= latch_iv;
-	                next_state <= int_wai_state;
-					  when "00111111" => -- SWI (Software interrupt)
-                   iv_ctrl    <= swi_iv;
-	                next_state <= vect_hi_state;
-					  when others => -- bogus interrupt (return)
-                   iv_ctrl    <= latch_iv;
-	                next_state <= rti_state;
-					  end case;
-					end if;
-				 end if;
+				    if (irq = '1') and (cc(IBIT) = '0') then
+						iv_ctrl    <= irq_iv;
+						next_state <= int_maski_state;
+				    elsif (irq_ext3 = '1') and (cc(IBIT) = '0') then
+						iv_ctrl    <= ext3_iv;
+						next_state <= int_maski_state;
+				    elsif (irq_ext2 = '1') and (cc(IBIT) = '0') then
+						iv_ctrl    <= ext2_iv;
+						next_state <= int_maski_state;
+				    elsif (irq_ext1 = '1') and (cc(IBIT) = '0') then
+						iv_ctrl    <= ext1_iv;
+						next_state <= int_maski_state;
+				    elsif (irq_ext0 = '1') and (cc(IBIT) = '0') then
+						iv_ctrl    <= ext0_iv;
+						next_state <= int_maski_state;
+				    else
+					case op_code is
+					when "00111110" => -- WAI (wait for interrupt)
+					    iv_ctrl    <= latch_iv;
+					    next_state <= int_wai_state;
+					when "00111111" => -- SWI (Software interrupt)
+					    iv_ctrl    <= swi_iv;
+					    next_state <= vect_hi_state;
+					when others => -- bogus interrupt (return)
+					    iv_ctrl    <= latch_iv;
+					    next_state <= rti_state;
+					end case;
+				    end if;
+			    end if;
 
 			  when int_wai_state =>
 				 -- default
@@ -4703,14 +4728,26 @@ state_logic: process( state, op_code, pre_byte, cc, ea, md, irq, xirq, ea_bit, c
 					--
 					-- IRQ is level sensitive
 					--
-				   if (irq = '1') and (cc(IBIT) = '0') then
-		  			  iv_ctrl    <= irq_iv;
-			        next_state <= int_maski_state;
-               else
-                 iv_ctrl    <= latch_iv;
-	              next_state <= int_wai_state;
-					end if;
-				 end if;
+				if (irq = '1') and (cc(IBIT) = '0') then
+				    iv_ctrl    <= irq_iv;
+				    next_state <= int_maski_state;
+				elsif (irq_ext3 = '1') and (cc(IBIT) = '0') then
+				    iv_ctrl    <= ext3_iv;
+				    next_state <= int_maski_state;
+				elsif (irq_ext2 = '1') and (cc(IBIT) = '0') then
+				    iv_ctrl    <= ext2_iv;
+				    next_state <= int_maski_state;
+				elsif (irq_ext1 = '1') and (cc(IBIT) = '0') then
+				    iv_ctrl    <= ext1_iv;
+				    next_state <= int_maski_state;
+				elsif (irq_ext0 = '1') and (cc(IBIT) = '0') then
+				    iv_ctrl    <= ext0_iv;
+				    next_state <= int_maski_state;
+				else
+				    iv_ctrl    <= latch_iv;
+				    next_state <= int_wai_state;
+				end if;
+			    end if;
 
 			  when int_maskx_state =>
 				 -- default
