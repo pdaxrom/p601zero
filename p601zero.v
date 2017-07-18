@@ -210,7 +210,10 @@ module p601zero (
 	wire en_pagesel = DS7; // $E6F0
 	wire cs_pagesel = en_pagesel && sys_vma;
 	wire [7:0] pageseld;
-	wire [4:0] mempage;
+	wire [3:0] mempage;
+	wire rampage_lock;
+	wire sysboot_lock;
+	wire brom_disable;
 	pagesel pagesel_imp (
 		.clk(sys_clk),
 		.rst(sys_res),
@@ -220,10 +223,14 @@ module p601zero (
 		.rw(sys_rw),
 		.cs(cs_pagesel),
 		.page(mempage),
-		.bram_disable(bram_disable)
+		.rampage_lock(rampage_lock),
+		.sysboot_lock(sysboot_lock),
+		.bram_disable(bram_disable),
+		.brom_disable(brom_disable)
 	);
 
-	wire en_brom = (AD[15:11] == 5'b11111);
+	wire sysbooten = (AD[15:11] == 5'b11111);
+	wire en_brom = sysbooten && (!brom_disable);
 	wire cs_brom = en_brom && sys_vma;
 	wire [7:0] bromd;
 	mcu_rom brom (
@@ -247,8 +254,10 @@ module p601zero (
 	);
 
 	wire ext_vramcs = vpu_vramcs && (~en_bram);
-	wire en_ext = !(en_brom | en_bram | en_vpu | en_simpleio | en_uartio | en_sdcardio | en_pagesel);
-	wire pageen = mempage[3] && (AD[15:13] == 3'b110) && (!(mempage[4] && (!sys_rw)));
+	wire pageen = mempage[3] && (AD[15:13] == 3'b110);
+	wire en_ext = (!(en_brom | en_bram | en_vpu | en_simpleio | en_uartio | en_sdcardio | en_pagesel)) & 
+					(pageen ? (rampage_lock ? sys_rw : 1'b1) : 1'b1) &
+					(sysbooten ? (sysboot_lock ? sys_rw : 1'b1) : 1'b1);
 	assign EXT_AD[16:0] = ext_vramcs ? {1'b0, VADDR} :
 						  pageen   ? {1'b1, mempage[2:0], AD[12:0]} : {1'b0, AD};
 
@@ -307,7 +316,11 @@ module p601zero (
 		.data_in(DI),
 		.data_out(DO),
 		.irq(cpu_irq),
-		.xirq(1'b0)
+		.xirq(1'b0),
+		.irq_ext3(1'b0),
+		.irq_ext2(1'b0),
+		.irq_ext1(1'b0),
+		.irq_ext0(1'b0)
 	);
 
 endmodule
