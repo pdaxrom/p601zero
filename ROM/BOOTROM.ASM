@@ -1,5 +1,5 @@
 ;
-; UART BOOTROM for BLACK EYES 601 Zero
+; BOOTROM for Z/pdaXrom
 ; (c) sashz <sashz@pdaXrom.org>, 2017
 ;
 
