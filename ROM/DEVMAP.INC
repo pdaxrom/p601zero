@@ -35,6 +35,16 @@ UART_TIE	equ	$20
 UART_RIQ	equ	$40
 UART_TIQ	equ	$80
 
+PS2_DATA	equ	$E6B4
+PS2_CONFIG	equ	$E6B5
+PS2_STATUS	equ	$E6B5
+
+PS2_KRD		equ	$01
+PS2_KPR		equ	$02
+PS2_KEN		equ	$20
+PS2_KIE		equ	$40
+PS2_KIQ		equ	$80
+
 ; SPI HOST
 SPI_STATUS	equ	$E6C0
 SPI_DATA	equ	$E6C1

@@ -867,7 +867,8 @@ OUTPUT   EQU  *
 OUTPUT1  PULA
          INC  CHRCNT    increment column count
          RTS
-OUTPUT2  PSHB
+OUTPUT2  INT  $22
+         PSHB
 OUTPUT3  LDAB UART_STATUS
          BITB #UART_TRD
          BEQ  OUTPUT3
@@ -1385,7 +1386,7 @@ DUMPLP   JSR  OUTCRLF
          CLRB           loop counter
 DUMPDAT  JSR  OUT1BSP   hex value loop
          INCB
-         CMPB #$10
+         CMPB #$08
          BLT  DUMPDAT    loop 16 times
 
 *     x = ptr1;
@@ -1405,7 +1406,7 @@ DUMPASC  LDX  PTR1      base address
 DUMP3    LDAA #$20      space for non printables
 DUMP4    JSR  OUTPUT    output ascii value
          INCB
-         CMPB #$10
+         CMPB #$08
          BLT  DUMPASC   loop 16 times
 
 *     chkabrt();
@@ -1415,7 +1416,7 @@ DUMP4    JSR  OUTPUT    output ascii value
 
          JSR  CHKABRT   check abort or wait
          LDD  PTR1
-         ADDD #$10      point to next 16 byte bound
+         ADDD #$08      point to next 16 byte bound
          STD  PTR1      update ptr1
          CPD  PTR2
          BHI  DUMP5     quit if ptr1 > ptr2

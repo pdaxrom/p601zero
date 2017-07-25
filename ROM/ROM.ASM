@@ -488,13 +488,13 @@ getcursor proc
 	endp
 
 putchar	proc
-	ldab	SCRMODE
-	andb	#$03
-	bne	exit		; graf mode not supported
-
 	pshx
 	pshb
 	psha
+
+	ldab	SCRMODE
+	andb	#$03
+	bne	return1		; graf mode not supported
 
 	tst	QUEUELEN
 	beq	putch0
@@ -523,7 +523,7 @@ queue1b	cmpa	#$1B
 return1	pula
 	pulb
 	pulx
-exit	rts
+	rts
 
 putch0	cmpa	#$1B
 	bne	putc1e
@@ -552,7 +552,10 @@ putc0a	cmpa	#$0A
 	ldaa	CURX
 	ldab	CURY
 	incb
-	bra	setcur
+	cmpb	SCRSZY
+	bne	setcur
+	bsr	scroll
+	bra	return1
 putch0c	cmpa	#$0C
 	bne	putch0d
 	bsr	clrscr
@@ -606,6 +609,35 @@ eoloop	clr	0,x
 	inx
 	deca
 	bne	eoloop
+	rts
+	endp
+
+scroll	proc
+	ldx	SCRADDR
+	ldab	SCRSZX
+	abx
+	ldaa	SCRSZY
+	deca
+	mul
+
+	db	$18, $3C	;	pshy
+	db	$18, $FE	;	ldy	SCRADDR
+	dw	SCRADDR
+loop	psha
+	ldaa	0,x
+	db	$18, $A7, $00	;	staa	0,y
+	inx
+	db	$18, $08	;	iny
+	pula
+	subd	#1
+	bne	loop
+	ldaa	SCRSZX
+loop1	db	$18, $6F, $00	;	clr	0,y
+	db	$18, $08	;	iny
+	deca
+	bne	loop1
+	db	$18, $38	;	puly
+
 	rts
 	endp
 
@@ -1384,10 +1416,10 @@ romvecend
 boot_sec db	$00,$00,$00,$00
 	dw	$100
 
-pylogo		db	'Z/pdaXrom', 10, 13
-		db	'(c) sashz <sash@pdaXrom.org>, 1997-2017', 10, 13, 0
-txt_bram	db	'Internal RAM enabled.', 10, 13, 0
-txt_extram	db	'External RAM enabled.', 10, 13, 0
+pylogo		db	'Z/pdaXrom', 10, 13, 0
+;		db	'(c) sashz <sash@pdaXrom.org>, 1997-2017', 10, 13, 0
+txt_bram	db	'Use internal RAM.', 10, 13, 0
+txt_extram	db	'Use external RAM.', 10, 13, 0
 
 	ds	$fff8-*, $ff
 	dw	vec_irq
