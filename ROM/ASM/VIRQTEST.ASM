@@ -11,7 +11,7 @@
 	sei
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	clr	$10
 	clr	$11
@@ -26,7 +26,7 @@
 	staa	VPU_CFG
 
 	ldx	#text1
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	cli
 
@@ -43,7 +43,7 @@ next	bita	#2
 next2	bita	#4
 	beq	loop
 	ldx	#but3txt
-print	int	F_UART_PUTS
+print	int	F_PUTSTR
 	bra	loop
 
 but1txt	db	'Button 1 pressed!', 10, 13, 0

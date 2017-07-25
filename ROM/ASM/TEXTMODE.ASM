@@ -9,7 +9,7 @@
 	org $100
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	#textscreen
 	ldaa	#$80
@@ -23,7 +23,7 @@
 	bsr	putstr
 
 	ldx	#byebye
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	int	F_WARMRES
 

@@ -11,7 +11,7 @@ GRSCR_START	equ	$A000
 	org $e000
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	#GRSCR_START
 	stx	SCR_START
@@ -42,7 +42,7 @@ GRSCR_START	equ	$A000
 	staa	VPU_HSIZE
 
 	ldx	#byebye
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	int	F_WARMRES
 

@@ -10,7 +10,7 @@
 
 	lds	#$afff
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	#kimscreen
 	ldaa	#1

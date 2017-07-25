@@ -22,7 +22,7 @@
 p601_init	rts
 p601_monitor	rts
 init		ldx	#title
-		int	F_UART_PUTS
+		int	F_PUTSTR
 		rts
 
 title		db	'Z/pdaXrom kernel started!', 10, 13, 0

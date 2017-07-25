@@ -10,13 +10,13 @@
 
 ;	lds	#$afff
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	#grfmode
 	int	F_VPUCONFIG
 
 	ldx	#instr
-	int	F_UART_PUTS
+	int	F_PUTSTR
 ;	int	F_BPT
 ;	int	F_WARMRES
 

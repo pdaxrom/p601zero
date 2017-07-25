@@ -9,7 +9,7 @@
 	org $100
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldaa	RAMPAGE_CTL
 	anda	#($FF ^ RAMPAGE_LOCK)
@@ -28,7 +28,7 @@ loop	staa	RAMPAGE_SEL
 	bsr	readpages
 
 	ldx	#hello1
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldaa	RAMPAGE_CTL
 	oraa	#RAMPAGE_LOCK
@@ -53,17 +53,17 @@ readpages proc
 	clrb
 loop	stab	RAMPAGE_SEL
 	ldx	#page
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	tba
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldaa	#32
-	int	F_UART_OUT
+	int	F_PUTCHAR
 	ldaa	$c000
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldaa	#32
-	int	F_UART_OUT
+	int	F_PUTCHAR
 	ldaa	$d000
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	incb
 	cmpb	#16
 	bne	loop

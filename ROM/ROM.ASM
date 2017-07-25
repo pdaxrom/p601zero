@@ -113,19 +113,6 @@ copyswiv pula
 	cpx	#BROM_SWIVEC+$C0*2+(romvecend-romvecbeg)
 	bne	copyswiv
 
-	lds	#pylvecbeg
-	des
-copyswip pulb
-	tstb
-	beq	warmres
-	ldx	#BROM_SWIVEC
-	abx
-	abx
-	pula
-	pulb
-	std	0,x
-	bra	copyswip
-
 warmres	lds	#BROM_STACK
 
 ; reset spi/EXT devices
@@ -140,9 +127,6 @@ warmres	lds	#BROM_STACK
 	ldx	#FBTEXT
 	jsr	setvideomode
 
-	ldx	#pylogo
-	jsr	putstr
-
 ; setup prescaler: 24MHz / (Baud * 8)
 	ldx	#26
 	stx	UART_PRESCALER
@@ -152,7 +136,7 @@ warmres	lds	#BROM_STACK
 	staa	UART_CONFIG
 
 	ldx	#pylogo
-	jsr	uart_puts
+	jsr	putstr
 
 	ldaa	RAMPAGE_CTL
 	bita	#BRAM_DISABLE
@@ -160,8 +144,7 @@ warmres	lds	#BROM_STACK
 	ldx	#txt_extram
 	bra	ramtxt
 bramen	ldx	#txt_bram
-ramtxt	bsr	uart_puts
-	jsr	putstr
+ramtxt	jsr	putstr
 
 ;
 ; Trying to boot from SD
@@ -244,43 +227,6 @@ loop	ldab	UART_STATUS
 	beq	loop
 	staa	UART_DATA
 	pulb
-	rts
-	endp
-
-uart_puts proc
-	pshx
-	psha
-loop	ldaa	0,x
-	tsta
-	beq	exit
-	bsr	uart_out
-	inx
-	bra	loop
-exit	pula
-	pulx
-	rts
-	endp
-
-uart_outhex proc
-	psha
-	pshb
-	tab
-	bsr	OUTNIBH
-	tba
-	bsr	OUTNIBL
-	pulb
-	pula
-	rts
-OUTNIBH	lsra
-	lsra
-	lsra
-	lsra
-OUTNIBL	anda	#$0F
-	oraa	#$30
-	cmpa	#$39
-	bls	OUTNIBX
-	adda	#$7
-OUTNIBX bsr	uart_out
 	rts
 	endp
 
@@ -639,6 +585,28 @@ loop1	db	$18, $6F, $00	;	clr	0,y
 	db	$18, $38	;	puly
 
 	rts
+	endp
+
+puthex proc
+	psha
+	pshb
+	tab
+	bsr	OUTNIBH
+	tba
+	bsr	OUTNIBL
+	pulb
+	pula
+	rts
+OUTNIBH	lsra
+	lsra
+	lsra
+	lsra
+OUTNIBL	anda	#$0F
+	oraa	#$30
+	cmpa	#$39
+	bls	OUTNIBX
+	adda	#$7
+OUTNIBX jmp	putchar
 	endp
 
 putstr	proc
@@ -1279,7 +1247,7 @@ bpt	proc
 	tpa
 	psha
 	ldx	#regstxt
-	jsr	uart_puts
+	jsr	putstr
 	tsx
 	ldaa	0,x
 	bsr	regshex
@@ -1312,7 +1280,7 @@ bpt	proc
 	pula
 	bsr	regshex
 	ldx	#regsnl
-	jsr	uart_puts
+	jsr	putstr
 	pula
 	tap
 	pulx
@@ -1321,7 +1289,7 @@ bpt	proc
 	db	$18		; puly prefix
 	pulx			; puly
 	rts
-regshex	jmp	uart_outhex
+regshex	jmp	puthex
 
 regstxt	db	10, 13, 'P_A_B_X___Y___SP__PC__', 10, 13, 0
 regsnl	db	10, 13, 0
@@ -1341,7 +1309,7 @@ vstub_swi
 
 vstub_nmi
 	ldx	#vectextNMI
-ret	jsr	uart_puts
+ret	jsr	putstr
 	rti
 	endp
 
@@ -1372,29 +1340,11 @@ vec_nmi	ldab	VECNMIP
 	bra	callvec
 	endp
 
-pylvecbeg
-	db	$12
-	dw	setvideomode
-	db	$13
-	dw	getvideomode
-	db	$14
-	dw	getcursor
-	db	$15
-	dw	setcursor
-	db	$22
-	dw	putchar
-	db	$23
-	dw	putstr
-pylvecend
-	db	0
-
 romvecbeg
 	dw	reset
 	dw	warmres
 	dw	uart_in
 	dw	uart_out
-	dw	uart_puts
-	dw	uart_outhex
 	dw	vpuconfig
 	dw	vpucursor
 	dw	spi_reset
@@ -1411,6 +1361,13 @@ romvecbeg
 	dw	umult
 	dw	udiv
 	dw	bpt
+	dw	setvideomode
+	dw	getvideomode
+	dw	setcursor
+	dw	getcursor
+	dw	putchar
+	dw	puthex
+	dw	putstr
 romvecend
 
 boot_sec db	$00,$00,$00,$00

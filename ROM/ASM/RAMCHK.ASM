@@ -20,7 +20,7 @@
 	staa	RAMPAGE_CTL
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	#$0000
 	stx	RAM_START
@@ -77,13 +77,15 @@
 ;
 	jsr	fillram
 
+	int	F_UART_IN
+
 	int	F_WARMRES
 
 fillram proc
 	ldaa	#0
 loop	ldx	#fillram1
-	int	F_UART_PUTS
-	int	F_UART_OUTHEX
+	int	F_PUTSTR
+	int	F_PUTHEX
 	ldx	RAM_START
 loopw	staa	0,x
 	inx
@@ -97,24 +99,24 @@ loopr	ldab	0,x
 	cpx	RAM_END
 	bne	loopr
 	ldx	#okay
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	inca
 	cmpa	#0
 	bne	loop
 	rts
 error	pshx
 	ldx	#failed
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	tba
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldx	#failed1
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	pulx
 	ldab	#16
 err1	ldaa	0,x
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldaa	#32
-	int	F_UART_OUT
+	int	F_PUTCHAR
 	decb
 	cmpb	#0
 	bne	err1
@@ -123,8 +125,8 @@ err1	ldaa	0,x
 
 fillbyte proc
 loop	ldx	#fillram1
-	int	F_UART_PUTS
-	int	F_UART_OUTHEX
+	int	F_PUTSTR
+	int	F_PUTHEX
 	ldx	RAM_START
 loopw	staa	0,x
 	inx
@@ -138,21 +140,21 @@ loopr	ldab	0,x
 	cpx	RAM_END
 	bne	loopr
 	ldx	#okay
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	rts
 error	pshx
 	ldx	#failed
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	tba
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldx	#failed1
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	pulx
 	ldab	#16
 err1	ldaa	0,x
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldaa	#32
-	int	F_UART_OUT
+	int	F_PUTCHAR
 	decb
 	cmpb	#0
 	bne	err1
@@ -161,8 +163,8 @@ err1	ldaa	0,x
 
 fillbyte_step proc
 loop	ldx	#fillram1
-	int	F_UART_PUTS
-	int	F_UART_OUTHEX
+	int	F_PUTSTR
+	int	F_PUTHEX
 	ldx	RAM_START
 loopw	staa	0,x
 	ldab	RAM_STEP
@@ -178,21 +180,21 @@ loopr	ldab	0,x
 	cpx	RAM_END
 	bne	loopr
 	ldx	#okay
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	rts
 error	pshx
 	ldx	#failed
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	tba
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldx	#failed1
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	pulx
 	ldab	#16
 err1	ldaa	0,x
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldaa	#32
-	int	F_UART_OUT
+	int	F_PUTCHAR
 	decb
 	cmpb	#0
 	bne	err1

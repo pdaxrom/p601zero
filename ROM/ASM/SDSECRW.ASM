@@ -5,7 +5,7 @@
 	org $100
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 
 ;	ldaa	#$10
@@ -45,7 +45,7 @@
 	int F_BPT
 
 exit	ldx	#bye
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	int	F_WARMRES
 

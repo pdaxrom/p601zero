@@ -25,7 +25,7 @@ size		ds	2
 	org $13E
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	int	F_SD_INIT
 	tsta
@@ -131,7 +131,7 @@ load1	ldx	#read_sec
 	tsta
 	bne	readerr
 	ldaa	#'.'
-	int	F_UART_OUT
+	int	F_PUTCHAR
 	ldd	read_sec+2
 	addd	#1
 	std	read_sec+2
@@ -142,13 +142,13 @@ load1	ldx	#read_sec
 	bne	load1
 
 	ldx	#done
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	kernel_initvec
 	jsr	0,x
 
 exit	ldx	#bye
-exit1	int	F_UART_PUTS
+exit1	int	F_PUTSTR
 
 	int	F_WARMRES
 

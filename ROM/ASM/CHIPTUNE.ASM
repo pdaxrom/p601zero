@@ -5,7 +5,7 @@
 	org $100
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldaa	#SPI_PSG
 	ldab	#1
@@ -13,7 +13,7 @@
 	tsta
 	beq	loop
 	ldx	#busy
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	bra	exit1
 
 loop	ldx	#buf
@@ -38,7 +38,7 @@ exit
 	int	F_SPI_SELECT
 
 exit1	ldx	#bye
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	int	F_WARMRES
 
 hello	db	$0c, $0a, $0d, 'AY-3-8912 SERIAL CHIPTUNE!', $0a, $0d, 0

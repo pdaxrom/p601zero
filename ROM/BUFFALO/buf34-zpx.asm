@@ -867,7 +867,7 @@ OUTPUT   EQU  *
 OUTPUT1  PULA
          INC  CHRCNT    increment column count
          RTS
-OUTPUT2  INT  $22
+OUTPUT2  INT  $D8
          PSHB
 OUTPUT3  LDAB UART_STATUS
          BITB #UART_TRD

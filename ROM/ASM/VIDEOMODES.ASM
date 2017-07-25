@@ -18,14 +18,14 @@
 
 	lds	#$afff
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	#kimscreen
 	ldaa	#$3
 	int	$12
 
 	ldx	#instr
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	jmp	updcur
 
@@ -54,16 +54,16 @@ settext	ldx	#textscreen
 
 getvmode int $13
 	ldx	#int13txt
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	int	$13
 	pshx
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldaa	#' '
-	int	F_UART_OUT
+	int	F_PUTCHAR
 	pula
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	pula
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	bra	loop
 
 curincx	inc	curx
@@ -75,25 +75,25 @@ updcur	ldaa	curx
 	int	$15
 
 	ldx	#int14txt
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	int	$14
 	pshx
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 
 	ldaa	#' '
-	int	F_UART_OUT
+	int	F_PUTCHAR
 
 	tba
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 
 	ldaa	#' '
-	int	F_UART_OUT
+	int	F_PUTCHAR
 
 	pula
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	pula
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	bra	loop
 
 curx	db	0

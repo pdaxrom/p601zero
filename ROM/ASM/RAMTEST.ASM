@@ -20,7 +20,7 @@
 	staa	RAMPAGE_CTL
 
 	ldx	#hello
-	int	F_UART_PUTS
+	int	F_PUTSTR
 
 	ldx	#$0000
 	stx	RAM_START
@@ -51,20 +51,22 @@ loop	ldaa	0,x
 	cpx	#testseqend
 	bne	loop
 
+	int	F_UART_IN
+
 	int	F_WARMRES
 
 seq2bytes proc
 	staa	fbyte
 	stab	sbyte
 	ldx	#testn1
-	int	F_UART_PUTS
-	int	F_UART_OUTHEX
+	int	F_PUTSTR
+	int	F_PUTHEX
 	ldx	#testn2
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	tba
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldx	#testn3
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	ldx	RAM_START
 write	ldaa	fbyte
 	staa	0,x
@@ -87,7 +89,7 @@ read	ldaa	0,x
 	cpx	RAM_END
 	bne	read
 	ldx	#okay
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	rts
 errorf	psha
 	ldaa	fbyte
@@ -96,18 +98,18 @@ errors	psha
 	ldaa	sbyte
 error	pshx
 	ldx	#expect
-	int	F_UART_PUTS
-	int	F_UART_OUTHEX
+	int	F_PUTSTR
+	int	F_PUTHEX
 	ldx	#ataddr
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	pula
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	pula
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	ldx	#butread
-	int	F_UART_PUTS
+	int	F_PUTSTR
 	pula
-	int	F_UART_OUTHEX
+	int	F_PUTHEX
 	rts
 testn1	db	10, 13, 'Test RAM with $',0
 testn2	db	' $', 0
