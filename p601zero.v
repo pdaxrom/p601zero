@@ -10,7 +10,7 @@ module p601zero (
 	output [2:0] rgb2,
 	
 	input rxd,
-	output txd,
+	inout txd,
 
 	output[16:0] EXT_AD,
 	inout[7:0] EXT_DQ,
