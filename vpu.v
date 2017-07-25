@@ -115,7 +115,7 @@ module vpu (
 								cfg_reg[5] <= 1;
 								DMA_state <= 3'b101;
 							end else if (cntVS >= SVL_reg) begin
-								char_line <= char_line + 1;
+								char_line <= char_line + 1'b1;
 								vcache_cnt <= vcache_cnt_reg;
 								DMA_state <= 3'b010;
 							end

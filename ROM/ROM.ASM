@@ -163,6 +163,12 @@ ramtxt	jsr	putstr
 	jsr	$13E
 
 no_sd_boot
+	ldaa	#PS2_KEN
+	staa	PS2_CONFIG
+
+keyloop	bsr	getkeycode
+	jsr	puthex
+	bra	keyloop
 
 loop
 	bsr	uart_in
@@ -237,6 +243,20 @@ get_word proc
 	psha
 	pshb
 	pulx
+	rts
+	endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Get PS/2 keyboard code
+; Return A - code
+;
+getkeycode proc
+loop	ldaa	PS2_STATUS
+	bita	#PS2_KRD
+	beq	loop
+	ldaa	PS2_DATA
 	rts
 	endp
 

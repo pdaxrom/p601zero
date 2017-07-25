@@ -38,9 +38,12 @@ module uartio (
 	inout txd
 );
 
-	reg ps2_clk;
-	reg ps2_dat;
-	reg [10:0] kbd_data; // start bit + 8 bit data + parity bit + stop bit
+	reg ps2_clk = 1'b0;
+	reg ps2_dat = 1'b0;
+	reg [3:0] ps2_cnt = 4'b0000;
+	reg [9:0] kbd_shift = 10'b0000000000;
+	reg kbd_new_data;
+	reg [9:0] kbd_data; // start bit + 8 bit data + parity bit + stop bit
 	reg [1:0] kbd_conf;
 
 	reg [15:0] prescaler;
@@ -62,7 +65,7 @@ module uartio (
 	reg rx_full;
 	reg tx_empty;
  
-	wire kbd_irq = kbd_conf[1] & kbd_conf[0] & kbd_data[10];
+	wire kbd_irq = kbd_conf[1] & kbd_conf[0] & kbd_data[9];
  
 	assign irq = (status_reg[7] & status_reg[5]) | (status_reg[6] & status_reg[4]) | kbd_irq;
  
@@ -92,8 +95,7 @@ module uartio (
 			status_reg <= 8'b00000000;
 			kbd_conf <= 0;
 			kbd_data <= 0;
-			ps2_clk <= 0;
-			ps2_dat <= 0;
+			kbd_new_data <= 0;
 		end else begin
 			tx_tvalid <= 0;
 			status_reg[3:0] <= {tx_tready, rx_frame_error, rx_overrun_error, rx_full | status_reg[0]};
@@ -113,10 +115,10 @@ module uartio (
 					3'b010: DO <= prescaler[15:8];
 					3'b011: DO <= prescaler[7:0];
 					4'b100: begin
-						DO <= kbd_data[8:1];
+						DO <= kbd_data[7:0];
 						kbd_data <= 0;
 						end
-					4'b101: DO <= {kbd_irq, kbd_conf, kbd_data[9], kbd_data[10]};
+					4'b101: DO <= {kbd_irq, kbd_conf, 1'b0, 1'b0, 1'b0, kbd_data[8], kbd_data[9]};
 					default: DO <= 8'b00000000;
 					endcase
 				end else begin
@@ -133,14 +135,38 @@ module uartio (
 				end
 			end
 			if (kbd_conf[0]) begin
-				if (ps2_clk & (~rxd)) begin
-					if (kbd_data[10] & (~kbd_data[0])) kbd_data <= 0;
-					else kbd_data <= (kbd_data << 1) | ps2_dat;
-				end
 				ps2_clk <= rxd;
 				ps2_dat <= txd;
+				if ((~kbd_data[9]) & kbd_shift[9] & kbd_new_data) begin
+					kbd_data <= kbd_shift;
+					kbd_new_data <= 1'b0;
+				end else if (~kbd_shift[9]) kbd_new_data <= 1'b1;
 			end
 		end
+	end
+
+	always @ (negedge ps2_clk) begin
+		case (ps2_cnt)
+			4'b0000: begin
+					if (~ps2_dat) begin
+						kbd_shift <= 0;
+						ps2_cnt <= 4'b0001;
+					end
+				end
+			4'b1001: begin
+					kbd_shift[8] <= kbd_shift[8] ^ ps2_dat;
+					ps2_cnt <= 4'b1010;
+				end
+			4'b1010: begin
+					kbd_shift[9] <= 1'b1;
+					ps2_cnt <= 4'b0000;
+				end
+			default: begin
+					kbd_shift[7:0] <= {ps2_dat, kbd_shift[7:1]};
+					kbd_shift[8] <= kbd_shift[8] ^ ps2_dat;
+					ps2_cnt <= ps2_cnt + 1'b1;
+				end
+		endcase
 	end
 
 //	always @ (posedge clk_in) ps2_clk <= rxd;
