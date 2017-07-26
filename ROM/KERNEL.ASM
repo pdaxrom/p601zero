@@ -11,6 +11,8 @@
 
 		include BOOTROM.INC
 
+		include BOOTMEM.INC
+
 		include FAT16.INC
 
 		org	$C000
@@ -25,7 +27,79 @@ init		ldx	#title
 		int	F_PUTSTR
 		rts
 
-title		db	'Z/pdaXrom kernel started!', 10, 13, 0
+getvector	proc
+		sei
+		tab
+		ldx	#BROM_SWIPAG
+		lsrb
+		abx
+		ldab	0,x
+		bcc	swih1
+		lsrb
+		lsrb
+		lsrb
+		lsrb
+swih1		andb	#$0F
+		pshb
+		tab
+		ldx	#BROM_SWIVEC
+		abx
+		abx
+		pulb
+		rts
+		endp
+
+setvector	proc
+		sei
+		pshx
+		pshb
+		psha
+
+		pshx
+		psha
+		pshb
+		tab
+		ldx	#BROM_SWIPAG
+		lsrb
+		abx
+		ldaa	0,x
+		pulb
+		pshx
+		bcc	next1
+		anda	#$0F
+		lslb
+		lslb
+		lslb
+		lslb
+		bra	next2
+next1		anda	#$F0
+		andb	#$0F
+next2		pshb
+		tsx
+		oraa	0,x
+		pulb
+		pulx
+		staa	0,x
+		pulb
+		ldx	#BROM_SWIVEC
+		abx
+		abx
+		pula
+		pulb
+		std	0,x
+
+		pula
+		pulb
+		pulx
+		rts
+		endp
+
+title		db	'ZBIOS loaded.', 10, 13, 0
+
+vectors		db	$E0
+		dw	getvector
+		db	$E1
+		dw	setvector
 
 		checksum
 		ds	$DFFE-*,$FF

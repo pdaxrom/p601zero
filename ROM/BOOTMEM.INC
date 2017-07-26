@@ -1,0 +1,46 @@
+END_ADDR	equ	$F0
+
+BOOTROM_BASE	equ	$F800
+
+BROM_STACK	equ	FBTEXT-1
+
+FBTEXT		equ	$F558-40*27
+
+		section $F550
+		ds	1
+		ds	1
+		ds	6
+
+QUEUEPTR	ds	2
+QUEUELEN	ds	1
+QUEUEBUF	ds	3
+		ds	2
+
+SCRADDR		ds	2
+SCRSZX		ds	1
+SCRSZY		ds	1
+SCRXADJ		ds	1
+SCRYADJ		ds	1
+SCRMASK		ds	1
+SCRBITS		ds	1
+SCRMODE		ds	1
+SCRATTR		ds	1
+CURX		ds	1
+CURY		ds	1
+CURPTR		ds	2
+CURMODE 	ds	1
+		ds	1	; align
+
+		ds	4	; align
+VECIRQP		ds	1
+VECSWIP		ds	1
+VECNMIP		ds	1
+VECRESP		ds	1
+VECIRQ		ds	2
+VECSWI		ds	2
+VECNMI		ds	2
+VECRES		ds	2
+
+BROM_SWIPAG	ds	$80
+BROM_SWIVEC	ds	$200
+		ends
