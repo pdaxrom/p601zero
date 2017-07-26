@@ -868,12 +868,12 @@ OUTPUT1  PULA
          INC  CHRCNT    increment column count
          RTS
 OUTPUT2  INT  $D8
-         PSHB
-OUTPUT3  LDAB UART_STATUS
-         BITB #UART_TRD
-         BEQ  OUTPUT3
-         STAA UART_DATA
-         PULB
+*         PSHB
+*OUTPUT3  LDAB UART_STATUS
+*         BITB #UART_TRD
+*         BEQ  OUTPUT3
+*         STAA UART_DATA
+*         PULB
          RTS
 
 *******************************

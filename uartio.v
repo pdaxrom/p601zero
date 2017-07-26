@@ -134,9 +134,9 @@ module uartio (
 					endcase
 				end
 			end
-			ps2_clk <= rxd;
-			ps2_dat <= txd;
 			if (kbd_conf[0]) begin
+				ps2_clk <= rxd;
+				ps2_dat <= txd;
 				if ((~kbd_data[9]) & kbd_shift[9] & kbd_new_data) begin
 					kbd_data <= kbd_shift;
 					kbd_new_data <= 1'b0;

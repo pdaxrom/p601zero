@@ -19,7 +19,11 @@ BROM_STACK	equ	FBTEXT-1
 
 FBTEXT		equ	$F558-40*27
 
-		section $F558
+		section $F550
+		ds	1
+		ds	1
+		ds	6
+
 QUEUEPTR	ds	2
 QUEUELEN	ds	1
 QUEUEBUF	ds	3
@@ -113,6 +117,14 @@ copyswiv pula
 	cpx	#BROM_SWIVEC+$C0*2+(romvecend-romvecbeg)
 	bne	copyswiv
 
+	ldaa	IO_SWKEYS
+	bita	#$80
+	bne	setuart
+	ldaa	#PS2_KEN
+	bra	setkbd
+setuart	clra
+setkbd	staa	PS2_CONFIG
+
 warmres	lds	#BROM_STACK
 
 ; reset spi/EXT devices
@@ -146,12 +158,22 @@ warmres	lds	#BROM_STACK
 bramen	ldx	#txt_bram
 ramtxt	jsr	putstr
 
+	ldaa	PS2_CONFIG
+	bita	#PS2_KEN
+	beq	showuart
+	ldx	#txt_kbd
+	bra	showkbd
+showuart ldx	#txt_uart
+showkbd	jsr	putstr
+
 ;
 ; Trying to boot from SD
 ;
 	jsr	sd_init
 	tsta
 	bne	no_sd_boot
+	ldx	#txt_sd
+	jsr	putstr
 
 	ldx	#boot_sec
 	jsr	sd_read
@@ -162,9 +184,8 @@ ramtxt	jsr	putstr
 	bne	no_sd_boot
 	jsr	$13E
 
-no_sd_boot
-	ldaa	#PS2_KEN
-	staa	PS2_CONFIG
+no_sd_boot ldx	#txt_nl
+	jsr	putstr
 
 keyloop	bsr	getkeycode
 	jsr	puthex
@@ -457,8 +478,12 @@ putchar	proc
 	pshx
 	pshb
 	psha
+	ldab	PS2_CONFIG
+	bitb	#PS2_KEN
+	bne	nouart
+	jsr	uart_out
 
-	ldab	SCRMODE
+nouart	ldab	SCRMODE
 	andb	#$03
 	bne	return1		; graf mode not supported
 
@@ -1393,10 +1418,14 @@ romvecend
 boot_sec db	$00,$00,$00,$00
 	dw	$100
 
-pylogo		db	'Z/pdaXrom', 10, 13, 0
+pylogo		db	'Z/pdaXrom', 10, 13, '+ ', 0
 ;		db	'(c) sashz <sash@pdaXrom.org>, 1997-2017', 10, 13, 0
-txt_bram	db	'Use internal RAM.', 10, 13, 0
-txt_extram	db	'Use external RAM.', 10, 13, 0
+txt_bram	db	'IRAM ', 0
+txt_extram	db	'SRAM ', 0
+txt_kbd		db	'KBD ', 0
+txt_uart	db	'UART ', 0
+txt_sd		db	'SD '
+txt_nl		db	10, 13, 0
 
 	ds	$fff8-*, $ff
 	dw	vec_irq
