@@ -25,6 +25,32 @@ p601_init	rts
 p601_monitor	rts
 init		ldx	#title
 		int	F_PUTSTR
+
+; install syscalls
+		ldx	#romvecbeg
+romvecinst	ldaa	0,x
+		tsta
+		beq	romvecexit
+		pshx
+		ldx	1,x
+		ldab	RAMPAGE_SEL
+    int F_BPT
+		jsr	setvector
+		pulx
+		inx
+		inx
+		inx
+		bra	romvecinst
+romvecexit
+
+		ldaa	#$E0
+		int	$E0
+		int	F_BPT
+		ldaa	#$E1
+		int	$E0
+		int	F_BPT
+
+		int	F_WARMRES
 		rts
 
 getvector	proc
@@ -45,6 +71,7 @@ swih1		andb	#$0F
 		ldx	#BROM_SWIVEC
 		abx
 		abx
+		ldx	0,x
 		pulb
 		rts
 		endp
@@ -96,11 +123,13 @@ next2		pshb
 
 title		db	'ZBIOS loaded.', 10, 13, 0
 
-vectors		db	$E0
+romvecbeg
+		db	$E0
 		dw	getvector
 		db	$E1
 		dw	setvector
-
+		db	0
+romvecend
 		checksum
 		ds	$DFFE-*,$FF
 		dw	init

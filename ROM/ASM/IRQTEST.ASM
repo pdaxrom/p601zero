@@ -6,6 +6,8 @@
 
 	include ../BOOTROM.INC
 
+	include ../BOOTMEM.INC
+
 	org $100
 
 	sei
