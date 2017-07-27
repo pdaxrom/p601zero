@@ -481,12 +481,12 @@ program asm6800;
 
   begin
   writeln;
-  writeln('6801 Cross Assembler.             Version 3.10');
+  writeln('6800,6801,6811 Cross Assembler. Version 3.10.1');
   writeln('Software Research and Development Lab.,  Sofia');
   writeln('Copyright (C) Ivo Nenov 1988-89');
   writeln('          (C) O.Shopov  1988-89 Eagle software');
   writeln('          (C) G.Petrov  1988-89 YGP');
-  writeln('          (C) A.Chukov  2012-17 <sash@pdaXrom.org>');
+  writeln('          (C) A.Chukov  2012-17 pdaXrom.org   ');
   writeln;
   errfile:= false;
   Assign(StdOut, ''); rewrite(StdOut);
