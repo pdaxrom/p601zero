@@ -2,9 +2,9 @@ END_ADDR	equ	$F0
 
 BOOTROM_BASE	equ	$F800
 
-BROM_STACK	equ	FBTEXT-1
+FBTEXT		equ	$F550-40*27
 
-FBTEXT		equ	$F558-40*27
+BROM_STACK	equ	FBTEXT-1
 
 		section $F550
 		ds	1

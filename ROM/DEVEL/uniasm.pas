@@ -49,8 +49,15 @@ program asm6800;
     INV_PBL = 35;		   (* PUBLIC not allowed in relative_mode *)
     ILL_CSUM = 36;		   (* CSUM inside dummy or duplicated *)
     ILL_EXPR = 37;		   (* Illegal expression *)
+    INDX = 0;
+    INDY = 1;
+    INH = 0;
+    P2INH = 1;
+    CPD = 2;
+    XOP = 3;
+    YOP = 4;
 
-  const NInstructions = 137; { MC6800 + alias + MC6801 + MC6811(xgdx) }
+  const NInstructions = 157; { MC6800 + alias + MC6801 + M68HC11 }
 	n_directives= 19;
 	MaxPublix = 255;
 	MaxExternals = 255;
@@ -61,6 +68,7 @@ program asm6800;
 	      mnemonic: string[4];
 	      large: boolean;	{ large operand (2 bytes), example LDX #$2000 }
 	      code: array [addr_modes] of byte;   { 0 - not implemented }
+	      page: byte; { 68hc11 pages }
 	    end;
     instr_array = array [0..NInstructions] of instr;
     instr_ptr = ^instr_array;
@@ -118,147 +126,167 @@ program asm6800;
 
   const
     instr_def:	instr_array =
-     (* 	mnem	     large	   impl #    zp   abs  indXrel *)
-(    (mnemonic:'ABA'  ;large:false  ;code:( $1B, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ABX'  ;large:false  ;code:( $3A, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
-     (mnemonic:'ADCA' ;large:false  ;code:( 0  , $89, $99, $B9, $A9, 0  ) ) ,
-     (mnemonic:'ADCB' ;large:false  ;code:( 0  , $C9, $D9, $F9, $E9, 0  ) ) ,
-     (mnemonic:'ADDA' ;large:false  ;code:( 0  , $8B, $9B, $BB, $AB, 0  ) ) ,
-     (mnemonic:'ADDB' ;large:false  ;code:( 0  , $CB, $DB, $FB, $EB, 0  ) ) ,
-     (mnemonic:'ADDD' ;large:true   ;code:( 0  , $C3, $D3, $F3, $E3, 0  ) ) , { 6801 }
-     (mnemonic:'ANDA' ;large:false  ;code:( 0  , $84, $94, $B4, $A4, 0  ) ) ,
-     (mnemonic:'ANDB' ;large:false  ;code:( 0  , $C4, $D4, $F4, $E4, 0  ) ) ,
-     (mnemonic:'ASL'  ;large:false  ;code:( 0  , 0  , 0  , $78, $68, 0  ) ) ,
-     (mnemonic:'ASLA' ;large:false  ;code:( $48, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ASLB' ;large:false  ;code:( $58, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ASLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
-     (mnemonic:'ASR'  ;large:false  ;code:( 0  , 0  , 0  , $77, $67, 0  ) ) ,
-     (mnemonic:'ASRA' ;large:false  ;code:( $47, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ASRB' ;large:false  ;code:( $57, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'BCC'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $24) ) ,
-     (mnemonic:'BCS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $25) ) ,
-     (mnemonic:'BEQ'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $27) ) ,
-     (mnemonic:'BGE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2C) ) ,
-     (mnemonic:'BGT'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2E) ) ,
-     (mnemonic:'BHI'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $22) ) ,
-     (mnemonic:'BHS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $24) ) , { 6801 }
-     (mnemonic:'BITA' ;large:false  ;code:( 0  , $85, $95, $B5, $A5, 0  ) ) ,
-     (mnemonic:'BITB' ;large:false  ;code:( 0  , $C5, $D5, $F5, $E5, 0  ) ) ,
-     (mnemonic:'BLE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2F) ) ,
-     (mnemonic:'BLO'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $25) ) , { 6801 }
-     (mnemonic:'BLS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $23) ) ,
-     (mnemonic:'BLT'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2D) ) ,
-     (mnemonic:'BMI'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2B) ) ,
-     (mnemonic:'BNE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $26) ) ,
-     (mnemonic:'BPL'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2A) ) ,
-     (mnemonic:'BRA'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $20) ) ,
-     (mnemonic:'BRN'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $21) ) , { 6801 }
-     (mnemonic:'BSR'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $8D) ) ,
-     (mnemonic:'BVC'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $28) ) ,
-     (mnemonic:'BVS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $29) ) ,
-     (mnemonic:'CBA'  ;large:false  ;code:( $11, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'CLC'  ;large:false  ;code:( $C , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'CLI'  ;large:false  ;code:( $E , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'CLR'  ;large:false  ;code:( 0  , 0  , 0  , $7F, $6F, 0  ) ) ,
-     (mnemonic:'CLRA' ;large:false  ;code:( $4F, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'CLRB' ;large:false  ;code:( $5F, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'CLV'  ;large:false  ;code:( $A , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'CMPA' ;large:false  ;code:( 0  , $81, $91, $B1, $A1, 0  ) ) ,
-     (mnemonic:'CMPB' ;large:false  ;code:( 0  , $C1, $D1, $F1, $E1, 0  ) ) ,
-     (mnemonic:'COM'  ;large:false  ;code:( 0  , 0  , 0  , $73, $63, 0  ) ) ,
-     (mnemonic:'COMA' ;large:false  ;code:( $43, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'COMB' ;large:false  ;code:( $53, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'CPX'  ;large:true   ;code:( 0  , $8C, $9C, $BC, $AC, 0  ) ) ,
-     (mnemonic:'DAA'  ;large:false  ;code:( $19, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'DEC'  ;large:false  ;code:( 0  , 0  , 0  , $7A, $6A, 0  ) ) ,
-     (mnemonic:'DECA' ;large:false  ;code:( $4A, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'DECB' ;large:false  ;code:( $5A, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'DES'  ;large:false  ;code:( $34, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'DEX'  ;large:false  ;code:( $09, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'EORA' ;large:false  ;code:( 0  , $88, $98, $B8, $A8, 0  ) ) ,
-     (mnemonic:'EORB' ;large:false  ;code:( 0  , $C8, $D8, $F8, $E8, 0  ) ) ,
-     (mnemonic:'INC'  ;large:false  ;code:( 0  , 0  , 0  , $7C, $6C, 0  ) ) ,
-     (mnemonic:'INCA' ;large:false  ;code:( $4C, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'INCB' ;large:false  ;code:( $5C, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'INS'  ;large:false  ;code:( $31, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'INT'  ;large:false  ;code:( 0  , 0  , $3F, 0  , 0  , 0  ) ) ,
-     (mnemonic:'INX'  ;large:false  ;code:( $08, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'JMP'  ;large:false  ;code:( 0  , 0  , 0  , $7E, $6E, 0  ) ) ,
-     (mnemonic:'JSR'  ;large:false  ;code:( 0  , 0  , $9D, $BD, $AD, 0  ) ) , { 6801 - +direct }
-(**) (mnemonic:'LDA'  ;large:false  ;code:( 0  , $86, $96, $B6, $A6, 0  ) ) ,
-     (mnemonic:'LDAA' ;large:false  ;code:( 0  , $86, $96, $B6, $A6, 0  ) ) ,
-     (mnemonic:'LDAB' ;large:false  ;code:( 0  , $C6, $D6, $F6, $E6, 0  ) ) ,
-(**) (mnemonic:'LDB'  ;large:false  ;code:( 0  , $C6, $D6, $F6, $E6, 0  ) ) ,
-     (mnemonic:'LDD'  ;large:true   ;code:( 0  , $CC, $DC, $FC, $EC, 0  ) ) , { 6801 }
-     (mnemonic:'LDS'  ;large:true   ;code:( 0  , $8E, $9E, $BE, $AE, 0  ) ) ,
-     (mnemonic:'LDX'  ;large:true   ;code:( 0  , $CE, $DE, $FE, $EE, 0  ) ) ,
-     (mnemonic:'LSL'  ;large:false  ;code:( 0  , 0  , 0  , $78, $68, 0  ) ) ,
-     (mnemonic:'LSLA' ;large:false  ;code:( $48, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'LSLB' ;large:false  ;code:( $58, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'LSLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
-     (mnemonic:'LSR'  ;large:false  ;code:( 0  , 0  , 0  , $74, $64, 0  ) ) ,
-     (mnemonic:'LSRA' ;large:false  ;code:( $44, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'LSRB' ;large:false  ;code:( $54, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'LSRD' ;large:false  ;code:( $04, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
-     (mnemonic:'MUL'  ;large:false  ;code:( $3D, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
-{ (**) (mnemonic:'NBA'  ;large:false  ;code:( $14, 0  , 0  , 0  , 0  , 0  ) ) , }
-     (mnemonic:'NEG'  ;large:false  ;code:( 0  , 0  , 0  , $70, $60, 0  ) ) ,
-     (mnemonic:'NEGA' ;large:false  ;code:( $40, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'NEGB' ;large:false  ;code:( $50, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'NOP'  ;large:false  ;code:( $01, 0  , 0  , 0  , 0  , 0  ) ) ,
-{ (**) (mnemonic:'OBA'  ;large:false  ;code:( $1a, 0  , 0  , 0  , 0  , 0  ) ) , }
-(**) (mnemonic:'ORA'  ;large:false  ;code:( 0  , $8A, $9A, $BA, $AA, 0  ) ) ,
-     (mnemonic:'ORAA' ;large:false  ;code:( 0  , $8A, $9A, $BA, $AA, 0  ) ) ,
-     (mnemonic:'ORAB' ;large:false  ;code:( 0  , $CA, $DA, $FA, $EA, 0  ) ) ,
-(**) (mnemonic:'ORB'  ;large:false  ;code:( 0  , $CA, $DA, $FA, $EA, 0  ) ) ,
-(**) (mnemonic:'PHA'  ;large:false  ;code:( $36, 0  , 0  , 0  , 0  , 0  ) ) ,
-(**) (mnemonic:'PHB'  ;large:false  ;code:( $37, 0  , 0  , 0  , 0  , 0  ) ) ,
-(**) (mnemonic:'PLA'  ;large:false  ;code:( $32, 0  , 0  , 0  , 0  , 0  ) ) ,
-(**) (mnemonic:'PLB'  ;large:false  ;code:( $33, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'PSHA' ;large:false  ;code:( $36, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'PSHB' ;large:false  ;code:( $37, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'PSHX' ;large:false  ;code:( $3C, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
-     (mnemonic:'PULA' ;large:false  ;code:( $32, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'PULB' ;large:false  ;code:( $33, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'PULX' ;large:false  ;code:( $38, 0  , 0  , 0  , 0  , 0  ) ) , { 6801 }
-     (mnemonic:'ROL'  ;large:false  ;code:( 0  , 0  , 0  , $79, $69, 0  ) ) ,
-     (mnemonic:'ROLA' ;large:false  ;code:( $49, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ROLB' ;large:false  ;code:( $59, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'ROR'  ;large:false  ;code:( 0  , 0  , 0  , $76, $66, 0  ) ) ,
-     (mnemonic:'RORA' ;large:false  ;code:( $46, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'RORB' ;large:false  ;code:( $56, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'RTI'  ;large:false  ;code:( $3B, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'RTS'  ;large:false  ;code:( $39, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'SBA'  ;large:false  ;code:( $10, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'SBCA' ;large:false  ;code:( 0  , $82, $92, $B2, $A2, 0  ) ) ,
-     (mnemonic:'SBCB' ;large:false  ;code:( 0  , $C2, $D2, $F2, $E2, 0  ) ) ,
-     (mnemonic:'SEC'  ;large:false  ;code:( $D , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'SEI'  ;large:false  ;code:( $F , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'SEV'  ;large:false  ;code:( $B , 0  , 0  , 0  , 0  , 0  ) ) ,
-(**) (mnemonic:'STA'  ;large:false  ;code:( 0  , 0  , $97, $B7, $A7, 0  ) ) ,
-     (mnemonic:'STAA' ;large:false  ;code:( 0  , 0  , $97, $B7, $A7, 0  ) ) ,
-     (mnemonic:'STAB' ;large:false  ;code:( 0  , 0  , $D7, $F7, $E7, 0  ) ) ,
-(**) (mnemonic:'STB'  ;large:false  ;code:( 0  , 0  , $D7, $F7, $E7, 0  ) ) ,
-     (mnemonic:'STD'  ;large:false  ;code:( 0  , 0  , $DD, $FD, $ED, 0  ) ) , { 6801 }
-     (mnemonic:'STS'  ;large:false  ;code:( 0  , 0  , $9F, $BF, $AF, 0  ) ) ,
-     (mnemonic:'STX'  ;large:false  ;code:( 0  , 0  , $DF, $FF, $EF, 0  ) ) ,
-     (mnemonic:'SUBA' ;large:false  ;code:( 0  , $80, $90, $B0, $A0, 0  ) ) ,
-     (mnemonic:'SUBB' ;large:false  ;code:( 0  , $C0, $D0, $F0, $E0, 0  ) ) ,
-     (mnemonic:'SUBD' ;large:true   ;code:( 0  , $83, $93, $B3, $A3, 0  ) ) , { 6801 }
-     (mnemonic:'SWI'  ;large:false  ;code:( $3F, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TAB'  ;large:false  ;code:( $16, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TAP'  ;large:false  ;code:( $6 , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TBA'  ;large:false  ;code:( $17, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TPA'  ;large:false  ;code:( $7 , 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TST'  ;large:false  ;code:( 0  , 0  , 0  , $7D, $6D, 0  ) ) ,
-     (mnemonic:'TSTA' ;large:false  ;code:( $4D, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TSTB' ;large:false  ;code:( $5D, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TSX'  ;large:false  ;code:( $30, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'TXS'  ;large:false  ;code:( $35, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'WAI'  ;large:false  ;code:( $3E, 0  , 0  , 0  , 0  , 0  ) ) ,
-     (mnemonic:'XGDX' ;large:false  ;code:( $8F, 0  , 0  , 0  , 0  , 0  ) ) , { 6811 }
-(**) (mnemonic:'XORA' ;large:false  ;code:( 0  , $88, $98, $B8, $A8, 0  ) ) ,
-(**) (mnemonic:'XORB' ;large:false  ;code:( 0  , $C8, $D8, $F8, $E8, 0  ) ) );
+     (* 	mnem	     large	   impl #    zp   abs  indXrel     page *)
+(    (mnemonic:'ABA'  ;large:false  ;code:( $1B, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'ABX'  ;large:false  ;code:( $3A, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'ABY'  ;large:false  ;code:( $3A, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+     (mnemonic:'ADCA' ;large:false  ;code:( 0  , $89, $99, $B9, $A9, 0  ); page:INH   ) ,
+     (mnemonic:'ADCB' ;large:false  ;code:( 0  , $C9, $D9, $F9, $E9, 0  ); page:INH   ) ,
+     (mnemonic:'ADDA' ;large:false  ;code:( 0  , $8B, $9B, $BB, $AB, 0  ); page:INH   ) ,
+     (mnemonic:'ADDB' ;large:false  ;code:( 0  , $CB, $DB, $FB, $EB, 0  ); page:INH   ) ,
+     (mnemonic:'ADDD' ;large:true   ;code:( 0  , $C3, $D3, $F3, $E3, 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'ANDA' ;large:false  ;code:( 0  , $84, $94, $B4, $A4, 0  ); page:INH   ) ,
+     (mnemonic:'ANDB' ;large:false  ;code:( 0  , $C4, $D4, $F4, $E4, 0  ); page:INH   ) ,
+     (mnemonic:'ASL'  ;large:false  ;code:( 0  , 0  , 0  , $78, $68, 0  ); page:INH   ) ,
+     (mnemonic:'ASLA' ;large:false  ;code:( $48, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'ASLB' ;large:false  ;code:( $58, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'ASLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'ASR'  ;large:false  ;code:( 0  , 0  , 0  , $77, $67, 0  ); page:INH   ) ,
+     (mnemonic:'ASRA' ;large:false  ;code:( $47, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'ASRB' ;large:false  ;code:( $57, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'BCC'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $24); page:INH   ) ,
+     (mnemonic:'BCS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $25); page:INH   ) ,
+     (mnemonic:'BEQ'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $27); page:INH   ) ,
+     (mnemonic:'BGE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2C); page:INH   ) ,
+     (mnemonic:'BGT'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2E); page:INH   ) ,
+     (mnemonic:'BHI'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $22); page:INH   ) ,
+     (mnemonic:'BHS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $24); page:INH   ) , { 6801 }
+     (mnemonic:'BITA' ;large:false  ;code:( 0  , $85, $95, $B5, $A5, 0  ); page:INH   ) ,
+     (mnemonic:'BITB' ;large:false  ;code:( 0  , $C5, $D5, $F5, $E5, 0  ); page:INH   ) ,
+     (mnemonic:'BLE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2F); page:INH   ) ,
+     (mnemonic:'BLO'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $25); page:INH   ) , { 6801 }
+     (mnemonic:'BLS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $23); page:INH   ) ,
+     (mnemonic:'BLT'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2D); page:INH   ) ,
+     (mnemonic:'BMI'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2B); page:INH   ) ,
+     (mnemonic:'BNE'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $26); page:INH   ) ,
+     (mnemonic:'BPL'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $2A); page:INH   ) ,
+     (mnemonic:'BRA'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $20); page:INH   ) ,
+     (mnemonic:'BRN'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $21); page:INH   ) , { 6801 }
+     (mnemonic:'BSR'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $8D); page:INH   ) ,
+     (mnemonic:'BVC'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $28); page:INH   ) ,
+     (mnemonic:'BVS'  ;large:false  ;code:( 0  , 0  , 0  , 0  , 0  , $29); page:INH   ) ,
+     (mnemonic:'CBA'  ;large:false  ;code:( $11, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'CLC'  ;large:false  ;code:( $C , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'CLI'  ;large:false  ;code:( $E , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'CLR'  ;large:false  ;code:( 0  , 0  , 0  , $7F, $6F, 0  ); page:INH   ) ,
+     (mnemonic:'CLRA' ;large:false  ;code:( $4F, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'CLRB' ;large:false  ;code:( $5F, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'CLV'  ;large:false  ;code:( $A , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'CMPA' ;large:false  ;code:( 0  , $81, $91, $B1, $A1, 0  ); page:INH   ) ,
+     (mnemonic:'CMPB' ;large:false  ;code:( 0  , $C1, $D1, $F1, $E1, 0  ); page:INH   ) ,
+     (mnemonic:'CMPD' ;large:true   ;code:( 0  , $83, $93, $B3, $A3, 0  ); page:CPD   ) , { 6811 }
+     (mnemonic:'CMPX' ;large:true   ;code:( 0  , $8C, $9C, $BC, $AC, 0  ); page:XOP   ) , { 6811 }
+     (mnemonic:'CMPY' ;large:true   ;code:( 0  , $8C, $9C, $BC, $AC, 0  ); page:YOP   ) , { 6811 }
+     (mnemonic:'COM'  ;large:false  ;code:( 0  , 0  , 0  , $73, $63, 0  ); page:INH   ) ,
+     (mnemonic:'COMA' ;large:false  ;code:( $43, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'COMB' ;large:false  ;code:( $53, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'CPA'  ;large:false  ;code:( 0  , $81, $91, $B1, $A1, 0  ); page:INH   ) ,
+     (mnemonic:'CPB'  ;large:false  ;code:( 0  , $C1, $D1, $F1, $E1, 0  ); page:INH   ) ,
+     (mnemonic:'CPD'  ;large:true   ;code:( 0  , $83, $93, $B3, $A3, 0  ); page:CPD   ) , { 6811 }
+     (mnemonic:'CPX'  ;large:true   ;code:( 0  , $8C, $9C, $BC, $AC, 0  ); page:XOP   ) , { 6811 }
+     (mnemonic:'CPY'  ;large:true   ;code:( 0  , $8C, $9C, $BC, $AC, 0  ); page:YOP   ) , { 6811 }
+     (mnemonic:'DAA'  ;large:false  ;code:( $19, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'DEC'  ;large:false  ;code:( 0  , 0  , 0  , $7A, $6A, 0  ); page:INH   ) ,
+     (mnemonic:'DECA' ;large:false  ;code:( $4A, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'DECB' ;large:false  ;code:( $5A, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'DES'  ;large:false  ;code:( $34, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'DEX'  ;large:false  ;code:( $09, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'DEY'  ;large:false  ;code:( $09, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+     (mnemonic:'EORA' ;large:false  ;code:( 0  , $88, $98, $B8, $A8, 0  ); page:INH   ) ,
+     (mnemonic:'EORB' ;large:false  ;code:( 0  , $C8, $D8, $F8, $E8, 0  ); page:INH   ) ,
+     (mnemonic:'FDIV' ;large:false  ;code:( $03, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6811 }
+     (mnemonic:'IDIV' ;large:false  ;code:( $02, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6811 }
+     (mnemonic:'INC'  ;large:false  ;code:( 0  , 0  , 0  , $7C, $6C, 0  ); page:INH   ) ,
+     (mnemonic:'INCA' ;large:false  ;code:( $4C, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'INCB' ;large:false  ;code:( $5C, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'INS'  ;large:false  ;code:( $31, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'INT'  ;large:false  ;code:( 0  , 0  , $3F, 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'INX'  ;large:false  ;code:( $08, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'INY'  ;large:false  ;code:( $08, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+     (mnemonic:'JMP'  ;large:false  ;code:( 0  , 0  , 0  , $7E, $6E, 0  ); page:INH   ) ,
+     (mnemonic:'JSR'  ;large:false  ;code:( 0  , 0  , $9D, $BD, $AD, 0  ); page:INH   ) , { 6801 - +direct }
+(**) (mnemonic:'LDA'  ;large:false  ;code:( 0  , $86, $96, $B6, $A6, 0  ); page:INH   ) ,
+     (mnemonic:'LDAA' ;large:false  ;code:( 0  , $86, $96, $B6, $A6, 0  ); page:INH   ) ,
+     (mnemonic:'LDAB' ;large:false  ;code:( 0  , $C6, $D6, $F6, $E6, 0  ); page:INH   ) ,
+(**) (mnemonic:'LDB'  ;large:false  ;code:( 0  , $C6, $D6, $F6, $E6, 0  ); page:INH   ) ,
+     (mnemonic:'LDD'  ;large:true   ;code:( 0  , $CC, $DC, $FC, $EC, 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'LDS'  ;large:true   ;code:( 0  , $8E, $9E, $BE, $AE, 0  ); page:INH   ) ,
+     (mnemonic:'LDX'  ;large:true   ;code:( 0  , $CE, $DE, $FE, $EE, 0  ); page:XOP   ) , { 6811 }
+     (mnemonic:'LDY'  ;large:true   ;code:( 0  , $CE, $DE, $FE, $EE, 0  ); page:YOP   ) , { 6811 }
+     (mnemonic:'LSL'  ;large:false  ;code:( 0  , 0  , 0  , $78, $68, 0  ); page:INH   ) ,
+     (mnemonic:'LSLA' ;large:false  ;code:( $48, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'LSLB' ;large:false  ;code:( $58, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'LSLD' ;large:false  ;code:( $05, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'LSR'  ;large:false  ;code:( 0  , 0  , 0  , $74, $64, 0  ); page:INH   ) ,
+     (mnemonic:'LSRA' ;large:false  ;code:( $44, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'LSRB' ;large:false  ;code:( $54, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'LSRD' ;large:false  ;code:( $04, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'MUL'  ;large:false  ;code:( $3D, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6801 }
+{ (**) (mnemonic:'NBA'  ;large:false  ;code:( $14, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , }
+     (mnemonic:'NEG'  ;large:false  ;code:( 0  , 0  , 0  , $70, $60, 0  ); page:INH   ) ,
+     (mnemonic:'NEGA' ;large:false  ;code:( $40, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'NEGB' ;large:false  ;code:( $50, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'NOP'  ;large:false  ;code:( $01, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+{ (**) (mnemonic:'OBA'  ;large:false  ;code:( $1a, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , }
+(**) (mnemonic:'ORA'  ;large:false  ;code:( 0  , $8A, $9A, $BA, $AA, 0  ); page:INH   ) ,
+     (mnemonic:'ORAA' ;large:false  ;code:( 0  , $8A, $9A, $BA, $AA, 0  ); page:INH   ) ,
+     (mnemonic:'ORAB' ;large:false  ;code:( 0  , $CA, $DA, $FA, $EA, 0  ); page:INH   ) ,
+(**) (mnemonic:'ORB'  ;large:false  ;code:( 0  , $CA, $DA, $FA, $EA, 0  ); page:INH   ) ,
+(**) (mnemonic:'PHA'  ;large:false  ;code:( $36, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+(**) (mnemonic:'PHB'  ;large:false  ;code:( $37, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+(**) (mnemonic:'PLA'  ;large:false  ;code:( $32, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+(**) (mnemonic:'PLB'  ;large:false  ;code:( $33, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'PSHA' ;large:false  ;code:( $36, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'PSHB' ;large:false  ;code:( $37, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'PSHX' ;large:false  ;code:( $3C, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'PSHY' ;large:false  ;code:( $3C, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+     (mnemonic:'PULA' ;large:false  ;code:( $32, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'PULB' ;large:false  ;code:( $33, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'PULX' ;large:false  ;code:( $38, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'PULY' ;large:false  ;code:( $38, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+     (mnemonic:'ROL'  ;large:false  ;code:( 0  , 0  , 0  , $79, $69, 0  ); page:INH   ) ,
+     (mnemonic:'ROLA' ;large:false  ;code:( $49, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'ROLB' ;large:false  ;code:( $59, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'ROR'  ;large:false  ;code:( 0  , 0  , 0  , $76, $66, 0  ); page:INH   ) ,
+     (mnemonic:'RORA' ;large:false  ;code:( $46, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'RORB' ;large:false  ;code:( $56, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'RTI'  ;large:false  ;code:( $3B, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'RTS'  ;large:false  ;code:( $39, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'SBA'  ;large:false  ;code:( $10, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'SBCA' ;large:false  ;code:( 0  , $82, $92, $B2, $A2, 0  ); page:INH   ) ,
+     (mnemonic:'SBCB' ;large:false  ;code:( 0  , $C2, $D2, $F2, $E2, 0  ); page:INH   ) ,
+     (mnemonic:'SEC'  ;large:false  ;code:( $D , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'SEI'  ;large:false  ;code:( $F , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'SEV'  ;large:false  ;code:( $B , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+(**) (mnemonic:'STA'  ;large:false  ;code:( 0  , 0  , $97, $B7, $A7, 0  ); page:INH   ) ,
+     (mnemonic:'STAA' ;large:false  ;code:( 0  , 0  , $97, $B7, $A7, 0  ); page:INH   ) ,
+     (mnemonic:'STAB' ;large:false  ;code:( 0  , 0  , $D7, $F7, $E7, 0  ); page:INH   ) ,
+(**) (mnemonic:'STB'  ;large:false  ;code:( 0  , 0  , $D7, $F7, $E7, 0  ); page:INH   ) ,
+     (mnemonic:'STD'  ;large:false  ;code:( 0  , 0  , $DD, $FD, $ED, 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'STOP' ;large:false  ;code:( $CF, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6811 }
+     (mnemonic:'STS'  ;large:false  ;code:( 0  , 0  , $9F, $BF, $AF, 0  ); page:INH   ) ,
+     (mnemonic:'STX'  ;large:false  ;code:( 0  , 0  , $DF, $FF, $EF, 0  ); page:XOP   ) , { 6811 }
+     (mnemonic:'STY'  ;large:false  ;code:( 0  , 0  , $DF, $FF, $EF, 0  ); page:YOP   ) , { 6811 }
+     (mnemonic:'SUBA' ;large:false  ;code:( 0  , $80, $90, $B0, $A0, 0  ); page:INH   ) ,
+     (mnemonic:'SUBB' ;large:false  ;code:( 0  , $C0, $D0, $F0, $E0, 0  ); page:INH   ) ,
+     (mnemonic:'SUBD' ;large:true   ;code:( 0  , $83, $93, $B3, $A3, 0  ); page:INH   ) , { 6801 }
+     (mnemonic:'SWI'  ;large:false  ;code:( $3F, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TAB'  ;large:false  ;code:( $16, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TAP'  ;large:false  ;code:( $6 , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TBA'  ;large:false  ;code:( $17, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TPA'  ;large:false  ;code:( $7 , 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TST'  ;large:false  ;code:( 0  , 0  , 0  , $7D, $6D, 0  ); page:INH   ) ,
+     (mnemonic:'TSTA' ;large:false  ;code:( $4D, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TSTB' ;large:false  ;code:( $5D, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TSX'  ;large:false  ;code:( $30, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TSY'  ;large:false  ;code:( $30, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+     (mnemonic:'TXS'  ;large:false  ;code:( $35, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'TYS'  ;large:false  ;code:( $35, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+     (mnemonic:'WAI'  ;large:false  ;code:( $3E, 0  , 0  , 0  , 0  , 0  ); page:INH   ) ,
+     (mnemonic:'XGDX' ;large:false  ;code:( $8F, 0  , 0  , 0  , 0  , 0  ); page:INH   ) , { 6811 }
+     (mnemonic:'XGDY' ;large:false  ;code:( $8F, 0  , 0  , 0  , 0  , 0  ); page:P2INH ) , { 6811 }
+(**) (mnemonic:'XORA' ;large:false  ;code:( 0  , $88, $98, $B8, $A8, 0  ); page:INH   ) ,
+(**) (mnemonic:'XORB' ;large:false  ;code:( 0  , $C8, $D8, $F8, $E8, 0  ); page:INH   ) );
 
   var
     instructions: instr_array;
@@ -302,6 +330,7 @@ program asm6800;
 
     ins_p: integer;
     mode: addr_modes;
+    index_reg: byte;
 
     errors: array[0..9] of byte;
     err_levels: array[0..9] of byte;
@@ -313,7 +342,7 @@ program asm6800;
     NotTruncating, TruncList, DontPrint: boolean;
 
     digits: array[0..15] of char;
-    directives: array[0..n_directives] of string[11];
+    directives: array[0..n_directives] of string[12];
 
     publics_ptr: ^publics_array;
     n_publics: integer;
@@ -686,10 +715,18 @@ program asm6800;
     if ((line[lind] >= 'A') and (line[lind] <= 'Z')) or (line[lind] = '_') then
       begin
       get_alpha;
-      if alpha <> 'X' then get_sym:= 1
+      if (alpha <> 'X') and (alpha <> 'Y') then get_sym:= 1
       else
 	begin
-	character:= 'X'; get_sym:= 2;
+	if alpha = 'X' then
+	  begin
+	  character:= 'X';
+	  get_sym:= 2;
+	  end else
+	  begin
+	  character:= 'Y';
+	  get_sym:= 2;
+	  end;
 	end;
       exit;
       end;
@@ -733,7 +770,7 @@ program asm6800;
 
   function bsearch(x: string; var  a; n:integer): integer;
     type
-      s_arr = array[0..200] of string[11];
+      s_arr = array[0..200] of string[12];
     var
       i, j, c: integer;
     begin
@@ -1083,13 +1120,16 @@ program asm6800;
 	  if look then error(ill_char, 1);
 	  get_mode:= imm; exit;
 	  end;
-	if character = 'X' then
+	if (character = 'X') or (character = 'Y') then
 	  begin
 	  dta_type:= low_byte; old_lind:= lind;
 	  sym:= get_sym;
 	  if sym = 0 then
 	    begin
-	    get_mode:= index; exit;
+	    index_reg := INDX;
+	    if character = 'Y' then index_reg := INDY;
+	    get_mode:= index;
+	    exit;
 	    end;
 	  if (sym = 2) and (character = ',') then expression;
 	  if look then error(ill_char, 1);
@@ -1104,10 +1144,13 @@ program asm6800;
       sym:= get_sym;
       if (sym = 2) and (character = ',') then
 	begin
-	if (get_sym = 2) and (character = 'X') then
+	if (get_sym = 2) and ((character = 'X') or (character = 'Y')) then
 	  begin
 	  dta_type:= low_byte;
-	  get_mode:= index; exit;
+	  index_reg := INDX;
+	  if character = 'Y' then index_reg := INDY;
+	  get_mode:= index;
+	  exit;
 	  end
 	end;
       if sym <> 0 then error(ILL_CHAR,1);
@@ -1207,6 +1250,30 @@ program asm6800;
       generated:= not_dummy;
       if has_lst and pass2 and gen_list
 	then write(lst, ' ':2);
+
+      if instructions[ins_p].page = P2INH then
+	begin
+	gen($18);
+	end
+      else if (mode = index) and (index_reg = INDY) and (instructions[ins_p].page = INH) then
+	begin
+	gen($18);
+	end
+      else if (instructions[ins_p].page = CPD) then
+	begin
+	if (mode = index) and (index_reg = INDY) then gen($CD)
+	else gen($1A);
+	end
+      else if (instructions[ins_p].page = XOP) then
+	begin
+	if (mode = index) and (index_reg = INDY) then gen($CD);
+	end
+      else if (instructions[ins_p].page = YOP) then
+	begin
+	if (mode = index) and (index_reg = INDX) then gen($1A)
+	else gen($18);
+	end;
+
       gen(instructions[ins_p].code[mode]);
       if mode = impl then
 	begin

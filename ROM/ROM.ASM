@@ -561,23 +561,22 @@ scroll	proc
 	deca
 	mul
 
-	db	$18, $3C	;	pshy
-	db	$18, $FE	;	ldy	SCRADDR
-	dw	SCRADDR
+	pshy
+	ldy	SCRADDR
 loop	psha
 	ldaa	0,x
-	db	$18, $A7, $00	;	staa	0,y
+	staa	0,y
 	inx
-	db	$18, $08	;	iny
+	iny
 	pula
 	subd	#1
 	bne	loop
 	ldaa	SCRSZX
-loop1	db	$18, $6F, $00	;	clr	0,y
-	db	$18, $08	;	iny
+loop1	clr	0,y
+	iny
 	deca
 	bne	loop1
-	db	$18, $38	;	puly
+	puly
 
 	rts
 	endp
@@ -1222,8 +1221,7 @@ swiret	sei
 	staa	6,x
 	pula
 	staa	7,x
-	db	$1a		; sty prefix
-	stx	8,x		; sty 8,x
+	sty	8,x
 exit	pulb
 	stab	RAMPAGE_SEL
 	rti
@@ -1234,8 +1232,7 @@ exit	pulb
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 bpt	proc
-	db	$18		; pshy prefix
-	pshx			; pshy
+	pshy
 	pshb
 	psha
 	pshx
@@ -1281,8 +1278,7 @@ bpt	proc
 	pulx
 	pula
 	pulb
-	db	$18		; puly prefix
-	pulx			; puly
+	puly
 	rts
 regshex	jmp	puthex
 
