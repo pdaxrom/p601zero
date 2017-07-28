@@ -1,5 +1,7 @@
 ## Pyldin-601 compatible computer.
 
+[History](docs/HISTORY.md)
+
 ### Overview hardware version 1.2:
 
 ![board version 1.2](docs/hw1.2.jpg)
