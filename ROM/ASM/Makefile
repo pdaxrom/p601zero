@@ -19,7 +19,9 @@ all: $(UNIASM)		\
     SDSECRW.CMD		\
     BOOTSEC.CMD		\
     CHIPTUNE.CMD	\
-    ymstreamer
+    ymstreamer		\
+    FAT16.CMD		\
+    cmd2srec
 
 $(UNIASM):
 	make -C $(shell dirname $(UNIASM)) $(shell basename $(UNIASM))

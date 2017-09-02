@@ -22,7 +22,9 @@
 
 	ldx	#kimscreen
 	ldaa	#$3
-	int	$12
+	int	F_SETVIDEOMODE
+
+	int	F_UART_IN
 
 	ldx	#instr
 	int	F_PUTSTR
@@ -45,17 +47,17 @@ loop	int	F_UART_IN
 	int	F_WARMRES
 setgraf	ldx	#kimscreen
 	ldaa	#3
-	int	$12
+	int	F_SETVIDEOMODE
 	bra	updcur
 settext	ldx	#textscreen
 	ldaa	#$0
-	int	$12
+	int	F_SETVIDEOMODE
 	bra	updcur
 
-getvmode int $13
+getvmode int	F_GETVIDEOMODE
 	ldx	#int13txt
 	int	F_PUTSTR
-	int	$13
+	int	F_GETVIDEOMODE
 	pshx
 	int	F_PUTHEX
 	ldaa	#' '
@@ -72,12 +74,12 @@ curincy	inc	cury
 
 updcur	ldaa	curx
 	ldab	cury
-	int	$15
+	int	F_SETCURSOR
 
 	ldx	#int14txt
 	int	F_PUTSTR
 
-	int	$14
+	int	F_GETCURSOR
 	pshx
 	int	F_PUTHEX
 
