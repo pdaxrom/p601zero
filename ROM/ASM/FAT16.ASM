@@ -6,6 +6,7 @@
 
 boot_buf	equ	$400
 dir_buf		equ	$600
+fil_buf		equ	$800
 kernel_addr	equ	$c000
 kernel_page	equ	$f
 kernel_initvec	equ	$dffe
@@ -14,7 +15,9 @@ kernel_initvec	equ	$dffe
 fats		ds	2
 fatsize		ds	2
 root_entries	ds	2
-rootsize	ds	2
+fat_start	ds	2
+root_start	ds	2
+data_start	ds	2
 sectorsize	ds	2
 clustersize	ds	2
 
@@ -36,7 +39,7 @@ ff_size		ds	0
 		jsr	opendir
 
 loop		cmpa	#$0b
-		beq	exit_dir
+		beq	read_file
 		tsta
 		bne	exit_err
 
@@ -49,6 +52,17 @@ loop		cmpa	#$0b
 		jsr	readdir
 
 		bra	loop
+
+
+read_file	ldx	#table_42
+		jsr	opendir
+		jsr	readdir
+		jsr	readdir
+
+		ldx	#table_42
+		jsr	openfile
+
+		bra	exit_dir
 
 exit_err	ldx	#t_error
 		int	F_PUTSTR
@@ -120,11 +134,8 @@ next		ldy	0,x
 
 		ldx	#dir_buf
 		stx	read_sec+4,y
-rdir2		pshy
-		pulx
-		ldab	#read_sec
-		abx
-		int	F_SD_READ
+
+rdir2		jsr	read_sector
 		tsta
 		bne	err_dirr
 		pulx
@@ -187,6 +198,95 @@ readdir		pshb
 ;
 ;
 ;
+openfile	proc
+		pshb
+		pshy
+		pshx
+		ldy	0,x
+		ldx	2,x
+		ldaa	_cluster+1,x
+		ldab	_cluster,x
+		subd	#2
+		ldx	clustersize,y
+		int	F_UMULT
+		addd	data_start,y
+		std	read_sec+2,y
+		xgdx
+		adcb	#0
+		adca	#0
+		std	read_sec,y
+
+		ldx	#fil_buf
+		stx	read_sec+4,y
+
+		jsr	read_sector
+
+		tsta
+		bne	exit
+
+		pulx
+		pshx
+		ldy	0,x
+		ldx	2,x
+		ldaa	_cluster+1,x
+		ldab	_cluster,x
+		int	F_BPT
+		bsr	getnextcluster
+		int	F_BPT
+
+exit		pulx
+		puly
+		pulb
+		rts
+		endp
+
+;
+; Convert cluster number to sector
+; In: D - cluster
+; Out: XD - sector
+;
+cluster2sec	proc
+		subd	#2
+		ldx	clustersize,y
+		int	F_UMULT
+		addd	data_start,y
+		xgdx
+		adcb	#0
+		adca	#0
+		xgdx
+		rts
+		endp
+
+;
+; Get next cluster
+; In: D - current cluster
+; Out: D - next cluster
+;
+getnextcluster	proc
+		pshb
+		tab
+		clra
+		lsld
+		addd	fat_start,y
+		std	read_sec+2,y
+		subd	read_sec+2,y
+		std	read_sec,y
+		ldx	#boot_buf
+		stx	read_sec+4,y
+		jsr	read_sector
+		pulb
+		clra
+		lsld
+		addd	read_sec+4,y
+		xgdx
+		ldab	0,x
+		ldaa	1,x
+		rts
+		endp
+
+;
+;
+;
 fat_open	proc
 ; read boot sector to init structure
 		ldd	#0
@@ -196,11 +296,8 @@ fat_open	proc
 		ldx	#boot_buf
 		stx	read_sec+4,y
 
-		pshy
-		pulx
-		ldab	#read_sec
-		abx
-		int	F_SD_READ
+		jsr	read_sector
+
 		tsta
 		beq	next1
 		rts
@@ -234,14 +331,15 @@ next1		ldx	#boot_buf
 ; save reserved sectors
 		ldaa	_reserved_sectors+1,x
 		ldab	_reserved_sectors,x
-		std	read_sec+2,y		; fat_start = _reserved_sectors
+		std	fat_start,y		; fat_start = _reserved_sectors
 
 		ldx	fatsize,y
 		ldd	fats,y
 		int	F_UMULT
 
-		addd	read_sec+2,y
-		std	read_sec+2,y		; fat_start += fatsize * fats
+		addd	fat_start,y
+		std	root_start,y
+		std	read_sec+2,y		; root_start += fatsize * fats
 
 		ldd	root_entries,y
 		ldx	#32
@@ -250,7 +348,8 @@ next1		ldx	#boot_buf
 		xgdx
 		ldd	sectorsize,y
 		int	F_UDIV
-		std	rootsize,y		; rootsize = root_entries * 32 / sectorsize
+		addd	root_start,y
+		std	data_start,y		; data_start = fat_start + root_entries * 32 / sectorsize
 
 		ldd	#$ffff
 		std	cluster_left,y		;
@@ -258,6 +357,19 @@ next1		ldx	#boot_buf
 		ldd	#0
 		std	file_left,y		;
 		clra
+		rts
+		endp
+
+;
+;
+;
+read_sector	proc
+		pshy
+		xgdy
+		addd	#read_sec
+		xgdx
+		int	F_SD_READ
+		puly
 		rts
 		endp
 
